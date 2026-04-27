@@ -508,10 +508,38 @@
       color: var(--text-dim); text-transform: uppercase;
       pointer-events: none; z-index: 5;
     }
+
+    /* 遊玩中的退出按鈕 (右下角) */
+    .game-exit-btn {
+      position: fixed;
+      bottom: 14px;
+      right: 14px;
+      width: 40px; height: 40px;
+      background: rgba(10, 18, 32, 0.75);
+      border: 1px solid rgba(107, 122, 144, 0.5);
+      color: var(--text-dim);
+      font-size: 16px;
+      font-family: 'Orbitron', sans-serif;
+      cursor: pointer;
+      z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .game-exit-btn:hover, .game-exit-btn:active {
+      color: var(--neon-red);
+      border-color: var(--neon-red);
+      background: rgba(255, 71, 87, 0.12);
+      box-shadow: 0 0 18px rgba(255, 71, 87, 0.4);
+    }
+    .game-exit-btn.hidden { display: none; }
   </style>
 </head>
 <body>
   <canvas id="game-canvas"></canvas>
+
+  <button class="game-exit-btn hidden" id="game-exit-btn" title="退出">✕</button>
 
   <div id="hud">
     <div class="hud-item" id="score-display"><div class="hud-label">Score</div><div class="hud-value">000000</div></div>
@@ -987,12 +1015,12 @@
         if (t >= endTime - 0.05) {
           // 完成長按 → 給予獎勵
           note.completed = true;
+          note.holding = false;
           this.holdingNote[lane] = null;
           const bonus = Math.floor(50 + note.duration * 50);
           this.score += bonus * (1 + this.combo * 0.005);
           this.combo++;
           this.maxCombo = Math.max(this.maxCombo, this.combo);
-          // 視覺：拖尾完成的爆炸效果
           const x = lane * this.laneWidth + this.laneWidth / 2;
           for (let i = 0; i < 14; i++) {
             this.particles.push(new Particle(x, this.hitY, '#ffd700'));
@@ -1217,7 +1245,7 @@
     }
 
     handleRelease(lane) {
-      // 如果該軌正在按住長按音符，檢查是否提早放開
+      // 如果該軌正在按住長按音符
       const note = this.holdingNote[lane];
       if (!note) return;
       const t = this.audio.getCurrentTime();
@@ -1228,17 +1256,28 @@
       note.holding = false;
 
       if (t < endTime - earlyTolerance) {
-        // 提早放開 → 中斷長按 → 斷 combo
+        // 提早放開 → 中斷 → 斷 combo + 標記為已結束 (視覺停止顯示)
         this.combo = 0;
+        note.missed = true;  // 防止視覺繼續顯示拖尾
         const x = lane * this.laneWidth + this.laneWidth / 2;
         this.judgments.push(new Judgment(x, this.hitY - 56, 'BREAK', '#ff4757'));
-        // 視覺：紅色破裂粒子
         for (let i = 0; i < 8; i++) {
           this.particles.push(new Particle(x, this.hitY, '#ff4757'));
         }
+      } else if (!note.completed) {
+        // 在容忍範圍內放開 → 視為完成 (給予獎勵)
+        note.completed = true;
+        const bonus = Math.floor(50 + note.duration * 50);
+        this.score += bonus * (1 + this.combo * 0.005);
+        this.combo++;
+        this.maxCombo = Math.max(this.maxCombo, this.combo);
+        const x = lane * this.laneWidth + this.laneWidth / 2;
+        for (let i = 0; i < 14; i++) {
+          this.particles.push(new Particle(x, this.hitY, '#ffd700'));
+        }
+        this.judgments.push(new Judgment(x, this.hitY - 56, 'HOLD!', '#ffd700'));
       }
-      // 如果在容忍範圍內放開，update() 會自動把它判為完成
-      // (這裡不重複處理)
+      // 如果 update() 已自動完成 (note.completed=true)，這裡不重複處理
     }
     recordJudgment(type, lane) {
       this.stats[type]++;
@@ -1444,14 +1483,33 @@
         this.preview.stop();
         document.getElementById('detail-screen').classList.add('hidden');
         document.getElementById('results-screen').classList.add('hidden');
+        document.getElementById('game-exit-btn').classList.remove('hidden');
         await this.game.start(this.selectedDifficulty);
       });
 
       document.getElementById('retry-btn').addEventListener('click', async () => {
         this.preview.stop();
         document.getElementById('results-screen').classList.add('hidden');
+        document.getElementById('game-exit-btn').classList.remove('hidden');
         await this.game.start(this.selectedDifficulty);
       });
+
+      // 遊玩中的退出按鈕 → 中止遊戲並回到難度選擇頁
+      document.getElementById('game-exit-btn').addEventListener('click', () => {
+        this.exitGame();
+      });
+    }
+
+    exitGame() {
+      this.game.abort();
+      document.getElementById('game-exit-btn').classList.add('hidden');
+      document.getElementById('results-screen').classList.add('hidden');
+      // 回到該歌的難度選擇頁
+      if (this.currentSong) {
+        document.getElementById('detail-screen').classList.remove('hidden');
+      } else {
+        document.getElementById('menu-screen').classList.remove('hidden');
+      }
     }
 
     async selectSong(song) {
@@ -1511,10 +1569,13 @@
       document.getElementById('menu-screen').classList.remove('hidden');
       document.getElementById('detail-screen').classList.add('hidden');
       document.getElementById('results-screen').classList.add('hidden');
+      document.getElementById('game-exit-btn').classList.add('hidden');
       this.renderSongList(); // refresh high scores
     }
 
     showResults(r) {
+      // 遊戲結束 → 隱藏退出按鈕
+      document.getElementById('game-exit-btn').classList.add('hidden');
       const dn = r.difficulty.charAt(0).toUpperCase() + r.difficulty.slice(1);
       document.getElementById('results-diff-label').textContent = `${r.song.title} · ${dn}`;
       document.getElementById('grade').textContent = r.grade;
