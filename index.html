@@ -1223,18 +1223,18 @@
         const bot = Math.max(tailY, headY);
         if (bot - top > 1) {
           ctx.save();
-          ctx.globalAlpha = isActiveHold ? 0.9 : 0.6;
+          ctx.globalAlpha = isActiveHold ? 0.55 : 0.32;
           const grad = ctx.createLinearGradient(0, top, 0, bot);
           grad.addColorStop(0, color + '00');  // 上端漸透明
-          grad.addColorStop(0.18, color);
-          grad.addColorStop(1, color);
+          grad.addColorStop(0.25, color + '88');
+          grad.addColorStop(1, color + 'cc');
           ctx.fillStyle = grad;
-          ctx.shadowBlur = isActiveHold ? 24 : 12;
+          ctx.shadowBlur = isActiveHold ? 12 : 6;
           ctx.shadowColor = color;
           ctx.fillRect(tailX, top, tailW, bot - top);
-          // 中間發光細線 (active 時更亮)
+          // 中間發光細線 (active 時更亮，但比之前淡)
           if (isActiveHold) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.shadowBlur = 0;
             ctx.fillRect(tailX + tailW / 2 - 1, top, 2, bot - top);
           }
@@ -1366,34 +1366,38 @@
       if (!note) return;
       const t = this.audio.getCurrentTime();
       const endTime = note.time + note.duration;
-      const earlyTolerance = 0.10;  // 容許略提早放開
 
       this.holdingNote[lane] = null;
       note.holding = false;
 
-      if (t < endTime - earlyTolerance) {
-        // 提早放開 → 中斷 → 斷 combo + 標記為已結束 (視覺停止顯示)
-        this.combo = 0;
-        note.missed = true;  // 防止視覺繼續顯示拖尾
-        const x = lane * this.laneWidth + this.laneWidth / 2;
-        this.judgments.push(new Judgment(x, this.hitY - 56, 'BREAK', '#ff4757'));
-        for (let i = 0; i < 8; i++) {
-          this.particles.push(new Particle(x, this.hitY, '#ff4757'));
-        }
-      } else if (!note.completed) {
-        // 在容忍範圍內放開 → 視為完成 (給予獎勵)
-        note.completed = true;
-        const bonus = Math.floor(50 + note.duration * 50);
-        this.score += bonus * (1 + this.combo * 0.005);
+      if (note.completed) return;
+      note.completed = true;  // 標記結束 (視覺停止顯示拖尾)
+
+      // 計算「按住的比例」 — 0 (剛按就放) 到 1 (完整按完)
+      const heldDuration = Math.max(0, t - note.time);
+      const ratio = Math.min(1, heldDuration / note.duration);
+
+      // 分數依比例給：完整 100% 拿到 50 + duration*50；中途放比例縮減
+      const fullBonus = Math.floor(50 + note.duration * 50);
+      const earnedBonus = Math.floor(fullBonus * ratio);
+      this.score += earnedBonus * (1 + this.combo * 0.005);
+
+      const x = lane * this.laneWidth + this.laneWidth / 2;
+      if (ratio >= 0.95) {
+        // 接近完整 → HOLD! 大字 + combo +1 + 金粒子
         this.combo++;
         this.maxCombo = Math.max(this.maxCombo, this.combo);
-        const x = lane * this.laneWidth + this.laneWidth / 2;
         for (let i = 0; i < 14; i++) {
           this.particles.push(new Particle(x, this.hitY, '#ffd700'));
         }
         this.judgments.push(new Judgment(x, this.hitY - 56, 'HOLD!', '#ffd700'));
+      } else if (ratio >= 0.4) {
+        // 中段放開 → 綠色粒子，無大字提示，不斷 combo
+        for (let i = 0; i < 8; i++) {
+          this.particles.push(new Particle(x, this.hitY, '#4ade80'));
+        }
       }
-      // 如果 update() 已自動完成 (note.completed=true)，這裡不重複處理
+      // 立刻放開 (<40%): 沒有任何 miss 或斷 combo，純粹少拿分而已
     }
     recordJudgment(type, lane) {
       this.stats[type]++;
