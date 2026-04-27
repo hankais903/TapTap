@@ -469,6 +469,8 @@
     perfectScore: 100,
     goodScore:    60,
     okayScore:    30,
+    // 音樂開始播放後等多少秒才出現第一顆音符 (給玩家先感受節奏)
+    introDelay: 4.0,
   };
 
   const DIFFICULTY_PRESETS = {
@@ -676,14 +678,18 @@
     async start(diff) {
       this.setDifficulty(diff);
       const rawNotes = this.allCharts[diff];
-      this.notes = rawNotes.map((n, i) => ({ id: i, time: n.time, lane: n.lane, hit: false, missed: false }));
+      // 過濾掉太早的音符 (introDelay 秒前的)，讓玩家先聽幾秒音樂
+      this.notes = rawNotes
+        .filter(n => n.time >= CONFIG.introDelay)
+        .map((n, i) => ({ id: i, time: n.time, lane: n.lane, hit: false, missed: false }));
       this.totalNotes = this.notes.length;
       this.particles = []; this.judgments = [];
       this.score = 0; this.combo = 0; this.maxCombo = 0;
       this.stats = { perfect: 0, good: 0, okay: 0, miss: 0 };
 
       if (this.audio.ctx.state === 'suspended') await this.audio.ctx.resume();
-      const leadIn = CONFIG.fallTime + 0.4;
+      // introDelay 已涵蓋緩衝時間，只需要極短的 audio 啟動延遲
+      const leadIn = 0.3;
       const audioStart = this.audio.audioTime + leadIn;
       this.audio.start(audioStart);
 
@@ -775,6 +781,45 @@
       }
       for (const p of this.particles) p.draw(ctx);
       for (const j of this.judgments) j.draw(ctx);
+
+      // Intro countdown overlay - 在第一顆音符出現前顯示提示
+      const elapsed = this.audio.getCurrentTime();
+      if (elapsed < CONFIG.introDelay && elapsed > -1) {
+        const remaining = CONFIG.introDelay - elapsed;
+        ctx.save();
+        ctx.textAlign = 'center';
+
+        if (remaining > 3) {
+          // 早期：GET READY 訊息
+          const opacity = Math.min(1, (CONFIG.introDelay - remaining) / 0.6);
+          ctx.globalAlpha = opacity;
+          ctx.fillStyle = '#00eaff';
+          ctx.shadowBlur = 24;
+          ctx.shadowColor = '#00eaff';
+          ctx.font = 'bold 32px Orbitron, sans-serif';
+          ctx.fillText('GET READY', w / 2, h * 0.42);
+
+          ctx.font = '11px JetBrains Mono, monospace';
+          ctx.globalAlpha = opacity * 0.7;
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = '#6b7a90';
+          ctx.fillText('感受節奏', w / 2, h * 0.46);
+        } else if (remaining > 0) {
+          // 倒數 3-2-1：每秒一個大數字，會放大淡出
+          const num = Math.max(1, Math.ceil(remaining));
+          const fracInSec = num - remaining; // 0 到 1，秒內的進度
+          const scale = 1 + fracInSec * 0.4;
+          const alpha = 1 - fracInSec * 0.85;
+
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = num === 1 ? '#ff2e9f' : '#00eaff';
+          ctx.shadowBlur = 40;
+          ctx.shadowColor = ctx.fillStyle;
+          ctx.font = `bold ${Math.floor(110 * scale)}px Orbitron, sans-serif`;
+          ctx.fillText(String(num), w / 2, h * 0.5);
+        }
+        ctx.restore();
+      }
     }
     roundRect(ctx, x, y, w, h, r) {
       ctx.beginPath(); ctx.moveTo(x + r, y);
