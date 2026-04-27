@@ -134,11 +134,14 @@
       flex-shrink: 0;
       background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
       position: relative;
+      isolation: isolate; /* iOS Safari: 建立 stacking context 讓 z-index 正確生效 */
     }
     .song-card .cover::after {
       content: '';
       position: absolute; inset: 0;
       background: rgba(5, 8, 16, 0.35);
+      z-index: 1;
+      pointer-events: none; /* 不擋點擊事件 */
     }
     /* YouTube 連結 (位於封面右下角) */
     .song-card .yt-link {
@@ -154,7 +157,7 @@
       justify-content: center;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
       transition: transform 0.12s, box-shadow 0.12s;
-      z-index: 2;
+      z-index: 5; /* 高於 ::after 的 z-index: 1 */
       text-decoration: none;
     }
     .song-card .yt-link:hover, .song-card .yt-link:active {
