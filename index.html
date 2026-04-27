@@ -346,6 +346,62 @@
     @keyframes pulse {
       0%, 100% { opacity: 0.7; } 50% { opacity: 1; }
     }
+
+    /* Perfect / Full Combo 徽章 (大且明顯) */
+    .results-perfect-badge {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(38px, 8vw, 64px);
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      margin: -4px 0 14px;
+      padding: 0 18px;
+      background: linear-gradient(90deg, #ffd700 0%, #ff2e9f 35%, #00eaff 70%, #ffd700 100%);
+      background-size: 300% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 0 32px rgba(255, 215, 0, 0.55));
+      text-transform: uppercase;
+      animation: perfect-shimmer 2.4s linear infinite, perfect-pulse 1.4s ease-in-out infinite;
+      text-align: center;
+      line-height: 1;
+    }
+    .results-perfect-badge.hidden { display: none; }
+    .results-perfect-badge.full-combo {
+      background: linear-gradient(90deg, #4ade80 0%, #00eaff 50%, #b388ff 100%);
+      background-size: 200% 100%;
+      filter: drop-shadow(0 0 24px rgba(0, 234, 255, 0.55));
+    }
+    @keyframes perfect-shimmer {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 300% 0%; }
+    }
+    @keyframes perfect-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+
+    /* Max Combo 行 */
+    .results-max-combo {
+      display: flex; align-items: baseline; justify-content: center;
+      gap: 14px;
+      margin-bottom: 26px;
+    }
+    .mc-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    .mc-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--neon-magenta);
+      text-shadow: 0 0 14px rgba(255, 46, 159, 0.5);
+      letter-spacing: 0.05em;
+    }
     .results-stats {
       display: grid; grid-template-columns: repeat(4, 1fr);
       gap: 20px; margin-bottom: 32px;
@@ -437,8 +493,13 @@
   <div class="overlay hidden" id="results-screen">
     <div class="results-title" id="results-diff-label">Stage Clear</div>
     <div class="results-grade" id="grade">S</div>
+    <div class="results-perfect-badge hidden" id="results-perfect-badge">ALL PERFECT</div>
     <div class="results-score" id="final-score">000000</div>
     <div class="new-record hidden" id="new-record">★ New Record</div>
+    <div class="results-max-combo">
+      <span class="mc-label">Max Combo</span>
+      <span class="mc-value" id="max-combo-value">0</span>
+    </div>
     <div class="results-stats">
       <div class="stat perfect"><div class="stat-label">Perfect</div><div class="stat-value" id="stat-perfect">0</div></div>
       <div class="stat good"><div class="stat-label">Good</div><div class="stat-value" id="stat-good">0</div></div>
@@ -830,19 +891,37 @@
     }
     handleHit(lane) {
       const t = this.audio.getCurrentTime();
-      let closest = null, closestDelta = Infinity;
+      // 「消除窗」比 okay window 大 70ms，讓太早/太晚的按鍵也能消耗對應音符 (避免雙重 miss)
+      const consumeWindow = CONFIG.windowOkay + 0.07;
+
+      let closestNote = null;
+      let closestDelta = Infinity;
       for (const note of this.notes) {
         if (note.hit || note.missed || note.lane !== lane) continue;
         const delta = note.time - t;
-        if (Math.abs(delta) < Math.abs(closestDelta) && Math.abs(delta) <= CONFIG.windowOkay) {
-          closestDelta = delta; closest = note;
+        if (Math.abs(delta) < Math.abs(closestDelta) && Math.abs(delta) <= consumeWindow) {
+          closestDelta = delta;
+          closestNote = note;
         }
       }
-      if (closest) {
-        closest.hit = true;
-        const ad = Math.abs(closestDelta);
-        const j = ad <= CONFIG.windowPerfect ? 'perfect' : ad <= CONFIG.windowGood ? 'good' : 'okay';
-        this.recordJudgment(j, lane);
+
+      if (closestNote) {
+        const absDelta = Math.abs(closestDelta);
+        if (absDelta <= CONFIG.windowOkay) {
+          // 在判定窗內 → 命中
+          closestNote.hit = true;
+          const j = absDelta <= CONFIG.windowPerfect ? 'perfect'
+                  : absDelta <= CONFIG.windowGood    ? 'good'
+                                                    : 'okay';
+          this.recordJudgment(j, lane);
+        } else {
+          // 太早/太晚但在消除窗內 → 消耗該音符並判 miss
+          closestNote.missed = true;
+          this.recordJudgment('miss', lane);
+        }
+      } else {
+        // 附近沒有音符 → 空按 miss
+        this.recordJudgment('miss', lane);
       }
     }
     recordJudgment(type, lane) {
@@ -890,6 +969,7 @@
       const isNewRecord = Highscore.set(this.currentSong.id, this.currentDifficulty, Math.floor(this.score));
       if (this.onEnd) this.onEnd({
         grade, score: Math.floor(this.score), stats: { ...this.stats },
+        maxCombo: this.maxCombo,
         difficulty: this.currentDifficulty, isNewRecord, song: this.currentSong,
       });
     }
@@ -1052,10 +1132,33 @@
       document.getElementById('grade').textContent = r.grade;
       document.getElementById('final-score').textContent = String(r.score).padStart(6, '0');
       document.getElementById('new-record').classList.toggle('hidden', !r.isNewRecord);
+      document.getElementById('max-combo-value').textContent = r.maxCombo || 0;
       document.getElementById('stat-perfect').textContent = r.stats.perfect;
       document.getElementById('stat-good').textContent = r.stats.good;
       document.getElementById('stat-okay').textContent = r.stats.okay;
       document.getElementById('stat-miss').textContent = r.stats.miss;
+
+      // Perfect / Full Combo 徽章
+      const badge = document.getElementById('results-perfect-badge');
+      const allPerfect = r.stats.perfect > 0
+                      && r.stats.good === 0
+                      && r.stats.okay === 0
+                      && r.stats.miss === 0;
+      const fullCombo = !allPerfect
+                      && r.stats.miss === 0
+                      && (r.stats.perfect + r.stats.good + r.stats.okay) > 0;
+      badge.classList.remove('full-combo');
+      if (allPerfect) {
+        badge.textContent = 'ALL PERFECT';
+        badge.classList.remove('hidden');
+      } else if (fullCombo) {
+        badge.textContent = 'FULL COMBO';
+        badge.classList.add('full-combo');
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+
       document.getElementById('results-screen').classList.remove('hidden');
     }
   }
