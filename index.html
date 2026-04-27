@@ -534,12 +534,98 @@
       box-shadow: 0 0 18px rgba(255, 71, 87, 0.4);
     }
     .game-exit-btn.hidden { display: none; }
+
+    /* 確認退出對話框 */
+    .confirm-modal {
+      position: fixed; inset: 0;
+      background: rgba(5, 8, 16, 0.7);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .confirm-modal.hidden { display: none; }
+    .confirm-box {
+      background: var(--bg-mid);
+      border: 1px solid var(--neon-red);
+      box-shadow: 0 0 40px rgba(255, 71, 87, 0.25),
+                  0 8px 60px rgba(0, 0, 0, 0.6);
+      padding: 30px 28px 24px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+      animation: confirm-pop 0.18s ease-out;
+    }
+    @keyframes confirm-pop {
+      from { transform: scale(0.9); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    .confirm-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .confirm-desc {
+      font-size: 12px;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      margin-bottom: 26px;
+    }
+    .confirm-buttons {
+      display: flex; gap: 10px;
+    }
+    .confirm-btn {
+      flex: 1;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      padding: 14px 0;
+      cursor: pointer;
+      border: 1px solid;
+      background: transparent;
+      transition: all 0.15s;
+    }
+    .confirm-btn.cancel {
+      border-color: var(--text-dim);
+      color: var(--text-dim);
+    }
+    .confirm-btn.cancel:hover, .confirm-btn.cancel:active {
+      border-color: var(--text);
+      color: var(--text);
+      background: rgba(232, 237, 245, 0.06);
+    }
+    .confirm-btn.confirm {
+      border-color: var(--neon-red);
+      color: var(--neon-red);
+    }
+    .confirm-btn.confirm:hover, .confirm-btn.confirm:active {
+      background: var(--neon-red);
+      color: var(--bg-deep);
+      box-shadow: 0 0 24px rgba(255, 71, 87, 0.5);
+    }
   </style>
 </head>
 <body>
   <canvas id="game-canvas"></canvas>
 
   <button class="game-exit-btn hidden" id="game-exit-btn" title="退出">✕</button>
+
+  <!-- 退出確認對話框 -->
+  <div class="confirm-modal hidden" id="exit-confirm-modal">
+    <div class="confirm-box">
+      <div class="confirm-title">退出遊戲？</div>
+      <div class="confirm-desc">目前進度不會儲存</div>
+      <div class="confirm-buttons">
+        <button class="confirm-btn cancel" id="exit-cancel-btn">取消</button>
+        <button class="confirm-btn confirm" id="exit-confirm-btn">退出</button>
+      </div>
+    </div>
+  </div>
 
   <div id="hud">
     <div class="hud-item" id="score-display"><div class="hud-label">Score</div><div class="hud-value">000000</div></div>
@@ -866,6 +952,7 @@
       this.holdingNote = [null, null, null, null]; // 每軌目前正在按住的長按音符
       this.touchToLane = new Map();
       this.running = false;
+      this.paused = false;
       this.lastFrameTime = 0;
       this.endTime = 0;
       this.currentSong = null;
@@ -971,6 +1058,7 @@
       this.score = 0; this.combo = 0; this.maxCombo = 0;
       this.stats = { perfect: 0, good: 0, okay: 0, miss: 0 };
       this.holdingNote = [null, null, null, null];
+      this.paused = false;
 
       if (this.audio.ctx.state === 'suspended') await this.audio.ctx.resume();
       // introDelay 已涵蓋緩衝時間，只需要極短的 audio 啟動延遲
@@ -986,11 +1074,36 @@
 
     abort() {
       this.running = false;
+      this.paused = false;
       this.audio.stop();
+    }
+
+    pause() {
+      if (!this.running || this.paused) return;
+      this.paused = true;
+      // 暫停 AudioContext 讓音樂跟邏輯時間都停下來
+      if (this.audio.ctx && this.audio.ctx.state === 'running') {
+        this.audio.ctx.suspend();
+      }
+    }
+
+    resume() {
+      if (!this.running || !this.paused) return;
+      this.paused = false;
+      this.lastFrameTime = performance.now();  // 避免 dt 暴衝
+      if (this.audio.ctx && this.audio.ctx.state === 'suspended') {
+        this.audio.ctx.resume();
+      }
     }
 
     loop(timestamp) {
       if (!this.running) return;
+      if (this.paused) {
+        // 暫停中：保持 draw (顯示凍結畫面) 但不 update
+        this.draw();
+        requestAnimationFrame(t => this.loop(t));
+        return;
+      }
       const dt = Math.min((timestamp - this.lastFrameTime) / 1000, 0.05);
       this.lastFrameTime = timestamp;
       this.update(dt); this.draw();
@@ -1076,13 +1189,19 @@
       for (const note of this.notes) {
         if (note.duration <= 0) continue;
         if (note.completed) continue;
+        if (note.missed) continue;
         const noteEndTime = note.time + note.duration;
         const tuHead = note.time - t;
         const tuTail = noteEndTime - t;
-        // 整段都還在未來太遠 → 跳過
-        if (tuTail > CONFIG.fallTime) continue;
-        // 整段都已經過去 → 跳過
-        if (tuHead < -CONFIG.windowOkay && t > noteEndTime + 0.2) continue;
+        const isActiveHold = note.hit && note.holding;
+
+        // 可見性檢查 (active hold 時永遠畫，因為頭部釘在判定線)
+        if (!isActiveHold) {
+          if (tuHead > CONFIG.fallTime) continue;       // 頭部還沒進入畫面
+          if (tuTail < -CONFIG.windowOkay - 0.2) continue; // 整條已通過
+        } else {
+          if (tuTail < -0.05) continue; // active hold 但拖尾完全結束
+        }
 
         // 計算 head 與 tail tip 的螢幕 y
         let headProg = 1 - (tuHead / CONFIG.fallTime);
@@ -1090,11 +1209,8 @@
         let headY = this.spawnY + (this.hitY - this.spawnY) * headProg;
         const tailY = this.spawnY + (this.hitY - this.spawnY) * tailProg;
 
-        // 如果頭已被按下 (note.hit) 並且仍在按住中，head 視覺停在判定線
-        const isActiveHold = note.hit && note.holding;
+        // 如果頭已被按下並且仍在按住中，頭部停在判定線
         if (isActiveHold) headY = this.hitY;
-        // 如果已經 missed，淡出
-        if (note.missed) continue;
 
         const x = note.lane * this.laneWidth;
         const color = (note.lane === 1 || note.lane === 2) ? '#ff2e9f' : '#00eaff';
@@ -1107,13 +1223,13 @@
         const bot = Math.max(tailY, headY);
         if (bot - top > 1) {
           ctx.save();
-          ctx.globalAlpha = isActiveHold ? 0.85 : 0.55;
+          ctx.globalAlpha = isActiveHold ? 0.9 : 0.6;
           const grad = ctx.createLinearGradient(0, top, 0, bot);
-          grad.addColorStop(0, color + '00');  // 透明
-          grad.addColorStop(0.15, color);
+          grad.addColorStop(0, color + '00');  // 上端漸透明
+          grad.addColorStop(0.18, color);
           grad.addColorStop(1, color);
           ctx.fillStyle = grad;
-          ctx.shadowBlur = isActiveHold ? 22 : 10;
+          ctx.shadowBlur = isActiveHold ? 24 : 12;
           ctx.shadowColor = color;
           ctx.fillRect(tailX, top, tailW, bot - top);
           // 中間發光細線 (active 時更亮)
@@ -1494,8 +1610,19 @@
         await this.game.start(this.selectedDifficulty);
       });
 
-      // 遊玩中的退出按鈕 → 中止遊戲並回到難度選擇頁
+      // 遊玩中的退出按鈕 → 顯示確認對話框 + 暫停遊戲
       document.getElementById('game-exit-btn').addEventListener('click', () => {
+        this.game.pause();
+        document.getElementById('exit-confirm-modal').classList.remove('hidden');
+      });
+      // 取消 → 關閉對話框，恢復遊戲
+      document.getElementById('exit-cancel-btn').addEventListener('click', () => {
+        document.getElementById('exit-confirm-modal').classList.add('hidden');
+        this.game.resume();
+      });
+      // 確認退出
+      document.getElementById('exit-confirm-btn').addEventListener('click', () => {
+        document.getElementById('exit-confirm-modal').classList.add('hidden');
         this.exitGame();
       });
     }
