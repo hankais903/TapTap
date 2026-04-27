@@ -3,6 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- 對抗 iOS WKWebView 快取，桌面 app 才會抓最新版 -->
+  <meta http-equiv="Cache-Control" content="no-cache, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <!-- iOS 桌面 app 設定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="NEON BEAT" />
+  <meta name="theme-color" content="#050810" />
+
   <title>NEON BEAT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -1058,8 +1070,10 @@
     async loadSong(songMeta) {
       this.currentSong = songMeta;
       const folder = `songs/${songMeta.id}/`;
+      const bust = `?v=${Date.now()}`;
       const [chartRes, _] = await Promise.all([
-        fetch(folder + 'charts.json').then(r => r.json()),
+        fetch(folder + 'charts.json' + bust, { cache: 'no-store' }).then(r => r.json()),
+        // 音檔不加 bust，因為大檔不常變動，讓快取保留可加快重複播放
         this.audio.loadFromUrl(folder + songMeta.audio),
       ]);
       this.allCharts = chartRes.charts;
@@ -1499,8 +1513,10 @@
     }
 
     async init() {
+      // 加上 cache-busting 字串，避免 iOS WKWebView 給舊版 JSON
+      const bust = `?v=${Date.now()}`;
       try {
-        const res = await fetch('songs/index.json');
+        const res = await fetch('songs/index.json' + bust, { cache: 'no-store' });
         if (!res.ok) throw new Error('index.json not found');
         const data = await res.json();
         const songsFromIndex = data.songs || [];
@@ -1509,7 +1525,7 @@
         const fullMetas = await Promise.all(
           songsFromIndex.map(async (entry) => {
             try {
-              const r = await fetch(`songs/${entry.id}/meta.json`);
+              const r = await fetch(`songs/${entry.id}/meta.json` + bust, { cache: 'no-store' });
               if (!r.ok) throw new Error(`meta ${entry.id} status ${r.status}`);
               const meta = await r.json();
               // 合併 index 的資料當 fallback (避免 meta 缺欄位)
