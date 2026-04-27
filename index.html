@@ -175,6 +175,57 @@
     .high-score.normal .v { color: var(--neon-cyan); }
     .high-score.hard   .v { color: var(--neon-magenta); }
 
+    /* 卡片下方動作按鈕 */
+    .song-card .actions {
+      display: flex; gap: 8px;
+      margin-top: 12px;
+    }
+    .song-card .action-btn {
+      flex: 1;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      padding: 9px 0;
+      background: transparent;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.15s;
+      border: 1px solid var(--text-dim);
+      color: var(--text-dim);
+    }
+    .song-card .action-btn.preview {
+      border-color: rgba(0, 234, 255, 0.4);
+      color: var(--neon-cyan);
+    }
+    .song-card .action-btn.preview:hover,
+    .song-card .action-btn.preview:active {
+      background: rgba(0, 234, 255, 0.12);
+      border-color: var(--neon-cyan);
+    }
+    .song-card .action-btn.preview.playing {
+      background: rgba(0, 234, 255, 0.18);
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+      animation: preview-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes preview-pulse {
+      0%, 100% { box-shadow: 0 0 0 rgba(0, 234, 255, 0); }
+      50%      { box-shadow: 0 0 18px rgba(0, 234, 255, 0.45); }
+    }
+    .song-card .action-btn.start {
+      border-color: rgba(255, 46, 159, 0.5);
+      color: var(--neon-magenta);
+    }
+    .song-card .action-btn.start:hover,
+    .song-card .action-btn.start:active {
+      background: var(--neon-magenta);
+      border-color: var(--neon-magenta);
+      color: var(--bg-deep);
+      box-shadow: 0 0 24px rgba(255, 46, 159, 0.4);
+    }
+    .high-score.hard   .v { color: var(--neon-magenta); }
+
     .empty-state {
       text-align: center;
       padding: 40px 20px;
@@ -355,30 +406,37 @@
       letter-spacing: 0.18em;
       margin: -4px 0 14px;
       padding: 0 18px;
-      background: linear-gradient(90deg, #ffd700 0%, #ff2e9f 35%, #00eaff 70%, #ffd700 100%);
-      background-size: 300% 100%;
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      filter: drop-shadow(0 0 32px rgba(255, 215, 0, 0.55));
       text-transform: uppercase;
-      animation: perfect-shimmer 2.4s linear infinite, perfect-pulse 1.4s ease-in-out infinite;
       text-align: center;
       line-height: 1;
+
+      /* 用實心金色 + 多層光暈，所有手機都能正確顯示 */
+      color: #ffd700;
+      text-shadow:
+        0 0 8px rgba(255, 215, 0, 0.95),
+        0 0 22px rgba(255, 215, 0, 0.7),
+        0 0 36px rgba(255, 46, 159, 0.55),
+        0 0 64px rgba(255, 215, 0, 0.35);
+
+      animation: perfect-pulse 1.4s ease-in-out infinite,
+                 perfect-glow 2.0s ease-in-out infinite;
     }
     .results-perfect-badge.hidden { display: none; }
     .results-perfect-badge.full-combo {
-      background: linear-gradient(90deg, #4ade80 0%, #00eaff 50%, #b388ff 100%);
-      background-size: 200% 100%;
-      filter: drop-shadow(0 0 24px rgba(0, 234, 255, 0.55));
-    }
-    @keyframes perfect-shimmer {
-      0% { background-position: 0% 0%; }
-      100% { background-position: 300% 0%; }
+      color: #00eaff;
+      text-shadow:
+        0 0 8px rgba(0, 234, 255, 0.95),
+        0 0 22px rgba(0, 234, 255, 0.7),
+        0 0 36px rgba(74, 222, 128, 0.45),
+        0 0 64px rgba(0, 234, 255, 0.3);
     }
     @keyframes perfect-pulse {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.06); }
+      50%      { transform: scale(1.07); }
+    }
+    @keyframes perfect-glow {
+      0%, 100% { filter: brightness(1); }
+      50%      { filter: brightness(1.3); }
     }
 
     /* Max Combo 行 */
@@ -605,6 +663,108 @@
     getCurrentTime() { return this.ctx.currentTime - this.scheduledStart; }
     get audioTime() { return this.ctx.currentTime; }
     get duration()  { return this.buffer ? this.buffer.duration : 0; }
+  }
+
+  // ============================================================
+  // PREVIEW PLAYER — 試聽：歌曲中段擷取 10 秒帶淡入淡出
+  // ============================================================
+  class PreviewPlayer {
+    constructor(audioEngine) {
+      this.engine = audioEngine; // 共用 AudioContext
+      this.bufferCache = new Map(); // url → AudioBuffer (避免重複下載解碼)
+      this.activeSource = null;
+      this.activeGain = null;
+      this.activeUrl = null;
+      this.onEnd = null; // callback
+    }
+
+    async play(url, { duration = 10, fade = 1 } = {}) {
+      // 確保 AudioContext 解鎖 (使用者點擊試聽是合法的解鎖時機)
+      await this.engine.init();
+      const ctx = this.engine.ctx;
+
+      // 同一首再點 → 視為停止
+      if (this.activeUrl === url && this.activeSource) {
+        this.stop();
+        return false;
+      }
+
+      // 先停止現有試聽
+      this.stop();
+
+      // 取得 buffer (有快取就用)
+      let buffer = this.bufferCache.get(url);
+      if (!buffer) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Preview fetch failed');
+        const arrayBuffer = await res.arrayBuffer();
+        buffer = await ctx.decodeAudioData(arrayBuffer);
+        this.bufferCache.set(url, buffer);
+      }
+
+      // 試聽片段：從中間開始
+      const clipDuration = Math.min(duration, buffer.duration);
+      const fadeDur = Math.min(fade, clipDuration / 3);
+      const startOffset = Math.max(0, buffer.duration / 2 - clipDuration / 2);
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      const gain = ctx.createGain();
+      source.connect(gain);
+      gain.connect(ctx.destination);
+
+      const now = ctx.currentTime;
+      // 淡入
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(1.0, now + fadeDur);
+      // 維持
+      gain.gain.setValueAtTime(1.0, now + clipDuration - fadeDur);
+      // 淡出
+      gain.gain.linearRampToValueAtTime(0, now + clipDuration);
+
+      source.start(now, startOffset, clipDuration);
+      this.activeSource = source;
+      this.activeGain = gain;
+      this.activeUrl = url;
+
+      source.onended = () => {
+        if (this.activeSource === source) {
+          this.activeSource = null;
+          this.activeGain = null;
+          const ended = this.activeUrl;
+          this.activeUrl = null;
+          if (this.onEnd) this.onEnd(ended);
+        }
+      };
+      return true;
+    }
+
+    stop() {
+      if (this.activeSource && this.activeGain) {
+        const ctx = this.engine.ctx;
+        const now = ctx.currentTime;
+        const src = this.activeSource;
+        const g = this.activeGain;
+        try {
+          // 短暫淡出避免爆音
+          g.gain.cancelScheduledValues(now);
+          g.gain.setValueAtTime(g.gain.value, now);
+          g.gain.linearRampToValueAtTime(0, now + 0.06);
+          setTimeout(() => {
+            try { src.stop(); src.disconnect(); g.disconnect(); } catch (e) {}
+          }, 80);
+        } catch (e) {}
+        this.activeSource = null;
+        this.activeGain = null;
+        const ended = this.activeUrl;
+        this.activeUrl = null;
+        if (this.onEnd) this.onEnd(ended);
+      }
+    }
+
+    isPlaying(url) {
+      return this.activeUrl === url && this.activeSource !== null;
+    }
   }
 
   // ============================================================
@@ -985,6 +1145,8 @@
       this.selectedDifficulty = 'normal';
       this.game = new Game();
       this.game.onEnd = (result) => this.showResults(result);
+      this.preview = new PreviewPlayer(this.game.audio);
+      this.preview.onEnd = (url) => this.refreshPreviewButtons(url);
 
       this.menuEl    = document.getElementById('menu-screen');
       this.detailEl  = document.getElementById('detail-screen');
@@ -1037,8 +1199,10 @@
         const easyHi   = Highscore.get(song.id, 'easy');
         const normalHi = Highscore.get(song.id, 'normal');
         const hardHi   = Highscore.get(song.id, 'hard');
-
         const fmtScore = s => s ? String(s).padStart(6, '0') : '------';
+
+        const audioUrl = `songs/${song.id}/${song.audio}`;
+        const isPlaying = this.preview.isPlaying(audioUrl);
 
         card.innerHTML = `
           <div class="cover" style="background: ${cover}"></div>
@@ -1051,11 +1215,59 @@
               <div class="high-score normal"><span class="label">N</span><span class="v">${fmtScore(normalHi)}</span></div>
               <div class="high-score hard"><span class="label">H</span><span class="v">${fmtScore(hardHi)}</span></div>
             </div>
+            <div class="actions">
+              <button class="action-btn preview ${isPlaying ? 'playing' : ''}" data-action="preview" data-song-id="${song.id}">
+                ${isPlaying ? '■ 停止' : '▶ 試聽'}
+              </button>
+              <button class="action-btn start" data-action="start" data-song-id="${song.id}">
+                開始
+              </button>
+            </div>
           </div>
         `;
-        card.addEventListener('click', () => this.selectSong(song));
+
+        // 為按鈕綁事件 (避免冒泡到 card)
+        card.querySelector('[data-action="preview"]').addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.togglePreview(song);
+        });
+        card.querySelector('[data-action="start"]').addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.preview.stop();
+          this.selectSong(song);
+        });
+        // 點卡片本體（不在按鈕上時）也進入難度頁
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.action-btn')) return;
+          this.preview.stop();
+          this.selectSong(song);
+        });
         container.appendChild(card);
       }
+    }
+
+    async togglePreview(song) {
+      const url = `songs/${song.id}/${song.audio}`;
+      try {
+        await this.preview.play(url);
+      } catch (e) {
+        console.warn('Preview error:', e);
+      }
+      this.refreshPreviewButtons();
+    }
+
+    refreshPreviewButtons() {
+      // 更新所有 preview button 的狀態 (不重畫整個列表)
+      const allBtns = document.querySelectorAll('.song-card .action-btn.preview');
+      allBtns.forEach(btn => {
+        const songId = btn.dataset.songId;
+        const song = this.songs.find(s => s.id === songId);
+        if (!song) return;
+        const url = `songs/${song.id}/${song.audio}`;
+        const playing = this.preview.isPlaying(url);
+        btn.classList.toggle('playing', playing);
+        btn.innerHTML = playing ? '■ 停止' : '▶ 試聽';
+      });
     }
 
     bindUI() {
@@ -1071,12 +1283,14 @@
       });
 
       document.getElementById('start-btn').addEventListener('click', async () => {
+        this.preview.stop();
         document.getElementById('detail-screen').classList.add('hidden');
         document.getElementById('results-screen').classList.add('hidden');
         await this.game.start(this.selectedDifficulty);
       });
 
       document.getElementById('retry-btn').addEventListener('click', async () => {
+        this.preview.stop();
         document.getElementById('results-screen').classList.add('hidden');
         await this.game.start(this.selectedDifficulty);
       });
