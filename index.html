@@ -1500,7 +1500,26 @@
         const res = await fetch('songs/index.json');
         if (!res.ok) throw new Error('index.json not found');
         const data = await res.json();
-        this.songs = data.songs || [];
+        const songsFromIndex = data.songs || [];
+
+        // 從每首歌獨立的 meta.json 讀取最新資料 (這樣只要改 meta.json 就會反映)
+        const fullMetas = await Promise.all(
+          songsFromIndex.map(async (entry) => {
+            try {
+              const r = await fetch(`songs/${entry.id}/meta.json`);
+              if (!r.ok) throw new Error(`meta ${entry.id} status ${r.status}`);
+              const meta = await r.json();
+              // 合併 index 的資料當 fallback (避免 meta 缺欄位)
+              return { ...entry, ...meta };
+            } catch (e) {
+              console.warn(`Could not load meta for ${entry.id}, using index data:`, e.message);
+              return entry;
+            }
+          })
+        );
+        this.songs = fullMetas;
+        // 依標題排序 (跟 index.json 一致)
+        this.songs.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
       } catch (e) {
         console.warn('Could not load songs/index.json:', e.message);
         this.songs = [];
