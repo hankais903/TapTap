@@ -140,6 +140,31 @@
       position: absolute; inset: 0;
       background: rgba(5, 8, 16, 0.35);
     }
+    /* YouTube 連結 (位於封面右下角) */
+    .song-card .yt-link {
+      position: absolute;
+      right: 5px;
+      bottom: 5px;
+      width: 26px;
+      height: 18px;
+      background: #ff0000;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+      transition: transform 0.12s, box-shadow 0.12s;
+      z-index: 2;
+      text-decoration: none;
+    }
+    .song-card .yt-link:hover, .song-card .yt-link:active {
+      transform: scale(1.1);
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.6);
+    }
+    .song-card .yt-link svg {
+      display: block;
+      transform: translateX(1px); /* 視覺對齊：play 三角形偏右一點才置中 */
+    }
     .song-card .info {
       flex: 1;
       padding: 14px 16px;
@@ -1521,7 +1546,15 @@
         const isPlaying = this.preview.isPlaying(audioUrl);
 
         card.innerHTML = `
-          <div class="cover" style="background: ${cover}"></div>
+          <div class="cover" style="background: ${cover}">
+            ${song.youtube ? `
+              <a class="yt-link" href="${song.youtube}" target="_blank" rel="noopener noreferrer" title="在 YouTube 上觀看">
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                  <polygon points="8,5 8,19 19,12" fill="white"/>
+                </svg>
+              </a>
+            ` : ''}
+          </div>
           <div class="info">
             <div class="name">${song.title}</div>
             <div class="artist">${song.artist || 'Unknown'}</div>
@@ -1553,9 +1586,15 @@
           this.preview.stop();
           this.selectSong(song);
         });
-        // 點卡片本體（不在按鈕上時）也進入難度頁
+        // YouTube 連結：阻止冒泡 (avoid 觸發 card click)
+        const ytLink = card.querySelector('.yt-link');
+        if (ytLink) {
+          ytLink.addEventListener('click', (e) => e.stopPropagation());
+        }
+        // 點卡片本體（不在按鈕/連結上時）也進入難度頁
         card.addEventListener('click', (e) => {
           if (e.target.closest('.action-btn')) return;
+          if (e.target.closest('.yt-link')) return;
           this.preview.stop();
           this.selectSong(song);
         });
