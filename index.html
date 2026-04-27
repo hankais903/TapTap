@@ -165,7 +165,7 @@
       letter-spacing: 0.05em;
     }
     .song-card .high-scores {
-      display: flex; gap: 12px;
+      display: flex; gap: 10px;
       margin-top: 8px;
     }
     .high-score { font-size: 10px; }
@@ -174,6 +174,7 @@
     .high-score.easy   .v { color: var(--neon-green); }
     .high-score.normal .v { color: var(--neon-cyan); }
     .high-score.hard   .v { color: var(--neon-magenta); }
+    .high-score.insane .v { color: var(--neon-red); }
 
     /* 卡片下方動作按鈕 */
     .song-card .actions {
@@ -318,6 +319,19 @@
     .diff-btn[data-diff="easy"]   .diff-name { color: var(--neon-green); }
     .diff-btn[data-diff="normal"] .diff-name { color: var(--neon-cyan); }
     .diff-btn[data-diff="hard"]   .diff-name { color: var(--neon-magenta); }
+    .diff-btn[data-diff="insane"] .diff-name {
+      color: var(--neon-red);
+      text-shadow: 0 0 10px rgba(255, 71, 87, 0.6);
+    }
+    .diff-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .diff-btn:disabled:hover {
+      border-color: var(--text-dim);
+      box-shadow: none;
+      background: rgba(10, 18, 32, 0.6);
+    }
 
     .start-button {
       font-family: 'Orbitron', sans-serif;
@@ -537,6 +551,10 @@
           <span class="diff-name">HARD</span>
           <span class="diff-meta" id="meta-hard">—</span>
         </button>
+        <button class="diff-btn" data-diff="insane">
+          <span class="diff-name">INSANE</span>
+          <span class="diff-meta" id="meta-insane">—</span>
+        </button>
       </div>
       <button class="start-button" id="start-btn" disabled>Start</button>
       <div class="key-hints">
@@ -596,6 +614,7 @@
     easy:   { fallTime: 1.4, windowPerfect: 0.060, windowGood: 0.110, windowOkay: 0.160 },
     normal: { fallTime: 1.1, windowPerfect: 0.045, windowGood: 0.090, windowOkay: 0.135 },
     hard:   { fallTime: 0.9, windowPerfect: 0.035, windowGood: 0.075, windowOkay: 0.115 },
+    insane: { fallTime: 0.75, windowPerfect: 0.030, windowGood: 0.065, windowOkay: 0.100 },
   };
 
   // ============================================================
@@ -816,13 +835,14 @@
       this.stats = { perfect: 0, good: 0, okay: 0, miss: 0 };
       this.pressedLanes = [false, false, false, false];
       this.laneFlash = [0, 0, 0, 0];
+      this.holdingNote = [null, null, null, null]; // 每軌目前正在按住的長按音符
       this.touchToLane = new Map();
       this.running = false;
       this.lastFrameTime = 0;
       this.endTime = 0;
       this.currentSong = null;
       this.currentDifficulty = 'normal';
-      this.onEnd = null; // 結束時的 callback
+      this.onEnd = null;
       this.resize();
       window.addEventListener('resize', () => this.resize());
       this.bindInput();
@@ -850,7 +870,10 @@
       });
       document.addEventListener('keyup', e => {
         const lane = CONFIG.laneKeys.indexOf(e.key.toLowerCase());
-        if (lane !== -1) this.pressedLanes[lane] = false;
+        if (lane !== -1 && this.pressedLanes[lane]) {
+          this.pressedLanes[lane] = false;
+          this.handleRelease(lane);
+        }
       });
       const touchHandler = (e, isStart) => {
         if (!this.running) return;
@@ -871,7 +894,10 @@
             if (released !== undefined) {
               this.touchToLane.delete(t.identifier);
               const stillHeld = [...this.touchToLane.values()].includes(released);
-              if (!stillHeld) this.pressedLanes[released] = false;
+              if (!stillHeld) {
+                this.pressedLanes[released] = false;
+                this.handleRelease(released);
+              }
             }
           }
         }
@@ -902,11 +928,21 @@
       // 過濾掉太早的音符 (introDelay 秒前的)，讓玩家先聽幾秒音樂
       this.notes = rawNotes
         .filter(n => n.time >= CONFIG.introDelay)
-        .map((n, i) => ({ id: i, time: n.time, lane: n.lane, hit: false, missed: false }));
+        .map((n, i) => ({
+          id: i,
+          time: n.time,
+          lane: n.lane,
+          duration: n.duration || 0,  // 0 = tap, >0 = hold
+          hit: false,
+          missed: false,
+          holding: false,
+          completed: false,  // hold 完成標記
+        }));
       this.totalNotes = this.notes.length;
       this.particles = []; this.judgments = [];
       this.score = 0; this.combo = 0; this.maxCombo = 0;
       this.stats = { perfect: 0, good: 0, okay: 0, miss: 0 };
+      this.holdingNote = [null, null, null, null];
 
       if (this.audio.ctx.state === 'suspended') await this.audio.ctx.resume();
       // introDelay 已涵蓋緩衝時間，只需要極短的 audio 啟動延遲
@@ -935,10 +971,33 @@
     }
     update(dt) {
       const t = this.audio.getCurrentTime();
+      // 一般 miss 偵測：超過判定窗還沒被擊中
       for (const note of this.notes) {
         if (note.hit || note.missed) continue;
         if (t - note.time > CONFIG.windowOkay) {
-          note.missed = true; this.recordJudgment('miss', note.lane);
+          note.missed = true;
+          this.recordJudgment('miss', note.lane);
+        }
+      }
+      // 長按完成偵測：如果某軌正在按住的長按，時間已到結尾，視為成功完成
+      for (let lane = 0; lane < CONFIG.lanes; lane++) {
+        const note = this.holdingNote[lane];
+        if (!note) continue;
+        const endTime = note.time + note.duration;
+        if (t >= endTime - 0.05) {
+          // 完成長按 → 給予獎勵
+          note.completed = true;
+          this.holdingNote[lane] = null;
+          const bonus = Math.floor(50 + note.duration * 50);
+          this.score += bonus * (1 + this.combo * 0.005);
+          this.combo++;
+          this.maxCombo = Math.max(this.maxCombo, this.combo);
+          // 視覺：拖尾完成的爆炸效果
+          const x = lane * this.laneWidth + this.laneWidth / 2;
+          for (let i = 0; i < 14; i++) {
+            this.particles.push(new Particle(x, this.hitY, '#ffd700'));
+          }
+          this.judgments.push(new Judgment(x, this.hitY - 56, 'HOLD!', '#ffd700'));
         }
       }
       for (const p of this.particles) p.update(dt);
@@ -984,19 +1043,86 @@
         ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), x + this.laneWidth / 2, this.hitY + 42);
       }
       const t = this.audio.getCurrentTime();
+
+      // 1. 先畫長按拖尾 (在頭部下面層)
       for (const note of this.notes) {
-        if (note.hit || note.missed) continue;
-        const tu = note.time - t;
-        if (tu > CONFIG.fallTime || tu < -CONFIG.windowOkay) continue;
-        const progress = 1 - (tu / CONFIG.fallTime);
-        const y = this.spawnY + (this.hitY - this.spawnY) * progress;
+        if (note.duration <= 0) continue;
+        if (note.completed) continue;
+        const noteEndTime = note.time + note.duration;
+        const tuHead = note.time - t;
+        const tuTail = noteEndTime - t;
+        // 整段都還在未來太遠 → 跳過
+        if (tuTail > CONFIG.fallTime) continue;
+        // 整段都已經過去 → 跳過
+        if (tuHead < -CONFIG.windowOkay && t > noteEndTime + 0.2) continue;
+
+        // 計算 head 與 tail tip 的螢幕 y
+        let headProg = 1 - (tuHead / CONFIG.fallTime);
+        let tailProg = 1 - (tuTail / CONFIG.fallTime);
+        let headY = this.spawnY + (this.hitY - this.spawnY) * headProg;
+        const tailY = this.spawnY + (this.hitY - this.spawnY) * tailProg;
+
+        // 如果頭已被按下 (note.hit) 並且仍在按住中，head 視覺停在判定線
+        const isActiveHold = note.hit && note.holding;
+        if (isActiveHold) headY = this.hitY;
+        // 如果已經 missed，淡出
+        if (note.missed) continue;
+
         const x = note.lane * this.laneWidth;
         const color = (note.lane === 1 || note.lane === 2) ? '#ff2e9f' : '#00eaff';
-        ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = color;
+        const padding = 14;
+        const tailX = x + padding;
+        const tailW = this.laneWidth - padding * 2;
+
+        // 畫拖尾 (tail tip 在上、head 在下)
+        const top = Math.min(tailY, headY);
+        const bot = Math.max(tailY, headY);
+        if (bot - top > 1) {
+          ctx.save();
+          ctx.globalAlpha = isActiveHold ? 0.85 : 0.55;
+          const grad = ctx.createLinearGradient(0, top, 0, bot);
+          grad.addColorStop(0, color + '00');  // 透明
+          grad.addColorStop(0.15, color);
+          grad.addColorStop(1, color);
+          ctx.fillStyle = grad;
+          ctx.shadowBlur = isActiveHold ? 22 : 10;
+          ctx.shadowColor = color;
+          ctx.fillRect(tailX, top, tailW, bot - top);
+          // 中間發光細線 (active 時更亮)
+          if (isActiveHold) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.shadowBlur = 0;
+            ctx.fillRect(tailX + tailW / 2 - 1, top, 2, bot - top);
+          }
+          ctx.restore();
+        }
+      }
+
+      // 2. 畫一般音符的頭 (tap 與 hold 共用)
+      for (const note of this.notes) {
+        if (note.hit && note.duration <= 0) continue;     // tap 命中後不再畫
+        if (note.completed) continue;                      // hold 完成後不畫
+        if (note.missed) continue;
+        const tu = note.time - t;
+        if (tu > CONFIG.fallTime) continue;
+        if (note.duration <= 0 && tu < -CONFIG.windowOkay) continue;
+
+        let progress = 1 - (tu / CONFIG.fallTime);
+        let y = this.spawnY + (this.hitY - this.spawnY) * progress;
+        // 長按按住中時，頭部停在判定線上發光
+        if (note.hit && note.holding) y = this.hitY;
+
+        const x = note.lane * this.laneWidth;
+        const color = (note.lane === 1 || note.lane === 2) ? '#ff2e9f' : '#00eaff';
+        ctx.save();
+        ctx.shadowBlur = note.holding ? 28 : 18;
+        ctx.shadowColor = color;
         ctx.fillStyle = color;
         const padding = 10, noteX = x + padding, noteW = this.laneWidth - padding * 2, noteH = CONFIG.noteHeight;
-        this.roundRect(ctx, noteX, y - noteH / 2, noteW, noteH, 4); ctx.fill();
-        ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        this.roundRect(ctx, noteX, y - noteH / 2, noteW, noteH, 4);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
         ctx.fillRect(noteX + 3, y - noteH / 2 + 3, noteW - 6, 2);
         ctx.restore();
       }
@@ -1074,6 +1200,11 @@
                   : absDelta <= CONFIG.windowGood    ? 'good'
                                                     : 'okay';
           this.recordJudgment(j, lane);
+          // 如果是長按音符，開始追蹤按住狀態
+          if (closestNote.duration > 0) {
+            this.holdingNote[lane] = closestNote;
+            closestNote.holding = true;
+          }
         } else {
           // 太早/太晚但在消除窗內 → 消耗該音符並判 miss
           closestNote.missed = true;
@@ -1083,6 +1214,31 @@
         // 附近沒有音符 → 空按 miss
         this.recordJudgment('miss', lane);
       }
+    }
+
+    handleRelease(lane) {
+      // 如果該軌正在按住長按音符，檢查是否提早放開
+      const note = this.holdingNote[lane];
+      if (!note) return;
+      const t = this.audio.getCurrentTime();
+      const endTime = note.time + note.duration;
+      const earlyTolerance = 0.10;  // 容許略提早放開
+
+      this.holdingNote[lane] = null;
+      note.holding = false;
+
+      if (t < endTime - earlyTolerance) {
+        // 提早放開 → 中斷長按 → 斷 combo
+        this.combo = 0;
+        const x = lane * this.laneWidth + this.laneWidth / 2;
+        this.judgments.push(new Judgment(x, this.hitY - 56, 'BREAK', '#ff4757'));
+        // 視覺：紅色破裂粒子
+        for (let i = 0; i < 8; i++) {
+          this.particles.push(new Particle(x, this.hitY, '#ff4757'));
+        }
+      }
+      // 如果在容忍範圍內放開，update() 會自動把它判為完成
+      // (這裡不重複處理)
     }
     recordJudgment(type, lane) {
       this.stats[type]++;
@@ -1199,6 +1355,7 @@
         const easyHi   = Highscore.get(song.id, 'easy');
         const normalHi = Highscore.get(song.id, 'normal');
         const hardHi   = Highscore.get(song.id, 'hard');
+        const insaneHi = Highscore.get(song.id, 'insane');
         const fmtScore = s => s ? String(s).padStart(6, '0') : '------';
 
         const audioUrl = `songs/${song.id}/${song.audio}`;
@@ -1214,6 +1371,7 @@
               <div class="high-score easy"><span class="label">E</span><span class="v">${fmtScore(easyHi)}</span></div>
               <div class="high-score normal"><span class="label">N</span><span class="v">${fmtScore(normalHi)}</span></div>
               <div class="high-score hard"><span class="label">H</span><span class="v">${fmtScore(hardHi)}</span></div>
+              <div class="high-score insane"><span class="label">I</span><span class="v">${fmtScore(insaneHi)}</span></div>
             </div>
             <div class="actions">
               <button class="action-btn preview ${isPlaying ? 'playing' : ''}" data-action="preview" data-song-id="${song.id}">
@@ -1317,12 +1475,28 @@
       loadingEl.textContent = 'Loading audio…';
       try {
         await this.game.loadSong(song);
-        for (const diff of ['easy', 'normal', 'hard']) {
+        for (const diff of ['easy', 'normal', 'hard', 'insane']) {
           const notes = this.game.allCharts[diff];
+          if (!notes) {
+            // 譜面尚未支援此難度 (舊歌)
+            document.getElementById(`meta-${diff}`).textContent = '— (chart not available)';
+            const btn = document.querySelector(`.diff-btn[data-diff="${diff}"]`);
+            if (btn) btn.disabled = true;
+            continue;
+          }
+          const btn = document.querySelector(`.diff-btn[data-diff="${diff}"]`);
+          if (btn) btn.disabled = false;
           const nps = (notes.length / song.duration).toFixed(1);
           const hi = Highscore.get(song.id, diff);
           const hiText = hi ? `· best ${String(hi).padStart(6,'0')}` : '';
           document.getElementById(`meta-${diff}`).textContent = `${notes.length} notes · ${nps}/s ${hiText}`;
+        }
+        // 如果目前選的難度這首歌沒有，退回 normal
+        if (!this.game.allCharts[this.selectedDifficulty]) {
+          this.selectedDifficulty = 'normal';
+          document.querySelectorAll('.diff-btn').forEach(b => {
+            b.classList.toggle('selected', b.dataset.diff === 'normal');
+          });
         }
         startBtn.disabled = false;
         startBtn.textContent = 'Start';
