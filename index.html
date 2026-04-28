@@ -285,11 +285,14 @@
        主選單頁 - 標題列
        ============================================ */
     .menu-header {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: center; gap: 8px;
       padding: 8px 4px 18px;
       flex-shrink: 0;
     }
-    .menu-title-block { flex: 1; }
+    .menu-title-block {
+      flex: 1;
+      text-align: center;
+    }
     .menu-title {
       font-size: 22px;
       font-weight: 700;
@@ -303,6 +306,7 @@
       margin-top: 2px;
     }
 
+    .menu-icon-btn,
     .theme-toggle {
       width: 38px; height: 38px;
       background: var(--surface);
@@ -314,8 +318,12 @@
       color: var(--secondary-dark);
       display: flex; align-items: center; justify-content: center;
       transition: transform 0.15s, background 0.2s;
+      flex-shrink: 0;
+      font-family: inherit;
     }
+    .menu-icon-btn:active,
     .theme-toggle:active { transform: scale(0.92); }
+    #menu-home-btn { font-size: 20px; line-height: 1; }
 
     /* ============================================
        歌曲列表
@@ -857,11 +865,12 @@
   <!-- 1. SONG LIST -->
   <div class="overlay hidden" id="menu-screen">
     <div class="menu-header">
+      <button class="menu-icon-btn" id="menu-home-btn" title="回首頁">⌂</button>
       <div class="menu-title-block">
         <div class="menu-title">♡ neon beat</div>
         <div class="menu-tagline">tap a song to play</div>
       </div>
-      <button class="theme-toggle" id="theme-toggle" title="切換深淺色">☾</button>
+      <button class="menu-icon-btn" id="theme-toggle" title="切換深淺色">☾</button>
     </div>
     <div class="song-list-wrapper">
       <div id="song-list"></div>
@@ -1857,6 +1866,7 @@
       document.getElementById('home-theme-toggle').addEventListener('click', () => this.toggleTheme());
 
       document.getElementById('home-start-btn').addEventListener('click', () => this.enterSongList());
+      document.getElementById('menu-home-btn').addEventListener('click', () => this.showHome());
 
       document.querySelectorAll('.diff-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1983,6 +1993,16 @@
       }
     }
 
+    showHome() {
+      // 從歌單回首頁 → 停掉背景音樂、清掉 lastPlayedSong (下次進歌單會重新從第一首播)
+      this.bgMusic.stop();
+      this.lastPlayedSong = null;
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('detail-screen').classList.add('hidden');
+      document.getElementById('results-screen').classList.add('hidden');
+      document.getElementById('home-screen').classList.remove('hidden');
+    }
+
     showMenu() {
       this.game.abort();
       document.getElementById('menu-screen').classList.remove('hidden');
@@ -1990,8 +2010,9 @@
       document.getElementById('results-screen').classList.add('hidden');
       document.getElementById('game-exit-btn').classList.add('hidden');
       this.renderSongList();
-      // 玩完一場回歌單 → 自動接著播剛才那首
-      if (this.lastPlayedSong) {
+      // 如果音樂已經在播 → 不要動 (從難度頁返回時保持播放)
+      // 只在音樂沒在播時 (例如剛玩完一場遊戲) 才重啟
+      if (this.lastPlayedSong && !this.bgMusic.activeSource) {
         this.toggleBgMusic(this.lastPlayedSong);
       }
     }
