@@ -37,6 +37,15 @@
       "youtube": ""
     },
     {
+      "id": "shadow_floor",
+      "title": "《Shadow on the Floor》",
+      "artist": "Hank",
+      "bpm": 112.34714673913044,
+      "duration": 220.96,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
       "id": "left_your_plants",
       "title": "《You Left Your Plants》",
       "artist": "Hank",
@@ -105,6 +114,15 @@
       "artist": "Hank",
       "bpm": 117.45383522727273,
       "duration": 161.6,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
+      "id": "fatal_touch",
+      "title": "《致命的觸碰》",
+      "artist": "Hank",
+      "bpm": 129.19921875,
+      "duration": 266.6,
       "audio": "audio.mp3",
       "youtube": ""
     },
