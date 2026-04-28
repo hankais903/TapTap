@@ -4,7 +4,7 @@
       "id": "circuit_breaker",
       "title": "《Circuit Breaker》",
       "artist": "Hank",
-      "bpm": 86.1328125,
+      "bpm": 86.13,
       "duration": 154.8,
       "audio": "audio.mp3",
       "youtube": ""
@@ -13,8 +13,8 @@
       "id": "example_song",
       "title": "《Example Song Title》",
       "artist": "Hank",
-      "bpm": 112.34714673913044,
-      "duration": 154.92,
+      "bpm": 112.35,
+      "duration": 154.9,
       "audio": "audio.mp3",
       "youtube": ""
     },
@@ -22,8 +22,8 @@
       "id": "midnight_confess",
       "title": "《Midnight Confessions》",
       "artist": "Hank",
-      "bpm": 99.38401442307692,
-      "duration": 95.64,
+      "bpm": 99.38,
+      "duration": 95.6,
       "audio": "audio.mp3",
       "youtube": ""
     },
@@ -31,8 +31,8 @@
       "id": "neon_nostalgia",
       "title": "《Neon Nostalgia》",
       "artist": "Hank",
-      "bpm": 112.34714673913044,
-      "duration": 113.96,
+      "bpm": 112.35,
+      "duration": 114.0,
       "audio": "audio.mp3",
       "youtube": ""
     },
@@ -40,8 +40,8 @@
       "id": "shadow_floor",
       "title": "《Shadow on the Floor》",
       "artist": "Hank",
-      "bpm": 112.34714673913044,
-      "duration": 220.96,
+      "bpm": 112.35,
+      "duration": 221.0,
       "audio": "audio.mp3",
       "youtube": ""
     },
@@ -49,8 +49,8 @@
       "id": "left_your_plants",
       "title": "《You Left Your Plants》",
       "artist": "Hank",
-      "bpm": 107.666015625,
-      "duration": 121.64,
+      "bpm": 107.67,
+      "duration": 121.6,
       "audio": "audio.mp3",
       "youtube": ""
     },
@@ -58,7 +58,7 @@
       "id": "midnight_filter",
       "title": "《午夜濾鏡》",
       "artist": "Hank",
-      "bpm": 95.703125,
+      "bpm": 95.7,
       "duration": 160.24,
       "audio": "audio.mp3",
       "youtube": ""
@@ -67,17 +67,8 @@
       "id": "alleyway_star",
       "title": "《巷弄影帝》",
       "artist": "Hank",
-      "bpm": 123.046875,
-      "duration": 164.88,
-      "audio": "audio.mp3",
-      "youtube": ""
-    },
-    {
-      "id": "phantom_thief",
-      "title": "《怪盜》",
-      "artist": "Hank",
-      "bpm": 112.34714673913044,
-      "duration": 195.36,
+      "bpm": 123.05,
+      "duration": 164.9,
       "audio": "audio.mp3",
       "youtube": ""
     },
@@ -85,7 +76,7 @@
       "id": "rule_of_indifference",
       "title": "《無所謂法則》",
       "artist": "Hank",
-      "bpm": 107.666015625,
+      "bpm": 107.67,
       "duration": 106.2,
       "audio": "audio.mp3",
       "youtube": ""
@@ -94,35 +85,17 @@
       "id": "dawn_summit",
       "title": "《破曉之巔》",
       "artist": "Hank",
-      "bpm": 89.10290948275862,
-      "duration": 209.52,
+      "bpm": 89.1,
+      "duration": 209.5,
       "audio": "audio.mp3",
       "youtube": ""
-    },
-    {
-      "id": "pudding_philosophy",
-      "title": "《社畜的布丁哲學》",
-      "artist": "Hank",
-      "bpm": 117.45383522727273,
-      "duration": 163.16,
-      "audio": "audio.mp3",
-      "youtube": "https://www.youtube.com/watch?v=GEn1TITWRY4"
     },
     {
       "id": "critical_point",
       "title": "《臨界點》",
       "artist": "Hank",
-      "bpm": 117.45383522727273,
+      "bpm": 117.45,
       "duration": 161.6,
-      "audio": "audio.mp3",
-      "youtube": ""
-    },
-    {
-      "id": "fatal_touch",
-      "title": "《致命的觸碰》",
-      "artist": "Hank",
-      "bpm": 129.19921875,
-      "duration": 266.6,
       "audio": "audio.mp3",
       "youtube": ""
     },
@@ -130,8 +103,8 @@
       "id": "old_love_shadow",
       "title": "《舊愛殘影》",
       "artist": "Hank",
-      "bpm": 107.666015625,
-      "duration": 114.92,
+      "bpm": 107.67,
+      "duration": 114.9,
       "audio": "audio.mp3",
       "youtube": ""
     },
@@ -139,10 +112,37 @@
       "id": "distant_grey",
       "title": "《遠方的灰》",
       "artist": "Hank",
-      "bpm": 86.1328125,
-      "duration": 197.12,
+      "bpm": 86.13,
+      "duration": 197.1,
       "audio": "audio.mp3",
       "youtube": ""
+    },
+    {
+      "id": "phantom_thief",
+      "title": "《괴도 / 怪盜》",
+      "artist": "Hank",
+      "bpm": 112.35,
+      "duration": 167.08,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
+      "id": "fatal_touch",
+      "title": "《페이탈 터치 / 致命的觸碰》",
+      "artist": "Hank",
+      "bpm": 129.2,
+      "duration": 266.6,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
+      "id": "pudding_philosophy",
+      "title": "《푸딩의 철학 / 社畜的布丁哲學》",
+      "artist": "Hank",
+      "bpm": 117.45,
+      "duration": 163.16,
+      "audio": "audio.mp3",
+      "youtube": "https://www.youtube.com/watch?v=GEn1TITWRY4"
     }
   ]
 }
