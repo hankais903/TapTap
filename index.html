@@ -909,6 +909,62 @@
     [data-theme="dark"] .stat.okay    .stat-value { color: var(--accent-blue); }
     [data-theme="dark"] .stat.miss    .stat-value { color: var(--accent-coral); }
 
+    /* YouTube CTA 卡片 - 結算頁的轉化點 */
+    .results-cta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      max-width: 320px;
+      margin-bottom: 14px;
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+      color: white;
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(255, 0, 0, 0.25);
+      transition: transform 0.12s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+    .results-cta:active {
+      transform: scale(0.97);
+    }
+    .results-cta:hover {
+      box-shadow: 0 6px 18px rgba(255, 0, 0, 0.35);
+    }
+    .results-cta.hidden { display: none; }
+    .results-cta .cta-icon {
+      flex-shrink: 0;
+      width: 38px; height: 38px;
+      background: white;
+      color: #ff0000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      padding-left: 3px;
+    }
+    .results-cta .cta-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .results-cta .cta-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .results-cta .cta-subtitle {
+      font-size: 11px;
+      opacity: 0.9;
+      margin-top: 2px;
+    }
+    .results-cta .cta-arrow {
+      font-size: 24px;
+      font-weight: 300;
+      opacity: 0.85;
+    }
+
     .results-buttons {
       display: flex; gap: 10px;
       width: 100%; max-width: 320px;
@@ -1284,6 +1340,17 @@
       <div class="stat okay"><div class="stat-label">Okay</div><div class="stat-value" id="stat-okay">0</div></div>
       <div class="stat miss"><div class="stat-label">Miss</div><div class="stat-value" id="stat-miss">0</div></div>
     </div>
+
+    <!-- YouTube CTA: 只在這首歌有 YouTube 連結時顯示 -->
+    <a class="results-cta hidden" id="results-yt-cta" href="#" target="_blank" rel="noopener">
+      <div class="cta-icon">▶</div>
+      <div class="cta-text">
+        <div class="cta-title">喜歡這首歌嗎？</div>
+        <div class="cta-subtitle">在 YouTube 看完整 MV</div>
+      </div>
+      <div class="cta-arrow">›</div>
+    </a>
+
     <div class="results-buttons">
       <button class="btn-secondary" id="results-back-btn">Songs</button>
       <button class="btn-primary" id="retry-btn">Retry</button>
@@ -2918,6 +2985,15 @@
       document.getElementById('stat-good').textContent = r.stats.good;
       document.getElementById('stat-okay').textContent = r.stats.okay;
       document.getElementById('stat-miss').textContent = r.stats.miss;
+
+      // YouTube CTA: 只在有連結時顯示
+      const ytCta = document.getElementById('results-yt-cta');
+      if (r.song.youtube) {
+        ytCta.href = r.song.youtube;
+        ytCta.classList.remove('hidden');
+      } else {
+        ytCta.classList.add('hidden');
+      }
 
       // Perfect / Full Combo 徽章
       const badge = document.getElementById('results-perfect-badge');
