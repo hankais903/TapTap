@@ -419,15 +419,23 @@
     /* 中心選中 - 放大 1.15×, 浮起來, 可超出歌單範圍 */
     .song-card.centered {
       opacity: 1;
-      transform: scale(1);  /* 不縮放卡片本身, 透過 CD 放大來表現 */
+      transform: scale(1);
       z-index: 3;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+      background: linear-gradient(135deg, var(--surface) 0%, color-mix(in srgb, var(--primary) 18%, var(--surface)) 100%);
+      box-shadow:
+        0 0 0 2px var(--primary),
+        0 8px 24px rgba(255, 175, 204, 0.35),
+        0 6px 18px rgba(0, 0, 0, 0.12);
       padding: 14px 12px;
-      padding-left: 100px;  /* 給左側 CD 的空間 */
-      min-height: 88px;     /* 卡片變高, 讓 CD 不會擠壓資訊 */
+      padding-left: 100px;
+      min-height: 88px;
     }
     [data-theme="dark"] .song-card.centered {
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+      background: linear-gradient(135deg, var(--surface) 0%, color-mix(in srgb, var(--accent-pink) 22%, var(--surface)) 100%);
+      box-shadow:
+        0 0 0 2px var(--accent-pink),
+        0 8px 24px rgba(212, 114, 155, 0.45),
+        0 6px 18px rgba(0, 0, 0, 0.5);
     }
     /* 中央 CD 從卡片左側探出 */
     .song-card.centered .cover {
@@ -1861,17 +1869,44 @@
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // 6. 按鍵框 + 字母 (在判定線下方, 全寬不透視)
+      // 6. 按鍵框 + 字母 (按透視繼續往下擴大: 梯形, 下寬上窄相對於判定線)
+      const keyTop = this.hitY + 8;
+      const keyBot = this.hitY + 64;
       for (let i = 0; i < CONFIG.lanes; i++) {
-        const { xL, xR } = this.perspLaneXAt(i, this.hitY);
+        // 透視延伸:把整個透視函數的範圍從[spawnY,hitY]延伸到[spawnY,keyBot]
+        // 這樣 keyTop/keyBot 都會繼續變寬
+        const tTop = (keyTop - this.spawnY) / (this.hitY - this.spawnY);
+        const tBot = (keyBot - this.spawnY) / (this.hitY - this.spawnY);
+        const scaleTop = this.perspTopRatio + (1 - this.perspTopRatio) * tTop;
+        const scaleBot = this.perspTopRatio + (1 - this.perspTopRatio) * tBot;
+
+        const fullW = this.viewW;
+        const lineX = i / CONFIG.lanes;
+        const lineXR = (i + 1) / CONFIG.lanes;
+        const xLTop = this.vanishX + (lineX * fullW - this.vanishX) * scaleTop;
+        const xRTop = this.vanishX + (lineXR * fullW - this.vanishX) * scaleTop;
+        const xLBot = this.vanishX + (lineX * fullW - this.vanishX) * scaleBot;
+        const xRBot = this.vanishX + (lineXR * fullW - this.vanishX) * scaleBot;
+
         const pressed = this.pressedLanes[i];
         ctx.strokeStyle = pressed ? '#bde0fe' : 'rgba(170, 158, 196, 0.4)';
         ctx.lineWidth = pressed ? 2 : 1;
-        ctx.strokeRect(xL + 4, this.hitY + 8, xR - xL - 8, 56);
+
+        // 梯形按鍵框
+        ctx.beginPath();
+        ctx.moveTo(xLTop + 4, keyTop);
+        ctx.lineTo(xRTop - 4, keyTop);
+        ctx.lineTo(xRBot - 4, keyBot);
+        ctx.lineTo(xLBot + 4, keyBot);
+        ctx.closePath();
+        ctx.stroke();
+
+        // 字母 (字級也微微跟著放大,按鍵變寬時字也大一點)
         ctx.fillStyle = pressed ? '#bde0fe' : 'rgba(170, 158, 196, 0.6)';
-        ctx.font = 'bold 16px Quicksand, sans-serif';
+        ctx.font = `bold ${Math.round(16 * scaleBot)}px Quicksand, sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), (xL + xR) / 2, this.hitY + 42);
+        const cy = (keyTop + keyBot) / 2;
+        ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), (xLBot + xRBot) / 2, cy + 6);
       }
       const t = this.audio.getCurrentTime();
 
@@ -1983,6 +2018,15 @@
       }
       for (const p of this.particles) p.draw(ctx);
       for (const j of this.judgments) j.draw(ctx);
+
+      // 9. 上方淡出遮罩 - 讓音符從消失點淡入而不是突然出現
+      const fadeH = h * 0.35;
+      const fadeGrad = ctx.createLinearGradient(0, 0, 0, fadeH);
+      fadeGrad.addColorStop(0,    'rgba(26, 22, 38, 1)');     // 完全遮蔽
+      fadeGrad.addColorStop(0.5,  'rgba(26, 22, 38, 0.85)');  // 半透明
+      fadeGrad.addColorStop(1,    'rgba(26, 22, 38, 0)');     // 完全透明
+      ctx.fillStyle = fadeGrad;
+      ctx.fillRect(0, 0, w, fadeH);
 
       // Intro countdown overlay - 在第一顆音符出現前顯示提示
       const elapsed = this.audio.getCurrentTime();
