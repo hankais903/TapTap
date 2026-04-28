@@ -2852,15 +2852,16 @@
 
       // 自動播放第一首歌 + 將其捲到中央
       if (this.songs.length > 0) {
-        const firstSong = this.songs[0];
+        // 預設聚焦在《臨界點》(critical_point)，找不到的話 fall back 到第一首
+        const defaultSong = this.songs.find(s => s.id === 'critical_point') || this.songs[0];
         // 暫停 picker 自動切歌邏輯 (避免捲動過程經過其他歌時觸發播放)
         this._suppressPickerAutoPlay = true;
         requestAnimationFrame(() => {
-          this.scrollToSong(firstSong, false);
+          this.scrollToSong(defaultSong, false);
           // 一段時間後才解鎖 (給滾動 + snap 完成)
           setTimeout(() => { this._suppressPickerAutoPlay = false; }, 600);
         });
-        this.toggleBgMusic(firstSong);
+        this.toggleBgMusic(defaultSong);
       }
     }
 
