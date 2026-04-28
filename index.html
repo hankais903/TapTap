@@ -330,13 +330,59 @@
        ============================================ */
     .song-list-wrapper {
       flex: 1;
-      display: flex; flex-direction: column;
-      gap: 10px;
       max-width: 480px; width: 100%; margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
     }
+
+    /* 中央選擇框 (固定不動) */
+    .picker-frame {
+      position: absolute;
+      top: 50%; left: 0; right: 0;
+      transform: translateY(-50%);
+      height: 76px;
+      border: 2px solid var(--primary);
+      border-radius: var(--radius-lg);
+      background: rgba(255, 175, 204, 0.08);
+      pointer-events: none;
+      z-index: 4;
+    }
+    [data-theme="dark"] .picker-frame {
+      background: rgba(212, 114, 155, 0.12);
+      border-color: var(--accent-pink);
+    }
+
+    /* 上下漸層淡出 */
+    .picker-fade {
+      position: absolute;
+      left: 0; right: 0;
+      height: 60px;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .picker-fade-top { top: 0; background: linear-gradient(to bottom, var(--bg), transparent); }
+    .picker-fade-bottom { bottom: 0; background: linear-gradient(to top, var(--bg), transparent); }
+
+    /* 可滾動的歌單容器 */
     #song-list {
-      display: flex; flex-direction: column; gap: 8px;
+      height: 100%;
+      overflow-y: auto;
+      scroll-snap-type: y mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 0 8px;
     }
+    #song-list::-webkit-scrollbar { display: none; }
+
+    .song-list-spacer {
+      flex-shrink: 0;
+      pointer-events: none;
+    }
+
+    /* 歌單頁的 overlay 不滾動 (讓 #song-list 自己滾) */
+    #menu-screen { overflow: hidden; }
+    #menu-screen .menu-header { flex-shrink: 0; }
 
     /* 歌曲卡片 (馬卡龍風格) */
     .song-card {
@@ -344,17 +390,40 @@
       border-radius: var(--radius-lg);
       padding: 8px;
       box-shadow: var(--shadow-soft);
-      transition: transform 0.15s, box-shadow 0.2s;
+      transition: transform 0.25s, opacity 0.25s, box-shadow 0.2s;
       position: relative;
       display: flex;
       align-items: center;
       gap: 10px;
+      scroll-snap-align: center;
+      scroll-snap-stop: always;
+      flex-shrink: 0;
+      margin: 4px 0;
+      opacity: 0.45;
+      transform: scale(0.92);
+    }
+    /* 距離中心一個位置 - 半透明 */
+    .song-card.adjacent {
+      opacity: 0.7;
+      transform: scale(0.96);
+    }
+    /* 中心選中 - 完整顯示 */
+    .song-card.centered {
+      opacity: 1;
+      transform: scale(1);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    }
+    [data-theme="dark"] .song-card.centered {
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
     }
     .song-card.playing {
       box-shadow: 0 0 0 2px var(--primary), var(--shadow);
     }
+    .song-card.centered.playing {
+      box-shadow: 0 0 0 2px var(--primary), 0 4px 14px rgba(0, 0, 0, 0.12);
+    }
     .song-card:active {
-      transform: scale(0.98);
+      transform: scale(0.94);
     }
 
     .cover {
@@ -1071,6 +1140,9 @@
       <button class="menu-icon-btn" id="theme-toggle" title="切換深淺色">☾</button>
     </div>
     <div class="song-list-wrapper">
+      <div class="picker-fade picker-fade-top"></div>
+      <div class="picker-frame"></div>
+      <div class="picker-fade picker-fade-bottom"></div>
       <div id="song-list"></div>
     </div>
   </div>
@@ -2183,6 +2255,102 @@
 
         container.appendChild(card);
       }
+
+      // 頂部與底部各加一個 spacer，讓第一首跟最後一首也能滑到中央
+      const wrapper = container.parentElement;
+      const wrapperH = wrapper.clientHeight || window.innerHeight * 0.7;
+      const cardH = 68; // 大致估算 (含 margin)
+      const spacerH = Math.max(60, (wrapperH - cardH) / 2);
+
+      const topSpacer = document.createElement('div');
+      topSpacer.className = 'song-list-spacer';
+      topSpacer.style.height = spacerH + 'px';
+      container.insertBefore(topSpacer, container.firstChild);
+
+      const bottomSpacer = document.createElement('div');
+      bottomSpacer.className = 'song-list-spacer';
+      bottomSpacer.style.height = spacerH + 'px';
+      container.appendChild(bottomSpacer);
+
+      // 設定 picker 的中央偵測 + 磁吸
+      this.setupPicker();
+    }
+
+    setupPicker() {
+      const container = document.getElementById('song-list');
+      if (!container) return;
+
+      // 清掉舊的 observer
+      if (this._scrollHandler) {
+        container.removeEventListener('scroll', this._scrollHandler);
+      }
+
+      const updateCentered = () => {
+        const rect = container.getBoundingClientRect();
+        const centerY = rect.top + rect.height / 2;
+        const cards = container.querySelectorAll('.song-card');
+        let nearest = null;
+        let nearestDist = Infinity;
+        cards.forEach(card => {
+          const r = card.getBoundingClientRect();
+          const cardCenter = r.top + r.height / 2;
+          const dist = Math.abs(cardCenter - centerY);
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearest = card;
+          }
+        });
+        cards.forEach(card => {
+          card.classList.remove('centered', 'adjacent');
+        });
+        if (nearest) {
+          nearest.classList.add('centered');
+          // 上下相鄰的也標記為 adjacent
+          const prev = nearest.previousElementSibling;
+          const next = nearest.nextElementSibling;
+          if (prev && prev.classList.contains('song-card')) prev.classList.add('adjacent');
+          if (next && next.classList.contains('song-card')) next.classList.add('adjacent');
+        }
+        return nearest;
+      };
+
+      // 滾動結束後判定中央那首歌是哪首，自動播放它
+      let scrollEndTimer = null;
+      this._scrollHandler = () => {
+        updateCentered();
+        if (scrollEndTimer) clearTimeout(scrollEndTimer);
+        scrollEndTimer = setTimeout(() => {
+          const centered = updateCentered();
+          if (centered) {
+            const songId = centered.dataset.songId;
+            const song = this.songs.find(s => s.id === songId);
+            if (song) {
+              const url = `songs/${song.id}/${song.audio}`;
+              // 只有當中央的歌跟正在播的不同時才切換
+              if (!this.bgMusic.isPlaying(url)) {
+                this.toggleBgMusic(song);
+              }
+            }
+          }
+        }, 150);
+      };
+      container.addEventListener('scroll', this._scrollHandler, { passive: true });
+
+      // 初次渲染後執行一次
+      requestAnimationFrame(() => {
+        updateCentered();
+      });
+    }
+
+    scrollToSong(song, smooth = true) {
+      const container = document.getElementById('song-list');
+      const card = container.querySelector(`[data-song-id="${song.id}"]`);
+      if (!card) return;
+      const containerRect = container.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      const cardCenter = cardRect.top - containerRect.top + cardRect.height / 2 + container.scrollTop;
+      const target = cardCenter - container.clientHeight / 2;
+      container.scrollTo({ top: target, behavior: smooth ? 'smooth' : 'auto' });
     }
 
     async toggleBgMusic(song) {
@@ -2349,9 +2517,13 @@
       document.getElementById('menu-screen').classList.remove('hidden');
       this.renderSongList();
 
-      // 自動播放第一首歌
+      // 自動播放第一首歌 + 將其捲到中央
       if (this.songs.length > 0) {
         const firstSong = this.songs[0];
+        // 等 layout 完成才捲動
+        requestAnimationFrame(() => {
+          this.scrollToSong(firstSong, false);
+        });
         this.toggleBgMusic(firstSong);
       }
     }
@@ -2447,8 +2619,12 @@
       document.getElementById('results-screen').classList.add('hidden');
       document.getElementById('game-exit-btn').classList.add('hidden');
       this.renderSongList();
+      // 滾動到上次選的歌 (或第一首)
+      const target = this.lastPlayedSong || this.songs[0];
+      if (target) {
+        requestAnimationFrame(() => this.scrollToSong(target, false));
+      }
       // 如果音樂已經在播 → 不要動 (從難度頁返回時保持播放)
-      // 只在音樂沒在播時 (例如剛玩完一場遊戲) 才重啟
       if (this.lastPlayedSong && !this.bgMusic.activeSource) {
         this.toggleBgMusic(this.lastPlayedSong);
       }
