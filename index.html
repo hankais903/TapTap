@@ -1825,23 +1825,23 @@
           </div>
         `;
 
-        // 點封面 → 切換背景音樂
+        // 點封面 → 切換背景音樂試聽
         card.querySelector('[data-action="cover"]').addEventListener('click', (e) => {
           if (e.target.closest('.yt-link')) return;
           e.stopPropagation();
           this.toggleBgMusic(song);
         });
 
-        // 點 PLAY 按鈕 → 進入難度頁
+        // 點 PLAY 按鈕 → 進入難度頁 (進遊戲的唯一入口)
         card.querySelector('[data-action="play"]').addEventListener('click', (e) => {
           e.stopPropagation();
           this.selectSong(song);
         });
 
-        // 點歌曲資訊區 → 進入難度頁
+        // 點歌曲資訊區 → 切換背景音樂試聽 (跟封面一樣)
         card.querySelector('[data-action="info"]').addEventListener('click', (e) => {
           e.stopPropagation();
-          this.selectSong(song);
+          this.toggleBgMusic(song);
         });
 
         // YouTube 連結阻止冒泡
