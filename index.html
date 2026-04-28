@@ -359,7 +359,7 @@
 
     .cover {
       width: 52px; height: 52px;
-      border-radius: var(--radius-md);
+      border-radius: 50%;
       flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       font-size: 22px;
@@ -382,8 +382,39 @@
       display: block;
     }
 
+    .cover-icon {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+
+    /* CD 中央的洞 (淺色主題:奶油色; 深色主題:深紫色) */
+    .cover::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 30%;
+      height: 30%;
+      border-radius: 50%;
+      background: var(--bg);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* 播放中：CD 旋轉 */
+    .song-card.playing .cover-thumb,
+    .song-card.playing .cover-icon {
+      animation: spin-cd 4s linear infinite;
+    }
+    @keyframes spin-cd {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    /* 沒在播時取消舊的 pulse */
     .song-card.playing .cover {
-      animation: pulse 1.6s ease-in-out infinite;
+      animation: none;
     }
     @keyframes pulse {
       0%, 100% { transform: scale(1); }
@@ -392,8 +423,10 @@
 
     .yt-link {
       position: absolute;
-      right: 3px; bottom: 3px;
-      width: 18px; height: 13px;
+      right: 50%;
+      bottom: 5px;
+      transform: translateX(50%);
+      width: 22px; height: 14px;
       background: #ff0000;
       border-radius: 3px;
       display: flex; align-items: center; justify-content: center;
@@ -402,7 +435,7 @@
       text-decoration: none;
       transition: transform 0.12s;
     }
-    .yt-link:active { transform: scale(0.92); }
+    .yt-link:active { transform: translateX(50%) scale(0.92); }
     .yt-link svg { display: block; transform: translateX(0.5px); }
 
     .song-info {
@@ -473,13 +506,14 @@
     }
     .detail-cover {
       width: 140px; height: 140px;
-      border-radius: var(--radius-xl);
+      border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       font-size: 60px;
       margin-bottom: 18px;
       box-shadow: var(--shadow);
       overflow: hidden;
       position: relative;
+      animation: spin-cd 8s linear infinite;
     }
     .detail-cover.has-thumb { background: #1a1a1a; }
     .detail-cover .cover-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -487,6 +521,26 @@
     .detail-cover.color-blue  { background: var(--accent-blue);  color: var(--blue-text); }
     .detail-cover.color-green { background: var(--accent-green); color: var(--green-text); }
     .detail-cover.color-coral { background: var(--accent-coral); color: var(--coral-text); }
+    /* CD 中央的洞 */
+    .detail-cover::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 26%;
+      height: 26%;
+      border-radius: 50%;
+      background: var(--bg);
+      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.18) inset;
+      z-index: 2;
+      pointer-events: none;
+      /* 反向旋轉以保持靜止 (因為 parent 在轉) */
+      animation: spin-cd-reverse 8s linear infinite;
+    }
+    @keyframes spin-cd-reverse {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to   { transform: translate(-50%, -50%) rotate(-360deg); }
+    }
     .detail-name {
       font-size: 24px;
       font-weight: 700;
@@ -1833,7 +1887,7 @@
         const coverHtml = thumbUrl
           ? `<div class="cover has-thumb" data-action="cover">
                <img class="cover-thumb" src="${thumbUrl}" alt="" loading="lazy"
-                    onerror="this.parentNode.classList.remove('has-thumb');this.parentNode.classList.add('${colorClass}');this.parentNode.insertBefore(document.createTextNode('${iconChar}'),this);this.remove();" />
+                    onerror="this.parentNode.classList.remove('has-thumb');this.parentNode.classList.add('${colorClass}');var s=document.createElement('span');s.className='cover-icon';s.textContent='${iconChar}';this.parentNode.insertBefore(s,this);this.remove();" />
                ${song.youtube ? `
                  <a class="yt-link" href="${song.youtube}" target="_blank" rel="noopener noreferrer" title="在 YouTube 上觀看">
                    <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
@@ -1843,7 +1897,7 @@
                ` : ''}
              </div>`
           : `<div class="cover ${colorClass}" data-action="cover">
-               ${iconChar}
+               <span class="cover-icon">${iconChar}</span>
                ${song.youtube ? `
                  <a class="yt-link" href="${song.youtube}" target="_blank" rel="noopener noreferrer" title="在 YouTube 上觀看">
                    <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
