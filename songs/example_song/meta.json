@@ -1,0 +1,9 @@
+{
+  "id": "example_song",
+  "title": "《Example Song Title》",
+  "artist": "Hank",
+  "bpm": 112.34714673913044,
+  "duration": 154.92,
+  "audio": "audio.mp3",
+  "youtube": ""
+}

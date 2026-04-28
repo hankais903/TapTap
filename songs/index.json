@@ -1,6 +1,33 @@
 {
   "songs": [
     {
+      "id": "circuit_breaker",
+      "title": "《Circuit Breaker》",
+      "artist": "Hank",
+      "bpm": 86.1328125,
+      "duration": 154.8,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
+      "id": "example_song",
+      "title": "《Example Song Title》",
+      "artist": "Hank",
+      "bpm": 112.34714673913044,
+      "duration": 154.92,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
+      "id": "midnight_confess",
+      "title": "《Midnight Confessions》",
+      "artist": "Hank",
+      "bpm": 99.38401442307692,
+      "duration": 95.64,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
       "id": "neon_nostalgia",
       "title": "《Neon Nostalgia》",
       "artist": "Hank",
@@ -10,11 +37,38 @@
       "youtube": ""
     },
     {
+      "id": "left_your_plants",
+      "title": "《You Left Your Plants》",
+      "artist": "Hank",
+      "bpm": 107.666015625,
+      "duration": 121.64,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
       "id": "midnight_filter",
       "title": "《午夜濾鏡》",
       "artist": "Hank",
       "bpm": 95.703125,
       "duration": 160.24,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
+      "id": "alleyway_star",
+      "title": "《巷弄影帝》",
+      "artist": "Hank",
+      "bpm": 123.046875,
+      "duration": 164.88,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
+      "id": "phantom_thief",
+      "title": "《怪盜》",
+      "artist": "Hank",
+      "bpm": 112.34714673913044,
+      "duration": 195.36,
       "audio": "audio.mp3",
       "youtube": ""
     },
@@ -60,6 +114,15 @@
       "artist": "Hank",
       "bpm": 107.666015625,
       "duration": 114.92,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
+      "id": "distant_grey",
+      "title": "《遠方的灰》",
+      "artist": "Hank",
+      "bpm": 86.1328125,
+      "duration": 197.12,
       "audio": "audio.mp3",
       "youtube": ""
     }
