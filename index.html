@@ -621,12 +621,45 @@
       max-width: 480px; width: 100%; margin: 0 auto;
       padding: 16px 8px;
     }
+    /* 難度頁淡淡的封面背景 */
+    #detail-screen {
+      position: fixed;
+      isolation: isolate;
+    }
+    #detail-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+    }
+    #detail-screen.has-bg-image::before {
+      background-image: var(--detail-bg-image);
+      background-size: cover;
+      background-position: center;
+      filter: blur(28px) saturate(1.2);
+      opacity: 0.35;
+      transform: scale(1.15);
+    }
+    [data-theme="dark"] #detail-screen.has-bg-image::before {
+      opacity: 0.28;
+    }
+    /* 沒縮圖時用馬卡龍色漸層當背景 */
+    #detail-screen.bg-color-pink::before  { background: radial-gradient(ellipse at center, var(--accent-pink) 0%, transparent 60%); opacity: 0.4; }
+    #detail-screen.bg-color-blue::before  { background: radial-gradient(ellipse at center, var(--accent-blue) 0%, transparent 60%); opacity: 0.4; }
+    #detail-screen.bg-color-green::before { background: radial-gradient(ellipse at center, var(--accent-green) 0%, transparent 60%); opacity: 0.4; }
+    #detail-screen.bg-color-coral::before { background: radial-gradient(ellipse at center, var(--accent-coral) 0%, transparent 60%); opacity: 0.4; }
+    [data-theme="dark"] #detail-screen.bg-color-pink::before  { opacity: 0.3; }
+    [data-theme="dark"] #detail-screen.bg-color-blue::before  { opacity: 0.3; }
+    [data-theme="dark"] #detail-screen.bg-color-green::before { opacity: 0.3; }
+    [data-theme="dark"] #detail-screen.bg-color-coral::before { opacity: 0.3; }
+
     .detail-cover {
-      width: 140px; height: 140px;
+      width: 200px; height: 200px;
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 60px;
-      margin-bottom: 18px;
+      font-size: 80px;
+      margin-bottom: 22px;
       box-shadow: var(--shadow);
       overflow: hidden;
       position: relative;
@@ -644,14 +677,13 @@
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 26%;
-      height: 26%;
+      width: 24%;
+      height: 24%;
       border-radius: 50%;
       background: var(--bg);
       box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.18) inset;
       z-index: 2;
       pointer-events: none;
-      /* 反向旋轉以保持靜止 (因為 parent 在轉) */
       animation: spin-cd-reverse 8s linear infinite;
     }
     @keyframes spin-cd-reverse {
@@ -663,10 +695,10 @@
       font-weight: 700;
       color: var(--text);
       text-align: center;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
     .detail-meta-text {
-      font-size: 12px;
+      font-size: 14px;
       color: var(--text-dim);
       margin-bottom: 22px;
     }
@@ -682,30 +714,30 @@
     .difficulty-options {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 8px;
       width: 100%;
-      max-width: 320px;
-      margin-bottom: 24px;
+      max-width: 280px;
+      margin-bottom: 22px;
     }
     .diff-btn {
       background: var(--surface);
       border: 2px solid transparent;
       border-radius: var(--radius-md);
-      padding: 14px 10px;
+      padding: 9px 8px;
       cursor: pointer;
       font-family: inherit;
       transition: transform 0.12s, border-color 0.2s;
       box-shadow: var(--shadow-soft);
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
     }
     .diff-btn:active { transform: scale(0.97); }
     .diff-btn .diff-name {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 700;
       letter-spacing: 1px;
     }
     .diff-btn .diff-meta {
-      font-size: 10px;
+      font-size: 9px;
       color: var(--text-dim);
     }
     .diff-btn[data-diff="easy"]   .diff-name { color: var(--green-text); }
@@ -2672,6 +2704,20 @@
       const iconChar = coverIcons[hash % coverIcons.length];
       const thumbUrl = this.youtubeThumbUrl(song.youtube);
       const coverEl = document.getElementById('detail-cover');
+      const detailScreen = document.getElementById('detail-screen');
+
+      // 設定詳情頁的淡色背景:有縮圖用模糊照片,沒有的用對應馬卡龍色塊
+      if (thumbUrl) {
+        detailScreen.style.setProperty('--detail-bg-image', `url("${thumbUrl}")`);
+        detailScreen.classList.add('has-bg-image');
+        detailScreen.classList.remove('bg-color-pink', 'bg-color-blue', 'bg-color-green', 'bg-color-coral');
+      } else {
+        detailScreen.classList.remove('has-bg-image');
+        detailScreen.style.removeProperty('--detail-bg-image');
+        detailScreen.classList.remove('bg-color-pink', 'bg-color-blue', 'bg-color-green', 'bg-color-coral');
+        detailScreen.classList.add('bg-' + colorClass);
+      }
+
       if (thumbUrl) {
         coverEl.className = 'detail-cover has-thumb';
         coverEl.innerHTML = `<img class="cover-thumb" src="${thumbUrl}" alt=""
