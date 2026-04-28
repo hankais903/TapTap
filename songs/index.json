@@ -1,20 +1,67 @@
 {
   "songs": [
     {
+      "id": "neon_nostalgia",
+      "title": "《Neon Nostalgia》",
+      "artist": "Hank",
+      "bpm": 112.34714673913044,
+      "duration": 113.96,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
       "id": "midnight_filter",
-      "title": "午夜濾鏡",
+      "title": "《午夜濾鏡》",
       "artist": "Hank",
       "bpm": 95.703125,
       "duration": 160.24,
-      "audio": "audio.mp3"
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
+      "id": "rule_of_indifference",
+      "title": "《無所謂法則》",
+      "artist": "Hank",
+      "bpm": 107.666015625,
+      "duration": 106.2,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
+      "id": "dawn_summit",
+      "title": "《破曉之巔》",
+      "artist": "Hank",
+      "bpm": 89.10290948275862,
+      "duration": 209.52,
+      "audio": "audio.mp3",
+      "youtube": ""
     },
     {
       "id": "pudding_philosophy",
-      "title": "社畜的布丁哲學",
+      "title": "《社畜的布丁哲學》",
       "artist": "Hank",
       "bpm": 117.45383522727273,
       "duration": 163.16,
-      "audio": "audio.mp3"
+      "audio": "audio.mp3",
+      "youtube": "https://www.youtube.com/watch?v=GEn1TITWRY4"
+    },
+    {
+      "id": "critical_point",
+      "title": "《臨界點》",
+      "artist": "Hank",
+      "bpm": 117.45383522727273,
+      "duration": 161.6,
+      "audio": "audio.mp3",
+      "youtube": ""
+    },
+    {
+      "id": "old_love_shadow",
+      "title": "《舊愛殘影》",
+      "artist": "Hank",
+      "bpm": 107.666015625,
+      "duration": 114.92,
+      "audio": "audio.mp3",
+      "youtube": ""
     }
   ]
 }
