@@ -360,8 +360,16 @@
     #song-list::-webkit-scrollbar { display: none; }
 
     /* 歌單頁的 overlay 不滾動 (讓 #song-list 自己滾) */
-    #menu-screen { overflow: hidden; }
-    #menu-screen .menu-header { flex-shrink: 0; }
+    #menu-screen {
+      overflow: hidden !important;
+      padding: 0 !important;
+      padding-top: max(0px, env(safe-area-inset-top)) !important;
+      padding-bottom: max(0px, env(safe-area-inset-bottom)) !important;
+    }
+    #menu-screen .menu-header {
+      flex-shrink: 0;
+      padding: 8px 16px 18px;
+    }
 
     /* 歌曲卡片 (馬卡龍風格) */
     .song-card {
@@ -377,7 +385,7 @@
       scroll-snap-align: center;
       scroll-snap-stop: always;
       flex-shrink: 0;
-      margin: 4px 0;
+      margin: 8px 0;
       opacity: 0.4;
       transform: scale(0.88);
       transform-origin: center center;
@@ -402,9 +410,7 @@
       width: 64px; height: 64px;
       font-size: 28px;
     }
-    .song-card.playing:not(.centered) {
-      box-shadow: 0 0 0 2px var(--primary), var(--shadow);
-    }
+    /* 移除「正在播放」的粉色描邊 - 中央放大本身就足以指示 */
     .song-card:active {
       transform: scale(0.92);
     }
