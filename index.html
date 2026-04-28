@@ -367,12 +367,20 @@
       position: relative;
       isolation: isolate;
       transition: transform 0.15s;
+      overflow: hidden;
     }
     .cover:active { transform: scale(0.94); }
     .cover.color-pink  { background: var(--accent-pink);  color: var(--pink-text); }
     .cover.color-blue  { background: var(--accent-blue);  color: var(--blue-text); }
     .cover.color-green { background: var(--accent-green); color: var(--green-text); }
     .cover.color-coral { background: var(--accent-coral); color: var(--coral-text); }
+    .cover.has-thumb { background: #1a1a1a; }
+
+    .cover-thumb {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
 
     .song-card.playing .cover {
       animation: pulse 1.6s ease-in-out infinite;
@@ -470,7 +478,15 @@
       font-size: 60px;
       margin-bottom: 18px;
       box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
     }
+    .detail-cover.has-thumb { background: #1a1a1a; }
+    .detail-cover .cover-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .detail-cover.color-pink  { background: var(--accent-pink);  color: var(--pink-text); }
+    .detail-cover.color-blue  { background: var(--accent-blue);  color: var(--blue-text); }
+    .detail-cover.color-green { background: var(--accent-green); color: var(--green-text); }
+    .detail-cover.color-coral { background: var(--accent-coral); color: var(--coral-text); }
     .detail-name {
       font-size: 24px;
       font-weight: 700;
@@ -1698,6 +1714,29 @@
       this.bindUI();
     }
 
+    // 從 YouTube URL 抽出 video ID (支援 youtu.be/X、youtube.com/watch?v=X、youtube.com/embed/X、youtube.com/shorts/X)
+    extractYouTubeId(url) {
+      if (!url) return null;
+      const patterns = [
+        /[?&]v=([a-zA-Z0-9_-]{11})/,
+        /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+      ];
+      for (const re of patterns) {
+        const m = url.match(re);
+        if (m) return m[1];
+      }
+      return null;
+    }
+
+    youtubeThumbUrl(url) {
+      const id = this.extractYouTubeId(url);
+      if (!id) return null;
+      // hqdefault 大多數影片都有 (480x360)，比 maxresdefault (1280x720) 可靠
+      return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+    }
+
     initTheme() {
       const saved = localStorage.getItem('neonbeat:theme') || 'light';
       document.documentElement.setAttribute('data-theme', saved);
@@ -1790,17 +1829,32 @@
           card.classList.add('playing');
         }
 
+        const thumbUrl = this.youtubeThumbUrl(song.youtube);
+        const coverHtml = thumbUrl
+          ? `<div class="cover has-thumb" data-action="cover">
+               <img class="cover-thumb" src="${thumbUrl}" alt="" loading="lazy"
+                    onerror="this.parentNode.classList.remove('has-thumb');this.parentNode.classList.add('${colorClass}');this.parentNode.insertBefore(document.createTextNode('${iconChar}'),this);this.remove();" />
+               ${song.youtube ? `
+                 <a class="yt-link" href="${song.youtube}" target="_blank" rel="noopener noreferrer" title="在 YouTube 上觀看">
+                   <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+                     <polygon points="8,5 8,19 19,12" fill="white"/>
+                   </svg>
+                 </a>
+               ` : ''}
+             </div>`
+          : `<div class="cover ${colorClass}" data-action="cover">
+               ${iconChar}
+               ${song.youtube ? `
+                 <a class="yt-link" href="${song.youtube}" target="_blank" rel="noopener noreferrer" title="在 YouTube 上觀看">
+                   <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+                     <polygon points="8,5 8,19 19,12" fill="white"/>
+                   </svg>
+                 </a>
+               ` : ''}
+             </div>`;
+
         card.innerHTML = `
-          <div class="cover ${colorClass}" data-action="cover">
-            ${iconChar}
-            ${song.youtube ? `
-              <a class="yt-link" href="${song.youtube}" target="_blank" rel="noopener noreferrer" title="在 YouTube 上觀看">
-                <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
-                  <polygon points="8,5 8,19 19,12" fill="white"/>
-                </svg>
-              </a>
-            ` : ''}
-          </div>
+          ${coverHtml}
           <div class="song-info" data-action="info">
             <div class="song-name">${song.title}</div>
             <div class="song-meta">${song.artist || 'Unknown'} · ${bpm} BPM · ${dur}</div>
@@ -1929,13 +1983,22 @@
       const dur = `${Math.floor(song.duration / 60)}:${String(Math.floor(song.duration % 60)).padStart(2, '0')}`;
       document.getElementById('detail-meta').textContent = `${song.artist || 'Unknown'} · ${Math.round(song.bpm)} BPM · ${dur}`;
 
-      // 設定詳情頁封面顏色與 icon (與歌單卡片一致)
+      // 設定詳情頁封面 - 有 YouTube 用縮圖，沒有的用色塊+icon
       const coverColors = ['color-pink', 'color-blue', 'color-green', 'color-coral'];
       const coverIcons = ['♪', '♫', '✿', '☾', '☆', '♡'];
       const hash = [...song.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+      const colorClass = coverColors[hash % coverColors.length];
+      const iconChar = coverIcons[hash % coverIcons.length];
+      const thumbUrl = this.youtubeThumbUrl(song.youtube);
       const coverEl = document.getElementById('detail-cover');
-      coverEl.className = 'detail-cover ' + coverColors[hash % coverColors.length];
-      coverEl.textContent = coverIcons[hash % coverIcons.length];
+      if (thumbUrl) {
+        coverEl.className = 'detail-cover has-thumb';
+        coverEl.innerHTML = `<img class="cover-thumb" src="${thumbUrl}" alt=""
+          onerror="this.parentNode.classList.remove('has-thumb');this.parentNode.classList.add('${colorClass}');this.parentNode.textContent='${iconChar}';" />`;
+      } else {
+        coverEl.className = 'detail-cover ' + colorClass;
+        coverEl.textContent = iconChar;
+      }
 
       // 還原預選的難度視覺
       document.querySelectorAll('.diff-btn').forEach(b => {
