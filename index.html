@@ -329,14 +329,14 @@
        歌曲列表
        ============================================ */
     .song-list-wrapper {
-      flex: 1;
-      max-width: 480px; width: 100%; margin: 0 auto;
-      position: relative;
+      position: absolute;
+      top: 64px;
+      left: 0; right: 0; bottom: 0;
+      max-width: 480px;
+      margin: 0 auto;
       overflow: hidden;
-      min-height: 0;
     }
 
-    /* 中央選擇框 (固定不動) */
     /* 上下漸層淡出 */
     .picker-fade {
       position: absolute;
@@ -348,10 +348,12 @@
     .picker-fade-top { top: 0; background: linear-gradient(to bottom, var(--bg), transparent); }
     .picker-fade-bottom { bottom: 0; background: linear-gradient(to top, var(--bg), transparent); }
 
-    /* 可滾動的歌單容器 */
+    /* 可滾動的歌單容器 - 使用絕對定位確保高度有效 */
     #song-list {
-      height: 100%;
-      overflow-y: auto;
+      position: absolute;
+      inset: 0;
+      overflow-y: scroll;
+      overflow-x: hidden;
       scroll-snap-type: y mandatory;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
@@ -359,16 +361,35 @@
     }
     #song-list::-webkit-scrollbar { display: none; }
 
-    /* 歌單頁的 overlay 不滾動 (讓 #song-list 自己滾) */
+    /* 歌單頁: 整體不能滾動, 只有 #song-list 能滾 */
     #menu-screen {
       overflow: hidden !important;
       padding: 0 !important;
-      padding-top: max(0px, env(safe-area-inset-top)) !important;
-      padding-bottom: max(0px, env(safe-area-inset-bottom)) !important;
+      padding-top: env(safe-area-inset-top) !important;
+      padding-bottom: env(safe-area-inset-bottom) !important;
+      display: block !important;
+      position: fixed;
+      inset: 0;
     }
     #menu-screen .menu-header {
+      position: absolute;
+      top: env(safe-area-inset-top);
+      left: 0; right: 0;
+      height: 64px;
       flex-shrink: 0;
-      padding: 8px 16px 18px;
+      padding: 8px 16px;
+      background: var(--bg);
+      z-index: 10;
+    }
+    /* 歌單頁的 wrapper 改用絕對定位以正確套用滾動 */
+    #menu-screen .song-list-wrapper {
+      position: absolute;
+      top: calc(64px + env(safe-area-inset-top));
+      bottom: env(safe-area-inset-bottom);
+      left: 0; right: 0;
+      max-width: 480px;
+      margin: 0 auto;
+      overflow: hidden;
     }
 
     /* 歌曲卡片 (馬卡龍風格) */
@@ -1378,6 +1399,11 @@
         this._stopImmediate();
       }
 
+      // Generation token: 每次 play 都遞增, 用來偵測在 await 期間有沒有更新的 play 請求
+      this._gen = (this._gen || 0) + 1;
+      const myGen = this._gen;
+      this.activeUrl = url;  // 立刻記下來, 讓後續 play(同 url) 能識別
+
       // 載入 buffer
       let buffer = this.bufferCache.get(url);
       if (!buffer) {
@@ -1388,16 +1414,27 @@
         this.bufferCache.set(url, buffer);
       }
 
+      // 在 await 期間如果有更新的 play 請求, 則放棄這次播放 (避免兩個 source 同時播)
+      if (myGen !== this._gen) {
+        return false;
+      }
+
+      // 再次保險: 如果有殘留的 source (理論上不應該), 強制停掉
+      if (this.activeSource) {
+        try { this.activeSource.stop(); this.activeSource.disconnect(); } catch (e) {}
+        if (this.activeGain) try { this.activeGain.disconnect(); } catch (e) {}
+        this.activeSource = null;
+        this.activeGain = null;
+      }
+
       const source = ctx.createBufferSource();
       source.buffer = buffer;
-      source.loop = true;       // 循環播放
-      // loopStart/loopEnd 預設為 0 / buffer.duration → 循環時從頭開始 (這是內建行為)
+      source.loop = true;
       const gain = ctx.createGain();
       source.connect(gain);
       gain.connect(ctx.destination);
 
       const now = ctx.currentTime;
-      // 直接給目標音量 (不淡入)
       gain.gain.setValueAtTime(this.targetVolume, now);
 
       // 從歌曲中段 30 秒處開始播 (但若歌曲短於 30 秒，從 1/3 處開始)
