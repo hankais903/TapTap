@@ -459,16 +459,16 @@
     }
     /* 中央卡的 PLAY 按鈕也稍微放大 */
     .song-card.centered .play-btn {
-      width: 50px;
-      height: 50px;
-      font-size: 18px;
+      padding: 11px 20px;
+      font-size: 12px;
+      letter-spacing: 2px;
     }
     /* 中央卡的歌名與資訊也稍微放大 */
     .song-card.centered .song-name {
-      font-size: 16px;
+      font-size: 18px;
     }
     .song-card.centered .song-meta {
-      font-size: 11px;
+      font-size: 13px;
     }
     .song-card:active {
       transform: scale(0.94);
@@ -568,40 +568,37 @@
       gap: 2px;
     }
     .song-name {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 700;
       color: var(--text);
       line-height: 1.2;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .song-meta {
-      font-size: 10px;
+      font-size: 12px;
       color: var(--text-dim);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
     .play-btn {
       flex-shrink: 0;
-      width: 44px;
-      height: 44px;
       background: var(--primary);
       color: var(--primary-dark);
       border: none;
-      border-radius: 50%;
-      font-size: 16px;
+      border-radius: 999px;
+      padding: 9px 16px;
+      font-size: 11px;
       font-weight: 700;
+      letter-spacing: 1.5px;
       cursor: pointer;
       transition: transform 0.12s, filter 0.15s;
       font-family: inherit;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding-left: 3px;
+      white-space: nowrap;
     }
     [data-theme="dark"] .play-btn {
       color: var(--primary-dark);
     }
-    .play-btn:active { transform: scale(0.92); filter: brightness(0.95); }
+    .play-btn:active { transform: scale(0.94); filter: brightness(0.95); }
 
     /* ============================================
        歌曲詳情頁 (難度選擇)
@@ -2432,7 +2429,7 @@
             <div class="song-name">${song.title}</div>
             <div class="song-meta">${song.artist || 'Unknown'} · ${bpm} BPM · ${dur}</div>
           </div>
-          <button class="play-btn" data-action="play" title="開始遊戲">▶</button>
+          <button class="play-btn" data-action="play" title="開始遊戲">TAP TO PLAY</button>
         `;
 
         // 點封面 → 切換背景音樂試聽
