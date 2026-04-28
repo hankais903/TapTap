@@ -419,24 +419,40 @@
     /* 中心選中 - 放大 1.15×, 浮起來, 可超出歌單範圍 */
     .song-card.centered {
       opacity: 1;
-      transform: scale(1.15);
+      transform: scale(1.05);
       z-index: 3;
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+      padding-right: 70px;  /* 給 CD 探出的空間 */
     }
     [data-theme="dark"] .song-card.centered {
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
     }
-    /* 中心 CD 也放大 */
+    /* 中央 CD 大幅放大,並從卡片右側「探出」出框 */
     .song-card.centered .cover {
-      width: 64px; height: 64px;
-      font-size: 28px;
+      width: 100px;
+      height: 100px;
+      font-size: 44px;
+      position: absolute;
+      right: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2), 0 0 0 4px var(--surface);
+      z-index: 4;
     }
-    /* 移除「正在播放」的粉色描邊 - 中央放大本身就足以指示 */
+    [data-theme="dark"] .song-card.centered .cover {
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 0 4px var(--surface);
+    }
+    /* 中央 CD 探出時, 中央洞要相應放大 */
+    .song-card.centered .cover::after {
+      width: 24%;
+      height: 24%;
+    }
+    /* 中央卡放大時不要 active 縮太小 */
     .song-card:active {
       transform: scale(0.92);
     }
     .song-card.centered:active {
-      transform: scale(1.12);
+      transform: scale(1.02);
     }
 
     .cover {
