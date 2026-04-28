@@ -43,7 +43,7 @@
       "bpm": 112.35,
       "duration": 221.0,
       "audio": "audio.mp3",
-      "youtube": ""
+      "youtube": "https://www.youtube.com/watch?v=E5e9oaSEQaA"
     },
     {
       "id": "left_your_plants",
@@ -92,12 +92,12 @@
     },
     {
       "id": "dawn_summit",
-      "title": "《破曉之巔》",
+      "title": "《零時訊號》",
       "artist": "Hank",
       "bpm": 89.1,
       "duration": 209.5,
       "audio": "audio.mp3",
-      "youtube": ""
+      "youtube": "https://www.youtube.com/watch?v=4J_9_EsJSEg"
     },
     {
       "id": "critical_point",
@@ -106,7 +106,7 @@
       "bpm": 117.45,
       "duration": 161.6,
       "audio": "audio.mp3",
-      "youtube": ""
+      "youtube": "https://www.youtube.com/watch?v=MhxmpGEKRcA"
     },
     {
       "id": "old_love_shadow",
@@ -115,7 +115,7 @@
       "bpm": 107.67,
       "duration": 114.9,
       "audio": "audio.mp3",
-      "youtube": ""
+      "youtube": "https://www.youtube.com/watch?v=hqAiL2gJfCs"
     },
     {
       "id": "distant_grey",
