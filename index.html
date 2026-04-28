@@ -168,10 +168,10 @@
        首頁 (Home Screen)
        ============================================ */
     .home-screen {
-      align-items: center;
-      justify-content: flex-start;
-      position: relative;
+      display: block !important;
+      position: fixed; inset: 0;
       overflow: hidden;
+      padding: 0;
     }
     .home-theme-toggle {
       position: absolute;
@@ -180,23 +180,23 @@
       z-index: 5;
     }
     .home-content {
-      flex: 1;
-      display: flex; flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 18px;
-      width: 100%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
       max-width: 360px;
       text-align: center;
-      padding: 20px 0;
-      position: relative;
       z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
     }
     .home-title-block {
       display: flex; flex-direction: column;
       align-items: center;
       gap: 6px;
-      margin-top: -40px;
     }
     .home-heart {
       font-size: 38px;
