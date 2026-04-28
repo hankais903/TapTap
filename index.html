@@ -885,6 +885,133 @@
       color: var(--secondary-dark);
       text-decoration: underline;
     }
+
+    /* ============================================
+       設定頁
+       ============================================ */
+    .settings-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 4px 18px;
+      flex-shrink: 0;
+    }
+    .settings-title {
+      flex: 1;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--secondary-dark);
+      letter-spacing: 1px;
+    }
+    .settings-body {
+      flex: 1;
+      max-width: 480px; width: 100%; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .settings-section {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 16px 14px;
+      box-shadow: var(--shadow-soft);
+    }
+    .settings-section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .settings-section-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+    .settings-diff-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .settings-tab {
+      background: var(--surface-2);
+      color: var(--text-soft);
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: transform 0.12s;
+    }
+    .settings-tab:active { transform: scale(0.95); }
+    .settings-tab.selected {
+      background: var(--primary);
+      color: var(--primary-dark);
+    }
+    [data-theme="dark"] .settings-tab.selected { color: var(--primary-dark); }
+
+    .setting-row {
+      margin-bottom: 14px;
+    }
+    .setting-row:last-child { margin-bottom: 0; }
+    .setting-row label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-soft);
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .setting-control {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .setting-control input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      background: var(--surface-2);
+      border-radius: 2px;
+      outline: none;
+    }
+    .setting-control input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      background: var(--primary);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: var(--shadow-soft);
+    }
+    .setting-control input[type=range]::-moz-range-thumb {
+      width: 18px; height: 18px;
+      background: var(--primary);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+    .setting-value {
+      min-width: 50px;
+      text-align: right;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--secondary-dark);
+    }
+    [data-theme="dark"] .setting-value { color: var(--accent-pink); }
+
+    .settings-reset-btn {
+      width: 100%;
+      background: var(--surface-2);
+      color: var(--coral-text);
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: transform 0.12s;
+    }
+    [data-theme="dark"] .settings-reset-btn { color: var(--accent-coral); }
+    .settings-reset-btn:active { transform: scale(0.97); }
   </style>
 </head>
 <body>
@@ -940,6 +1067,7 @@
         <div class="menu-title">♡ neon beat</div>
         <div class="menu-tagline">tap a song to play</div>
       </div>
+      <button class="menu-icon-btn" id="menu-settings-btn" title="設定">⚙</button>
       <button class="menu-icon-btn" id="theme-toggle" title="切換深淺色">☾</button>
     </div>
     <div class="song-list-wrapper">
@@ -1005,6 +1133,61 @@
     </div>
   </div>
 
+  <!-- SETTINGS PAGE -->
+  <div class="overlay hidden" id="settings-screen">
+    <div class="settings-header">
+      <button class="menu-icon-btn" id="settings-back-btn" title="返回">‹</button>
+      <div class="settings-title">設定</div>
+      <div style="width: 38px;"></div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-section">
+        <div class="settings-section-title">判定難度調整</div>
+        <div class="settings-section-desc">數值越大越寬鬆。Perfect = 滿分判定，Okay = Miss 邊緣。<br>調整後立即生效，存在你這台裝置上。</div>
+
+        <div class="settings-diff-tabs" id="settings-diff-tabs">
+          <button class="settings-tab" data-diff="easy">Easy</button>
+          <button class="settings-tab selected" data-diff="normal">Normal</button>
+          <button class="settings-tab" data-diff="hard">Hard</button>
+          <button class="settings-tab" data-diff="insane">Insane</button>
+        </div>
+
+        <div class="setting-row">
+          <label>音符落下時間 (秒)</label>
+          <div class="setting-control">
+            <input type="range" id="set-fallTime" min="0.4" max="2.0" step="0.05">
+            <span class="setting-value" id="val-fallTime">—</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label>Perfect 容差 (毫秒)</label>
+          <div class="setting-control">
+            <input type="range" id="set-perfect" min="20" max="120" step="5">
+            <span class="setting-value" id="val-perfect">—</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label>Good 容差 (毫秒)</label>
+          <div class="setting-control">
+            <input type="range" id="set-good" min="40" max="180" step="5">
+            <span class="setting-value" id="val-good">—</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label>Okay 容差 (毫秒)</label>
+          <div class="setting-control">
+            <input type="range" id="set-okay" min="60" max="240" step="5">
+            <span class="setting-value" id="val-okay">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <button class="settings-reset-btn" id="settings-reset-btn">重置為預設值</button>
+      </div>
+    </div>
+  </div>
+
   <div class="footer-hint">D · F · J · K</div>
 
   <script>
@@ -1027,7 +1210,8 @@
     introDelay: 4.0,
   };
 
-  const DIFFICULTY_PRESETS = {
+  // 預設值 (會在 init 時被 settings.json 覆蓋, 再被 localStorage 個人設定覆蓋)
+  let DIFFICULTY_PRESETS = {
     easy:   { fallTime: 1.4, windowPerfect: 0.060, windowGood: 0.110, windowOkay: 0.160 },
     normal: { fallTime: 1.1, windowPerfect: 0.045, windowGood: 0.090, windowOkay: 0.135 },
     hard:   { fallTime: 0.9, windowPerfect: 0.035, windowGood: 0.075, windowOkay: 0.115 },
@@ -1816,20 +2000,40 @@
     async init() {
       // 加上 cache-busting 字串，避免 iOS WKWebView 給舊版 JSON
       const bust = `?v=${Date.now()}`;
+
+      // 1. 載入全域設定 settings.json (覆蓋預設 DIFFICULTY_PRESETS)
+      try {
+        const r = await fetch('settings.json' + bust, { cache: 'no-store' });
+        if (r.ok) {
+          const settings = await r.json();
+          if (settings.difficulty) {
+            for (const diff of ['easy', 'normal', 'hard', 'insane']) {
+              if (settings.difficulty[diff]) {
+                Object.assign(DIFFICULTY_PRESETS[diff], settings.difficulty[diff]);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('settings.json not found, using built-in defaults');
+      }
+
+      // 2. 套用玩家本地設定 (localStorage 覆蓋全域設定)
+      this.applyUserSettings();
+
+      // 3. 載入歌單
       try {
         const res = await fetch('songs/index.json' + bust, { cache: 'no-store' });
         if (!res.ok) throw new Error('index.json not found');
         const data = await res.json();
         const songsFromIndex = data.songs || [];
 
-        // 從每首歌獨立的 meta.json 讀取最新資料 (這樣只要改 meta.json 就會反映)
         const fullMetas = await Promise.all(
           songsFromIndex.map(async (entry) => {
             try {
               const r = await fetch(`songs/${entry.id}/meta.json` + bust, { cache: 'no-store' });
               if (!r.ok) throw new Error(`meta ${entry.id} status ${r.status}`);
               const meta = await r.json();
-              // 合併 index 的資料當 fallback (避免 meta 缺欄位)
               return { ...entry, ...meta };
             } catch (e) {
               console.warn(`Could not load meta for ${entry.id}, using index data:`, e.message);
@@ -1838,13 +2042,49 @@
           })
         );
         this.songs = fullMetas;
-        // 依標題排序 (跟 index.json 一致)
         this.songs.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
       } catch (e) {
         console.warn('Could not load songs/index.json:', e.message);
         this.songs = [];
       }
       this.renderSongList();
+    }
+
+    applyUserSettings() {
+      // 從 localStorage 讀取玩家個人偏好
+      const saved = localStorage.getItem('neonbeat:userSettings');
+      if (!saved) return;
+      try {
+        const userSettings = JSON.parse(saved);
+        if (userSettings.difficulty) {
+          for (const diff of ['easy', 'normal', 'hard', 'insane']) {
+            if (userSettings.difficulty[diff]) {
+              Object.assign(DIFFICULTY_PRESETS[diff], userSettings.difficulty[diff]);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to parse user settings:', e);
+      }
+    }
+
+    saveUserSettings(diff, fields) {
+      // 儲存玩家個人偏好到 localStorage (例: { fallTime: 1.0, windowPerfect: 0.05 })
+      const saved = localStorage.getItem('neonbeat:userSettings');
+      let userSettings = {};
+      try { userSettings = saved ? JSON.parse(saved) : {}; } catch (e) {}
+      if (!userSettings.difficulty) userSettings.difficulty = {};
+      if (!userSettings.difficulty[diff]) userSettings.difficulty[diff] = {};
+      Object.assign(userSettings.difficulty[diff], fields);
+      localStorage.setItem('neonbeat:userSettings', JSON.stringify(userSettings));
+      // 同時更新運行時的 DIFFICULTY_PRESETS
+      Object.assign(DIFFICULTY_PRESETS[diff], fields);
+    }
+
+    resetUserSettings() {
+      localStorage.removeItem('neonbeat:userSettings');
+      // 重新載入頁面以套用全域設定 (簡單實作)
+      location.reload();
     }
 
     renderSongList() {
@@ -1975,6 +2215,12 @@
 
       document.getElementById('home-start-btn').addEventListener('click', () => this.enterSongList());
       document.getElementById('menu-home-btn').addEventListener('click', () => this.showHome());
+      document.getElementById('menu-settings-btn').addEventListener('click', () => this.showSettings());
+      document.getElementById('settings-back-btn').addEventListener('click', () => this.hideSettings());
+      document.getElementById('settings-reset-btn').addEventListener('click', () => {
+        if (confirm('確定要重置所有判定設定為預設值？')) this.resetUserSettings();
+      });
+      this.bindSettingsControls();
 
       document.querySelectorAll('.diff-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -2117,7 +2363,81 @@
       document.getElementById('menu-screen').classList.add('hidden');
       document.getElementById('detail-screen').classList.add('hidden');
       document.getElementById('results-screen').classList.add('hidden');
+      document.getElementById('settings-screen').classList.add('hidden');
       document.getElementById('home-screen').classList.remove('hidden');
+    }
+
+    showSettings() {
+      this.settingsCurrentDiff = 'normal';
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('settings-screen').classList.remove('hidden');
+      this.refreshSettingsUI();
+    }
+
+    hideSettings() {
+      document.getElementById('settings-screen').classList.add('hidden');
+      document.getElementById('menu-screen').classList.remove('hidden');
+    }
+
+    refreshSettingsUI() {
+      const diff = this.settingsCurrentDiff || 'normal';
+      const preset = DIFFICULTY_PRESETS[diff];
+
+      // 更新 tab 選擇
+      document.querySelectorAll('.settings-tab').forEach(t => {
+        t.classList.toggle('selected', t.dataset.diff === diff);
+      });
+
+      // 載入該難度當前數值到 sliders
+      const ft = document.getElementById('set-fallTime');
+      const sp = document.getElementById('set-perfect');
+      const sg = document.getElementById('set-good');
+      const so = document.getElementById('set-okay');
+      ft.value = preset.fallTime;
+      sp.value = Math.round(preset.windowPerfect * 1000);
+      sg.value = Math.round(preset.windowGood * 1000);
+      so.value = Math.round(preset.windowOkay * 1000);
+      document.getElementById('val-fallTime').textContent = preset.fallTime.toFixed(2) + 's';
+      document.getElementById('val-perfect').textContent = sp.value + 'ms';
+      document.getElementById('val-good').textContent = sg.value + 'ms';
+      document.getElementById('val-okay').textContent = so.value + 'ms';
+    }
+
+    bindSettingsControls() {
+      // Tab 切換
+      document.querySelectorAll('.settings-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          this.settingsCurrentDiff = tab.dataset.diff;
+          this.refreshSettingsUI();
+        });
+      });
+
+      // Slider 即時儲存
+      const ft = document.getElementById('set-fallTime');
+      const sp = document.getElementById('set-perfect');
+      const sg = document.getElementById('set-good');
+      const so = document.getElementById('set-okay');
+
+      ft.addEventListener('input', () => {
+        const v = parseFloat(ft.value);
+        document.getElementById('val-fallTime').textContent = v.toFixed(2) + 's';
+        this.saveUserSettings(this.settingsCurrentDiff, { fallTime: v });
+      });
+      sp.addEventListener('input', () => {
+        const ms = parseInt(sp.value, 10);
+        document.getElementById('val-perfect').textContent = ms + 'ms';
+        this.saveUserSettings(this.settingsCurrentDiff, { windowPerfect: ms / 1000 });
+      });
+      sg.addEventListener('input', () => {
+        const ms = parseInt(sg.value, 10);
+        document.getElementById('val-good').textContent = ms + 'ms';
+        this.saveUserSettings(this.settingsCurrentDiff, { windowGood: ms / 1000 });
+      });
+      so.addEventListener('input', () => {
+        const ms = parseInt(so.value, 10);
+        document.getElementById('val-okay').textContent = ms + 'ms';
+        this.saveUserSettings(this.settingsCurrentDiff, { windowOkay: ms / 1000 });
+      });
     }
 
     showMenu() {
