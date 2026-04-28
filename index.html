@@ -916,8 +916,8 @@
        ============================================ */
     .game-exit-btn {
       position: fixed;
-      bottom: 14px; right: 14px;
-      bottom: max(14px, env(safe-area-inset-bottom));
+      top: max(14px, env(safe-area-inset-top));
+      right: 14px;
       width: 40px; height: 40px;
       background: var(--surface);
       border: none;
@@ -1870,8 +1870,8 @@
       ctx.shadowBlur = 0;
 
       // 6. 按鍵框 + 字母 (按透視繼續往下擴大: 梯形, 下寬上窄相對於判定線)
-      const keyTop = this.hitY + 8;
-      const keyBot = this.hitY + 64;
+      const keyTop = this.hitY + 12;
+      const keyBot = this.hitY + 130;
       for (let i = 0; i < CONFIG.lanes; i++) {
         // 透視延伸:把整個透視函數的範圍從[spawnY,hitY]延伸到[spawnY,keyBot]
         // 這樣 keyTop/keyBot 都會繼續變寬
@@ -1901,12 +1901,12 @@
         ctx.closePath();
         ctx.stroke();
 
-        // 字母 (字級也微微跟著放大,按鍵變寬時字也大一點)
-        ctx.fillStyle = pressed ? '#bde0fe' : 'rgba(170, 158, 196, 0.6)';
-        ctx.font = `bold ${Math.round(16 * scaleBot)}px Quicksand, sans-serif`;
+        // 字母 (字級也跟著放大)
+        ctx.fillStyle = pressed ? '#bde0fe' : 'rgba(170, 158, 196, 0.7)';
+        ctx.font = `bold ${Math.round(28 * scaleBot)}px Quicksand, sans-serif`;
         ctx.textAlign = 'center';
         const cy = (keyTop + keyBot) / 2;
-        ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), (xLBot + xRBot) / 2, cy + 6);
+        ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), (xLBot + xRBot) / 2, cy + 10);
       }
       const t = this.audio.getCurrentTime();
 
