@@ -1551,7 +1551,31 @@
       this.laneWidth = w / CONFIG.lanes;
       this.hitY = h * CONFIG.hitLineY;
       this.spawnY = -CONFIG.noteHeight;
+
+      // 透視參數：軌道在頂端 (spawnY/0) 處比較窄、底部 (hitY) 處 100% 寬
+      this.perspTopRatio = 0.7;     // 頂端寬度 = 底部寬度 × 0.7
+      this.vanishX = w / 2;          // 消失點 X (中央)
     }
+
+    // 給定 y 座標, 算出該 y 處的「寬度比例」(0=spawnY 是 0.7, hitY 是 1.0)
+    perspScaleAtY(y) {
+      const t = (y - this.spawnY) / (this.hitY - this.spawnY);
+      const clamped = Math.max(0, Math.min(1, t));
+      return this.perspTopRatio + (1 - this.perspTopRatio) * clamped;
+    }
+
+    // 計算某 lane 在指定 y 處的左右 x 座標 (帶透視)
+    perspLaneXAt(lane, y) {
+      const scale = this.perspScaleAtY(y);
+      const fullW = this.viewW;
+      const lineX = lane / CONFIG.lanes;       // 0~1, lane 起始位置 (沒透視時)
+      const lineXR = (lane + 1) / CONFIG.lanes; // lane 結束位置
+      // 以 vanishX 為中心壓縮
+      const xL = this.vanishX + (lineX * fullW - this.vanishX) * scale;
+      const xR = this.vanishX + (lineXR * fullW - this.vanishX) * scale;
+      return { xL, xR, scale };
+    }
+
     bindInput() {
       document.addEventListener('keydown', e => {
         if (!this.running || e.repeat) return;
@@ -1730,43 +1754,98 @@
     }
     draw() {
       const ctx = this.ctx2d, w = this.viewW, h = this.viewH;
-      // 馬卡龍主題：深紫底而非純黑，配合柔和粉嫩色調
-      ctx.fillStyle = '#2a2438'; ctx.fillRect(0, 0, w, h);
+
+      // 1. 漸層背景: 遠處深紫黑 → 近處稍亮的紫
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+      bgGrad.addColorStop(0, '#1a1626');     // 遠處更深
+      bgGrad.addColorStop(0.6, '#2a2438');
+      bgGrad.addColorStop(1, '#3d3454');     // 近處稍亮 (帶馬卡龍紫)
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // 2. 畫整個梯形軌道區的背景 (淡淡的軌道區)
+      const topL = this.perspLaneXAt(0, this.spawnY).xL;
+      const topR = this.perspLaneXAt(CONFIG.lanes - 1, this.spawnY).xR;
+      const botL = this.perspLaneXAt(0, this.hitY).xL;
+      const botR = this.perspLaneXAt(CONFIG.lanes - 1, this.hitY).xR;
+      ctx.fillStyle = 'rgba(61, 52, 84, 0.4)';
+      ctx.beginPath();
+      ctx.moveTo(topL, this.spawnY);
+      ctx.lineTo(topR, this.spawnY);
+      ctx.lineTo(botR, this.hitY);
+      ctx.lineTo(botL, this.hitY);
+      ctx.closePath();
+      ctx.fill();
+
+      // 3. 各 lane 按下時的高亮 (梯形)
       for (let i = 0; i < CONFIG.lanes; i++) {
-        const x = i * this.laneWidth;
-        const grad = ctx.createLinearGradient(x, 0, x, h);
-        grad.addColorStop(0, 'rgba(61, 52, 84, 0.5)');
-        grad.addColorStop(1, 'rgba(61, 52, 84, 0)');
-        ctx.fillStyle = grad; ctx.fillRect(x, 0, this.laneWidth, h);
         if (this.laneFlash[i] > 0 || this.pressedLanes[i]) {
           const intensity = this.pressedLanes[i] ? 1 : this.laneFlash[i];
           const color = (i === 1 || i === 2) ? '255, 175, 204' : '189, 224, 254';
-          const fg = ctx.createLinearGradient(x, this.hitY - 240, x, this.hitY);
-          fg.addColorStop(0, `rgba(${color}, 0)`);
-          fg.addColorStop(1, `rgba(${color}, ${0.32 * intensity})`);
-          ctx.fillStyle = fg; ctx.fillRect(x, this.hitY - 240, this.laneWidth, 240);
+
+          // 從 hitY-240 (約) 到 hitY 的那段高亮梯形
+          const startY = this.hitY - 240;
+          const tL_top = this.perspLaneXAt(i, startY).xL;
+          const tR_top = this.perspLaneXAt(i, startY).xR;
+          const tL_bot = this.perspLaneXAt(i, this.hitY).xL;
+          const tR_bot = this.perspLaneXAt(i, this.hitY).xR;
+
+          const grad = ctx.createLinearGradient(0, startY, 0, this.hitY);
+          grad.addColorStop(0, `rgba(${color}, 0)`);
+          grad.addColorStop(1, `rgba(${color}, ${0.32 * intensity})`);
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.moveTo(tL_top, startY);
+          ctx.lineTo(tR_top, startY);
+          ctx.lineTo(tR_bot, this.hitY);
+          ctx.lineTo(tL_bot, this.hitY);
+          ctx.closePath();
+          ctx.fill();
         }
       }
-      ctx.strokeStyle = 'rgba(189, 224, 254, 0.18)'; ctx.lineWidth = 1;
+
+      // 4. 畫 lane 分隔線 (透視: 從上窄到下寬)
+      ctx.strokeStyle = 'rgba(189, 224, 254, 0.18)';
+      ctx.lineWidth = 1;
       for (let i = 0; i <= CONFIG.lanes; i++) {
-        ctx.beginPath(); ctx.moveTo(i * this.laneWidth, 0); ctx.lineTo(i * this.laneWidth, h); ctx.stroke();
+        const xTop = (i === CONFIG.lanes)
+          ? this.perspLaneXAt(i - 1, this.spawnY).xR
+          : this.perspLaneXAt(i, this.spawnY).xL;
+        const xBot = (i === CONFIG.lanes)
+          ? this.perspLaneXAt(i - 1, this.hitY).xR
+          : this.perspLaneXAt(i, this.hitY).xL;
+        ctx.beginPath();
+        ctx.moveTo(xTop, this.spawnY);
+        ctx.lineTo(xBot, this.hitY);
+        ctx.stroke();
       }
-      ctx.strokeStyle = 'rgba(255, 175, 204, 0.75)'; ctx.lineWidth = 3;
-      ctx.shadowBlur = 22; ctx.shadowColor = '#ffafcc';
-      ctx.beginPath(); ctx.moveTo(0, this.hitY); ctx.lineTo(w, this.hitY); ctx.stroke();
+
+      // 5. 判定線 (在底部, 全寬)
+      ctx.strokeStyle = 'rgba(255, 175, 204, 0.75)';
+      ctx.lineWidth = 3;
+      ctx.shadowBlur = 22;
+      ctx.shadowColor = '#ffafcc';
+      ctx.beginPath();
+      ctx.moveTo(botL, this.hitY);
+      ctx.lineTo(botR, this.hitY);
+      ctx.stroke();
       ctx.shadowBlur = 0;
+
+      // 6. 按鍵框 + 字母 (在判定線下方, 全寬不透視)
       for (let i = 0; i < CONFIG.lanes; i++) {
-        const x = i * this.laneWidth, pressed = this.pressedLanes[i];
+        const { xL, xR } = this.perspLaneXAt(i, this.hitY);
+        const pressed = this.pressedLanes[i];
         ctx.strokeStyle = pressed ? '#bde0fe' : 'rgba(170, 158, 196, 0.4)';
         ctx.lineWidth = pressed ? 2 : 1;
-        ctx.strokeRect(x + 4, this.hitY + 8, this.laneWidth - 8, 56);
+        ctx.strokeRect(xL + 4, this.hitY + 8, xR - xL - 8, 56);
         ctx.fillStyle = pressed ? '#bde0fe' : 'rgba(170, 158, 196, 0.6)';
-        ctx.font = 'bold 16px Quicksand, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), x + this.laneWidth / 2, this.hitY + 42);
+        ctx.font = 'bold 16px Quicksand, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), (xL + xR) / 2, this.hitY + 42);
       }
       const t = this.audio.getCurrentTime();
 
-      // 1. 先畫長按拖尾 (在頭部下面層)
+      // 7. 先畫長按拖尾 (帶透視: 上窄下寬的梯形)
       for (const note of this.notes) {
         if (note.duration <= 0) continue;
         if (note.completed) continue;
@@ -1776,57 +1855,74 @@
         const tuTail = noteEndTime - t;
         const isActiveHold = note.hit && note.holding;
 
-        // 可見性檢查 (active hold 時永遠畫，因為頭部釘在判定線)
         if (!isActiveHold) {
-          if (tuHead > CONFIG.fallTime) continue;       // 頭部還沒進入畫面
-          if (tuTail < -CONFIG.windowOkay - 0.2) continue; // 整條已通過
+          if (tuHead > CONFIG.fallTime) continue;
+          if (tuTail < -CONFIG.windowOkay - 0.2) continue;
         } else {
-          if (tuTail < -0.05) continue; // active hold 但拖尾完全結束
+          if (tuTail < -0.05) continue;
         }
 
-        // 計算 head 與 tail tip 的螢幕 y
         let headProg = 1 - (tuHead / CONFIG.fallTime);
         let tailProg = 1 - (tuTail / CONFIG.fallTime);
         let headY = this.spawnY + (this.hitY - this.spawnY) * headProg;
         const tailY = this.spawnY + (this.hitY - this.spawnY) * tailProg;
 
-        // 如果頭已被按下並且仍在按住中，頭部停在判定線
         if (isActiveHold) headY = this.hitY;
 
-        const x = note.lane * this.laneWidth;
         const color = (note.lane === 1 || note.lane === 2) ? '#ffafcc' : '#bde0fe';
-        const padding = 14;
-        const tailX = x + padding;
-        const tailW = this.laneWidth - padding * 2;
 
-        // 畫拖尾 (tail tip 在上、head 在下)
+        // 拖尾的上下端 y
         const top = Math.min(tailY, headY);
         const bot = Math.max(tailY, headY);
-        if (bot - top > 1) {
-          ctx.save();
-          ctx.globalAlpha = isActiveHold ? 0.55 : 0.32;
-          const grad = ctx.createLinearGradient(0, top, 0, bot);
-          grad.addColorStop(0, color + '00');  // 上端漸透明
-          grad.addColorStop(0.25, color + '88');
-          grad.addColorStop(1, color + 'cc');
-          ctx.fillStyle = grad;
-          ctx.shadowBlur = isActiveHold ? 12 : 6;
-          ctx.shadowColor = color;
-          ctx.fillRect(tailX, top, tailW, bot - top);
-          // 中間發光細線 (active 時更亮，但比之前淡)
-          if (isActiveHold) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.shadowBlur = 0;
-            ctx.fillRect(tailX + tailW / 2 - 1, top, 2, bot - top);
-          }
-          ctx.restore();
+        if (bot - top <= 1) continue;
+
+        // 拖尾梯形:用兩端的透視 lane 寬度連接
+        const padFrac = 0.20;  // 左右各留 20% 軌道寬
+        const topLane = this.perspLaneXAt(note.lane, top);
+        const botLane = this.perspLaneXAt(note.lane, bot);
+        const topPad = (topLane.xR - topLane.xL) * padFrac;
+        const botPad = (botLane.xR - botLane.xL) * padFrac;
+        const tailTopL = topLane.xL + topPad;
+        const tailTopR = topLane.xR - topPad;
+        const tailBotL = botLane.xL + botPad;
+        const tailBotR = botLane.xR - botPad;
+
+        ctx.save();
+        ctx.globalAlpha = isActiveHold ? 0.55 : 0.32;
+        const grad = ctx.createLinearGradient(0, top, 0, bot);
+        grad.addColorStop(0, color + '00');
+        grad.addColorStop(0.25, color + '88');
+        grad.addColorStop(1, color + 'cc');
+        ctx.fillStyle = grad;
+        ctx.shadowBlur = isActiveHold ? 12 : 6;
+        ctx.shadowColor = color;
+        ctx.beginPath();
+        ctx.moveTo(tailTopL, top);
+        ctx.lineTo(tailTopR, top);
+        ctx.lineTo(tailBotR, bot);
+        ctx.lineTo(tailBotL, bot);
+        ctx.closePath();
+        ctx.fill();
+
+        if (isActiveHold) {
+          // 中間發光細線 (跟著透視)
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.shadowBlur = 0;
+          ctx.beginPath();
+          ctx.moveTo((tailTopL + tailTopR) / 2 - 1, top);
+          ctx.lineTo((tailTopL + tailTopR) / 2 + 1, top);
+          ctx.lineTo((tailBotL + tailBotR) / 2 + 1, bot);
+          ctx.lineTo((tailBotL + tailBotR) / 2 - 1, bot);
+          ctx.closePath();
+          ctx.fill();
         }
+        ctx.restore();
       }
 
-      // 2. 畫一般音符的頭 (tap 與 hold 共用)
+      // 8. 畫一般音符的頭 (tap + hold) - 近大遠小
       for (const note of this.notes) {
-        if (note.hit && note.duration <= 0) continue;     // tap 命中後不再畫
-        if (note.completed) continue;                      // hold 完成後不畫
+        if (note.hit && note.duration <= 0) continue;
+        if (note.completed) continue;
         if (note.missed) continue;
         const tu = note.time - t;
         if (tu > CONFIG.fallTime) continue;
@@ -1834,21 +1930,25 @@
 
         let progress = 1 - (tu / CONFIG.fallTime);
         let y = this.spawnY + (this.hitY - this.spawnY) * progress;
-        // 長按按住中時，頭部停在判定線上發光
         if (note.hit && note.holding) y = this.hitY;
 
-        const x = note.lane * this.laneWidth;
+        const { xL, xR, scale } = this.perspLaneXAt(note.lane, y);
         const color = (note.lane === 1 || note.lane === 2) ? '#ffafcc' : '#bde0fe';
+        const padding = 10 * scale;
+        const noteX = xL + padding;
+        const noteW = (xR - xL) - padding * 2;
+        const noteH = CONFIG.noteHeight * scale;  // 音符高度也跟著透視
+
         ctx.save();
-        ctx.shadowBlur = note.holding ? 28 : 18;
+        ctx.shadowBlur = (note.holding ? 28 : 18) * scale;
         ctx.shadowColor = color;
         ctx.fillStyle = color;
-        const padding = 10, noteX = x + padding, noteW = this.laneWidth - padding * 2, noteH = CONFIG.noteHeight;
-        this.roundRect(ctx, noteX, y - noteH / 2, noteW, noteH, 4);
+        this.roundRect(ctx, noteX, y - noteH / 2, noteW, noteH, 4 * scale);
         ctx.fill();
         ctx.shadowBlur = 0;
+        // 上緣高光
         ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-        ctx.fillRect(noteX + 3, y - noteH / 2 + 3, noteW - 6, 2);
+        ctx.fillRect(noteX + 3 * scale, y - noteH / 2 + 3 * scale, noteW - 6 * scale, 2 * scale);
         ctx.restore();
       }
       for (const p of this.particles) p.draw(ctx);
