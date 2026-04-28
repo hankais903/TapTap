@@ -327,17 +327,20 @@
       max-width: 480px; width: 100%; margin: 0 auto;
     }
     #song-list {
-      display: flex; flex-direction: column; gap: 12px;
+      display: flex; flex-direction: column; gap: 8px;
     }
 
     /* 歌曲卡片 (馬卡龍風格) */
     .song-card {
       background: var(--surface);
       border-radius: var(--radius-lg);
-      padding: 12px;
+      padding: 8px;
       box-shadow: var(--shadow-soft);
       transition: transform 0.15s, box-shadow 0.2s;
       position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     .song-card.playing {
       box-shadow: 0 0 0 2px var(--primary), var(--shadow);
@@ -345,18 +348,13 @@
     .song-card:active {
       transform: scale(0.98);
     }
-    .song-card-row {
-      display: flex; gap: 12px; align-items: center;
-      margin-bottom: 10px;
-    }
 
-    /* 封面方塊 */
     .cover {
-      width: 64px; height: 64px;
+      width: 52px; height: 52px;
       border-radius: var(--radius-md);
       flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      font-size: 26px;
+      font-size: 22px;
       cursor: pointer;
       position: relative;
       isolation: isolate;
@@ -368,85 +366,73 @@
     .cover.color-green { background: var(--accent-green); color: var(--green-text); }
     .cover.color-coral { background: var(--accent-coral); color: var(--coral-text); }
 
-    /* 播放中的脈動 */
     .song-card.playing .cover {
       animation: pulse 1.6s ease-in-out infinite;
     }
     @keyframes pulse {
       0%, 100% { transform: scale(1); }
-      50%      { transform: scale(1.04); }
+      50%      { transform: scale(1.05); }
     }
 
-    /* YouTube 連結 (封面右下) */
     .yt-link {
       position: absolute;
-      right: 4px; bottom: 4px;
-      width: 22px; height: 16px;
+      right: 3px; bottom: 3px;
+      width: 18px; height: 13px;
       background: #ff0000;
-      border-radius: 4px;
+      border-radius: 3px;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
       z-index: 5;
       text-decoration: none;
       transition: transform 0.12s;
     }
     .yt-link:active { transform: scale(0.92); }
-    .yt-link svg { display: block; transform: translateX(1px); }
+    .yt-link svg { display: block; transform: translateX(0.5px); }
 
-    /* 歌曲資訊 */
     .song-info {
-      flex: 1; min-width: 0;
+      flex: 1;
+      min-width: 0;
       cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
     }
     .song-name {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       color: var(--text);
-      line-height: 1.25;
+      line-height: 1.2;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .song-meta {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-dim);
-      margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .diff-badges {
-      display: flex; gap: 5px; margin-top: 6px;
-    }
-    .diff-badge {
-      padding: 2px 7px;
-      border-radius: var(--radius-sm);
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-    .diff-badge.easy   { background: var(--accent-green); color: var(--green-text); }
-    .diff-badge.normal { background: var(--accent-blue);  color: var(--blue-text); }
-    .diff-badge.hard   { background: var(--accent-pink);  color: var(--pink-text); }
-    .diff-badge.insane { background: var(--accent-coral); color: var(--coral-text); }
 
-    /* 卡片下方的 PLAY 按鈕 (preview 已移除) */
-    .song-card-actions {
-      display: flex; gap: 6px;
-    }
     .play-btn {
-      flex: 1;
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
       background: var(--primary);
       color: var(--primary-dark);
       border: none;
-      border-radius: var(--radius-md);
-      padding: 10px;
-      font-size: 13px;
+      border-radius: 50%;
+      font-size: 16px;
       font-weight: 700;
-      letter-spacing: 0.5px;
       cursor: pointer;
       transition: transform 0.12s, filter 0.15s;
       font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-left: 3px;
     }
     [data-theme="dark"] .play-btn {
       color: var(--primary-dark);
     }
-    .play-btn:active { transform: scale(0.97); filter: brightness(0.95); }
+    .play-btn:active { transform: scale(0.92); filter: brightness(0.95); }
 
     /* ============================================
        歌曲詳情頁 (難度選擇)
@@ -1046,7 +1032,6 @@
       this.activeSource = null;
       this.activeGain = null;
       this.activeUrl = null;
-      this.fadeDur = 0.4;          // 淡入淡出時間 (秒)
       this.targetVolume = 0.55;    // 背景音樂目標音量 (不要太大聲)
       this.onChange = null;        // 切歌時的 callback (UI 更新)
     }
@@ -1062,9 +1047,9 @@
         return false;
       }
 
-      // 先淡出舊歌
+      // 先停止舊歌 (直接切換，不淡出)
       if (this.activeSource) {
-        this._fadeOutAndStop();
+        this._stopImmediate();
       }
 
       // 載入 buffer
@@ -1079,16 +1064,20 @@
 
       const source = ctx.createBufferSource();
       source.buffer = buffer;
-      source.loop = true;            // 全長循環
+      source.loop = true;       // 循環播放
+      // loopStart/loopEnd 預設為 0 / buffer.duration → 循環時從頭開始 (這是內建行為)
       const gain = ctx.createGain();
       source.connect(gain);
       gain.connect(ctx.destination);
 
       const now = ctx.currentTime;
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(this.targetVolume, now + this.fadeDur);
+      // 直接給目標音量 (不淡入)
+      gain.gain.setValueAtTime(this.targetVolume, now);
 
-      source.start(now, 0);  // 從歌曲開頭播
+      // 從歌曲中段 30 秒處開始播 (但若歌曲短於 30 秒，從 1/3 處開始)
+      const startOffset = Math.min(30, buffer.duration / 3);
+
+      source.start(now, startOffset);
       this.activeSource = source;
       this.activeGain = gain;
       this.activeUrl = url;
@@ -1097,19 +1086,14 @@
       return true;
     }
 
-    _fadeOutAndStop() {
+    _stopImmediate() {
       if (!this.activeSource || !this.activeGain) return;
-      const ctx = this.engine.ctx;
-      const now = ctx.currentTime;
       const src = this.activeSource;
       const g = this.activeGain;
       try {
-        g.gain.cancelScheduledValues(now);
-        g.gain.setValueAtTime(g.gain.value, now);
-        g.gain.linearRampToValueAtTime(0, now + this.fadeDur);
-        setTimeout(() => {
-          try { src.stop(); src.disconnect(); g.disconnect(); } catch (e) {}
-        }, this.fadeDur * 1000 + 50);
+        src.stop();
+        src.disconnect();
+        g.disconnect();
       } catch (e) {}
       this.activeSource = null;
       this.activeGain = null;
@@ -1118,7 +1102,7 @@
 
     stop() {
       const wasUrl = this.activeUrl;
-      this._fadeOutAndStop();
+      this._stopImmediate();
       if (this.onChange && wasUrl) this.onChange(null);
     }
 
@@ -1798,31 +1782,21 @@
         }
 
         card.innerHTML = `
-          <div class="song-card-row">
-            <div class="cover ${colorClass}" data-action="cover">
-              ${iconChar}
-              ${song.youtube ? `
-                <a class="yt-link" href="${song.youtube}" target="_blank" rel="noopener noreferrer" title="在 YouTube 上觀看">
-                  <svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true">
-                    <polygon points="8,5 8,19 19,12" fill="white"/>
-                  </svg>
-                </a>
-              ` : ''}
-            </div>
-            <div class="song-info" data-action="info">
-              <div class="song-name">${song.title}</div>
-              <div class="song-meta">${song.artist || 'Unknown'} · ${bpm} BPM · ${dur}</div>
-              <div class="diff-badges">
-                <span class="diff-badge easy">E</span>
-                <span class="diff-badge normal">N</span>
-                <span class="diff-badge hard">H</span>
-                <span class="diff-badge insane">I</span>
-              </div>
-            </div>
+          <div class="cover ${colorClass}" data-action="cover">
+            ${iconChar}
+            ${song.youtube ? `
+              <a class="yt-link" href="${song.youtube}" target="_blank" rel="noopener noreferrer" title="在 YouTube 上觀看">
+                <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+                  <polygon points="8,5 8,19 19,12" fill="white"/>
+                </svg>
+              </a>
+            ` : ''}
           </div>
-          <div class="song-card-actions">
-            <button class="play-btn" data-action="play">► PLAY</button>
+          <div class="song-info" data-action="info">
+            <div class="song-name">${song.title}</div>
+            <div class="song-meta">${song.artist || 'Unknown'} · ${bpm} BPM · ${dur}</div>
           </div>
+          <button class="play-btn" data-action="play" title="開始遊戲">▶</button>
         `;
 
         // 點封面 → 切換背景音樂試聽
