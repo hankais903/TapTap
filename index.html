@@ -165,6 +165,123 @@
     .overlay.hidden { opacity: 0; pointer-events: none; }
 
     /* ============================================
+       首頁 (Home Screen)
+       ============================================ */
+    .home-screen {
+      align-items: center;
+      justify-content: flex-start;
+      position: relative;
+      overflow: hidden;
+    }
+    .home-theme-toggle {
+      position: absolute;
+      top: max(16px, env(safe-area-inset-top));
+      right: 16px;
+      z-index: 5;
+    }
+    .home-content {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      padding: 20px 0;
+      position: relative;
+      z-index: 2;
+    }
+    .home-title-block {
+      display: flex; flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-top: -40px;
+    }
+    .home-heart {
+      font-size: 38px;
+      color: var(--primary);
+      animation: heartbeat 2s ease-in-out infinite;
+    }
+    [data-theme="dark"] .home-heart { color: var(--accent-pink); }
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      15% { transform: scale(1.12); }
+      30% { transform: scale(1); }
+      45% { transform: scale(1.08); }
+      60% { transform: scale(1); }
+    }
+    .home-title {
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--secondary-dark);
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+    [data-theme="dark"] .home-title { color: var(--secondary-dark); }
+    .home-subtitle {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 3px;
+      margin-top: 4px;
+    }
+    .home-start-btn {
+      background: var(--primary);
+      color: var(--primary-dark);
+      border: none;
+      border-radius: 18px;
+      padding: 16px 56px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: var(--shadow);
+      transition: transform 0.15s, filter 0.15s;
+      animation: float 3s ease-in-out infinite;
+      margin-top: 60px;
+    }
+    [data-theme="dark"] .home-start-btn { color: var(--primary-dark); }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-6px); }
+    }
+    .home-start-btn:active { transform: scale(0.96); filter: brightness(0.95); animation: none; }
+    .home-hint {
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      margin-top: 4px;
+    }
+
+    /* 飄浮的小裝飾 */
+    .home-deco {
+      position: absolute;
+      pointer-events: none;
+      color: var(--accent-pink);
+      opacity: 0.45;
+      z-index: 1;
+      animation: drift 6s ease-in-out infinite;
+    }
+    [data-theme="dark"] .home-deco { color: var(--accent-pink); opacity: 0.55; }
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      50%      { transform: translate(4px, -8px) rotate(8deg); }
+    }
+    .home-deco-1 { top: 18%;  left: 12%; font-size: 22px; animation-delay: 0s;   color: var(--accent-pink); }
+    .home-deco-2 { top: 24%;  right: 14%; font-size: 16px; animation-delay: 1.2s; color: var(--accent-blue); }
+    .home-deco-3 { bottom: 22%; left: 10%; font-size: 14px; animation-delay: 2.4s; color: var(--secondary-dark); opacity: 0.4; }
+    .home-deco-4 { bottom: 28%; right: 12%; font-size: 18px; animation-delay: 0.8s; color: var(--accent-coral); }
+    .home-deco-5 { top: 14%;  right: 32%; font-size: 13px; animation-delay: 3.6s; color: var(--accent-pink); }
+    .home-deco-6 { bottom: 18%; left: 32%; font-size: 15px; animation-delay: 1.8s; color: var(--accent-blue); }
+    [data-theme="dark"] .home-deco-1 { color: var(--accent-pink); }
+    [data-theme="dark"] .home-deco-2 { color: var(--accent-blue); }
+    [data-theme="dark"] .home-deco-3 { color: var(--secondary-dark); }
+    [data-theme="dark"] .home-deco-4 { color: var(--accent-coral); }
+    [data-theme="dark"] .home-deco-5 { color: var(--accent-pink); }
+    [data-theme="dark"] .home-deco-6 { color: var(--accent-blue); }
+
+    /* ============================================
        主選單頁 - 標題列
        ============================================ */
     .menu-header {
@@ -729,8 +846,30 @@
     <div class="hud-item" id="accuracy-display"><div class="hud-label">Accuracy</div><div class="hud-value">100.00%</div></div>
   </div>
 
+  <!-- 0. HOME -->
+  <div class="overlay home-screen" id="home-screen">
+    <button class="theme-toggle home-theme-toggle" id="home-theme-toggle" title="切換深淺色">☾</button>
+    <div class="home-deco home-deco-1">♪</div>
+    <div class="home-deco home-deco-2">♫</div>
+    <div class="home-deco home-deco-3">✿</div>
+    <div class="home-deco home-deco-4">☆</div>
+    <div class="home-deco home-deco-5">♡</div>
+    <div class="home-deco home-deco-6">♪</div>
+
+    <div class="home-content">
+      <div class="home-title-block">
+        <div class="home-heart">♡</div>
+        <div class="home-title">neon beat</div>
+        <div class="home-subtitle">SOFT RHYTHM GAME</div>
+      </div>
+
+      <button class="home-start-btn" id="home-start-btn">▶ START</button>
+      <div class="home-hint">tap to begin</div>
+    </div>
+  </div>
+
   <!-- 1. SONG LIST -->
-  <div class="overlay" id="menu-screen">
+  <div class="overlay hidden" id="menu-screen">
     <div class="menu-header">
       <div class="menu-title-block">
         <div class="menu-title">♡ neon beat</div>
@@ -1573,8 +1712,11 @@
     }
 
     updateThemeToggleIcon(theme) {
-      const btn = document.getElementById('theme-toggle');
-      if (btn) btn.textContent = theme === 'dark' ? '☀' : '☾';
+      const icon = theme === 'dark' ? '☀' : '☾';
+      const b1 = document.getElementById('theme-toggle');
+      const b2 = document.getElementById('home-theme-toggle');
+      if (b1) b1.textContent = icon;
+      if (b2) b2.textContent = icon;
     }
 
     toggleTheme() {
@@ -1738,6 +1880,9 @@
       document.getElementById('results-back-btn').addEventListener('click', () => this.showMenu());
 
       document.getElementById('theme-toggle').addEventListener('click', () => this.toggleTheme());
+      document.getElementById('home-theme-toggle').addEventListener('click', () => this.toggleTheme());
+
+      document.getElementById('home-start-btn').addEventListener('click', () => this.enterSongList());
 
       document.querySelectorAll('.diff-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1850,6 +1995,20 @@
       }
     }
 
+    enterSongList() {
+      // 從首頁點 START 進入歌單 → 這是合法的 user gesture
+      // 可以在這裡開始播放音樂 (繞過 iOS 自動播放限制)
+      document.getElementById('home-screen').classList.add('hidden');
+      document.getElementById('menu-screen').classList.remove('hidden');
+      this.renderSongList();
+
+      // 自動播放第一首歌
+      if (this.songs.length > 0) {
+        const firstSong = this.songs[0];
+        this.toggleBgMusic(firstSong);
+      }
+    }
+
     showMenu() {
       this.game.abort();
       document.getElementById('menu-screen').classList.remove('hidden');
@@ -1857,7 +2016,7 @@
       document.getElementById('results-screen').classList.add('hidden');
       document.getElementById('game-exit-btn').classList.add('hidden');
       this.renderSongList();
-      // 如果有上次選的歌，自動接著播 (從頭)
+      // 玩完一場回歌單 → 自動接著播剛才那首
       if (this.lastPlayedSong) {
         this.toggleBgMusic(this.lastPlayedSong);
       }
