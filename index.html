@@ -666,7 +666,13 @@
       animation: spin-cd 8s linear infinite;
     }
     .detail-cover.has-thumb { background: #1a1a1a; }
-    .detail-cover .cover-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .detail-cover .cover-thumb {
+      width: 178%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      margin-left: -39%;  /* 16:9 圖橫向放大 1.78x 後置中 */
+    }
     .detail-cover.color-pink  { background: var(--accent-pink);  color: var(--pink-text); }
     .detail-cover.color-blue  { background: var(--accent-blue);  color: var(--blue-text); }
     .detail-cover.color-green { background: var(--accent-green); color: var(--green-text); }
@@ -2274,8 +2280,9 @@
     youtubeThumbUrl(url) {
       const id = this.extractYouTubeId(url);
       if (!id) return null;
-      // hqdefault 大多數影片都有 (480x360)，比 maxresdefault (1280x720) 可靠
-      return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+      // mqdefault 是純 16:9 的縮圖 (320x180), 沒有黑色 letterbox
+      // hqdefault 雖然較大 (480x360) 但因為強制 4:3 框架, 上下會有黑邊
+      return `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
     }
 
     initTheme() {
