@@ -1433,7 +1433,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.9.0';   // 改版時更新
+  const VERSION = 'v0.9.1';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -1531,12 +1531,39 @@
   class BackgroundMusicPlayer {
     constructor(audioEngine) {
       this.engine = audioEngine;
-      this.bufferCache = new Map();
+      this.bufferCache = new Map();    // url -> AudioBuffer (已解碼, 可直接播)
+      this.bytesCache = new Map();     // url -> ArrayBuffer (原始位元, 還沒解碼)
+      this.fetchPromises = new Map();  // url -> Promise (進行中的 fetch, 避免重複)
       this.activeSource = null;
       this.activeGain = null;
       this.activeUrl = null;
-      this.targetVolume = 0.55;    // 背景音樂目標音量 (不要太大聲)
-      this.onChange = null;        // 切歌時的 callback (UI 更新)
+      this.targetVolume = 0.55;
+      this.onChange = null;
+    }
+
+    /**
+     * 預先下載音樂檔的原始 bytes (不解碼)
+     * 解碼動作留到真的要播時才做 (省記憶體, 而且 decode 比 fetch 快)
+     */
+    async prefetch(url) {
+      if (!url) return;
+      if (this.bufferCache.has(url)) return;     // 已經完整解碼好了
+      if (this.bytesCache.has(url)) return;       // 已經下載完位元
+      if (this.fetchPromises.has(url)) return;   // 進行中, 不重複發
+      const promise = (async () => {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) return;
+          const arrayBuffer = await res.arrayBuffer();
+          this.bytesCache.set(url, arrayBuffer);
+        } catch (e) {
+          // 預載失敗不影響使用者體驗 (真要播時會再試)
+        } finally {
+          this.fetchPromises.delete(url);
+        }
+      })();
+      this.fetchPromises.set(url, promise);
+      return promise;
     }
 
     async play(url) {
@@ -1560,13 +1587,28 @@
       const myGen = this._gen;
       this.activeUrl = url;  // 立刻記下來, 讓後續 play(同 url) 能識別
 
-      // 載入 buffer
+      // 載入 buffer (三層 cache)
       let buffer = this.bufferCache.get(url);
       if (!buffer) {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('BG fetch failed');
-        const arrayBuffer = await res.arrayBuffer();
-        buffer = await ctx.decodeAudioData(arrayBuffer);
+        // 看看 bytes 有沒有預載過
+        let arrayBuffer = this.bytesCache.get(url);
+        if (!arrayBuffer) {
+          // 看看正在 fetch 的 promise (預載中)
+          const pending = this.fetchPromises.get(url);
+          if (pending) {
+            await pending;
+            arrayBuffer = this.bytesCache.get(url);
+          }
+        }
+        if (!arrayBuffer) {
+          // 都沒有, 現場下載
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('BG fetch failed');
+          arrayBuffer = await res.arrayBuffer();
+          this.bytesCache.set(url, arrayBuffer);
+        }
+        // decodeAudioData 會消耗 ArrayBuffer, 所以先 slice 一份備份
+        buffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
         this.bufferCache.set(url, buffer);
       }
 
@@ -2700,6 +2742,35 @@
       } catch (e) {
         console.warn('BG music error:', e);
       }
+      // 預先抓相鄰幾首歌, 讓用戶快速滑動時不用等
+      this.prefetchNeighbors(song);
+    }
+
+    /** 預載當前歌曲前後各 2 首的 mp3 (高優先, 立即發起) */
+    prefetchNeighbors(song) {
+      const idx = this.songs.findIndex(s => s.id === song.id);
+      if (idx < 0) return;
+      const range = 2;
+      for (let offset = -range; offset <= range; offset++) {
+        if (offset === 0) continue;
+        const i = idx + offset;
+        if (i < 0 || i >= this.songs.length) continue;
+        const s = this.songs[i];
+        const url = `songs/${s.id}/${s.audio}`;
+        this.bgMusic.prefetch(url);
+      }
+    }
+
+    /** 慢速預載全部歌曲 (低優先, 進入歌單 5 秒後才開始, 一次一首避免塞網路) */
+    async prefetchAllInBackground() {
+      // 延遲啟動, 讓首次互動相關的請求先跑完
+      await new Promise(r => setTimeout(r, 5000));
+      for (const s of this.songs) {
+        const url = `songs/${s.id}/${s.audio}`;
+        try {
+          await this.bgMusic.prefetch(url);
+        } catch (e) { /* 失敗就略過 */ }
+      }
     }
 
     refreshPlayingHighlight(activeUrl) {
@@ -2882,6 +2953,12 @@
           setTimeout(() => { this._suppressPickerAutoPlay = false; }, 600);
         });
         this.toggleBgMusic(defaultSong);
+
+        // 背景慢速預載全部歌曲 (5 秒後開始, 不影響當下播放)
+        if (!this._bgPrefetchStarted) {
+          this._bgPrefetchStarted = true;
+          this.prefetchAllInBackground();
+        }
       }
     }
 
