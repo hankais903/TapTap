@@ -253,6 +253,19 @@
       letter-spacing: 2px;
       margin-top: 4px;
     }
+    .home-version {
+      position: absolute;
+      bottom: max(14px, env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: var(--text-dim);
+      opacity: 0.55;
+      letter-spacing: 1px;
+      font-family: 'SF Mono', 'Consolas', monospace;
+      pointer-events: none;
+      z-index: 1;
+    }
 
     /* 飄浮的小裝飾 */
     .home-deco {
@@ -1268,6 +1281,8 @@
       <button class="home-start-btn" id="home-start-btn">▶ START</button>
       <div class="home-hint">tap to begin</div>
     </div>
+
+    <div class="home-version" id="home-version">v0.0.0</div>
   </div>
 
   <!-- 1. SONG LIST -->
@@ -1418,6 +1433,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
+  const VERSION = 'v0.9.0';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2375,6 +2391,10 @@
     }
 
     async init() {
+      // 顯示版本號
+      const versionEl = document.getElementById('home-version');
+      if (versionEl) versionEl.textContent = VERSION;
+
       // 加上 cache-busting 字串，避免 iOS WKWebView 給舊版 JSON
       const bust = `?v=${Date.now()}`;
 

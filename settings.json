@@ -1,29 +1,28 @@
 {
-  "_comment": "全域判定難度設定。修改此檔上傳到 GitHub repo 根目錄即可影響所有玩家的預設值。玩家若在遊戲內設定頁有調整過，會以本地設定為準。",
   "difficulty": {
     "easy": {
       "fallTime": 1.4,
-      "windowPerfect": 0.060,
-      "windowGood": 0.110,
-      "windowOkay": 0.160
+      "windowPerfect": 0.06,
+      "windowGood": 0.11,
+      "windowOkay": 0.16
     },
     "normal": {
       "fallTime": 1.1,
-      "windowPerfect": 0.045,
-      "windowGood": 0.090,
-      "windowOkay": 0.135
+      "windowPerfect": 0.06,
+      "windowGood": 0.11,
+      "windowOkay": 0.16
     },
     "hard": {
       "fallTime": 0.9,
-      "windowPerfect": 0.035,
-      "windowGood": 0.075,
-      "windowOkay": 0.115
+      "windowPerfect": 0.06,
+      "windowGood": 0.11,
+      "windowOkay": 0.16
     },
     "insane": {
       "fallTime": 0.75,
-      "windowPerfect": 0.030,
-      "windowGood": 0.065,
-      "windowOkay": 0.100
+      "windowPerfect": 0.06,
+      "windowGood": 0.11,
+      "windowOkay": 0.16
     }
   }
 }
