@@ -303,7 +303,137 @@
     opacity: 0;
     transition: opacity 0.2s;
   }
-  .toast.show { opacity: 1; }
+  .toast.show { opacity: 1; }  /* ============ 校拍模式 ============ */
+  .mode-toggle-row {
+    display: flex; gap: 4px;
+    margin-bottom: 6px;
+    background: rgba(255,255,255,0.05);
+    padding: 3px; border-radius: 999px;
+  }
+  .mode-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    transition: background 0.15s, color 0.15s;
+  }
+  .mode-btn.active {
+    background: var(--primary);
+    color: var(--primary-dark);
+  }
+
+  .calibrate-panel {
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+  }
+  .calibrate-panel.hidden { display: none; }
+
+  .calibrate-step {
+    display: flex; gap: 10px; align-items: flex-start;
+    font-size: 12px; line-height: 1.5;
+  }
+  .calibrate-step-num {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    color: #1e3a5f;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .calibrate-step-text {
+    flex: 1;
+    color: var(--text-dim);
+  }
+  .calibrate-step-text b { color: var(--text); }
+
+  .tap-button {
+    width: 100%;
+    padding: 28px;
+    border-radius: 16px;
+    border: 2px solid var(--primary);
+    background: rgba(255, 175, 204, 0.1);
+    color: var(--primary);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: transform 0.05s, background 0.05s;
+  }
+  .tap-button:active {
+    background: var(--primary);
+    color: var(--primary-dark);
+    transform: scale(0.98);
+  }
+  .tap-button.flash {
+    background: var(--primary);
+    color: var(--primary-dark);
+  }
+
+  .tap-result {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 12px;
+  }
+  .tap-result-row {
+    display: flex; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .tap-result-row:last-child { margin-bottom: 0; }
+  .tap-result-label { color: var(--text-dim); }
+  .tap-result-val {
+    font-family: 'SF Mono', monospace;
+    font-weight: 600;
+    color: var(--accent-pink);
+  }
+
+  .calibrate-actions {
+    display: flex; gap: 6px;
+  }
+  .calibrate-action {
+    flex: 1;
+    padding: 12px;
+    border-radius: 999px;
+    border: none;
+    font-size: 12px; font-weight: 600;
+  }
+  .calibrate-reset {
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+  }
+  .calibrate-confirm {
+    background: var(--accent-green);
+    color: #1a4d2e;
+  }
+  .calibrate-confirm:disabled {
+    opacity: 0.4;
+  }
+
+  /* 視覺節拍指示器: 一閃一閃 */
+  .beat-pulse {
+    width: 100%; height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  .beat-pulse-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--primary);
+    transform-origin: left;
+    transform: scaleX(0);
+    opacity: 0.7;
+  }
+
 </style>
 </head>
 <body>
@@ -344,6 +474,60 @@
     <button class="top-bar-save" id="save-btn">下載</button>
   </div>
 
+  <!-- 模式切換 -->
+  <div class="mode-toggle-row">
+    <button class="mode-btn active" id="mode-edit-btn" data-mode="edit">編譜</button>
+    <button class="mode-btn" id="mode-calibrate-btn" data-mode="calibrate">校拍</button>
+  </div>
+
+  <!-- ====== 校拍模式 ====== -->
+  <div class="calibrate-panel hidden" id="calibrate-panel">
+    <div class="calibrate-step">
+      <div class="calibrate-step-num">1</div>
+      <div class="calibrate-step-text">
+        <b>按下方播放</b>聽音樂前奏 / 主歌
+      </div>
+    </div>
+    <div class="calibrate-step">
+      <div class="calibrate-step-num">2</div>
+      <div class="calibrate-step-text">
+        跟著節拍狂點下方 <b>TAP</b> 按鈕 (10 下以上)
+      </div>
+    </div>
+    <div class="calibrate-step">
+      <div class="calibrate-step-num">3</div>
+      <div class="calibrate-step-text">
+        確認結果 → <b>儲存</b>到歌曲 meta
+      </div>
+    </div>
+
+    <div class="beat-pulse"><div class="beat-pulse-fill" id="beat-pulse-fill"></div></div>
+
+    <button class="tap-button" id="tap-button">TAP</button>
+
+    <div class="tap-result" id="tap-result">
+      <div class="tap-result-row">
+        <span class="tap-result-label">已點擊</span>
+        <span class="tap-result-val" id="tap-count">0 下</span>
+      </div>
+      <div class="tap-result-row">
+        <span class="tap-result-label">推測 BPM</span>
+        <span class="tap-result-val" id="tap-bpm">—</span>
+      </div>
+      <div class="tap-result-row">
+        <span class="tap-result-label">第一拍時間</span>
+        <span class="tap-result-val" id="tap-first">—</span>
+      </div>
+    </div>
+
+    <div class="calibrate-actions">
+      <button class="calibrate-action calibrate-reset" id="tap-reset">重置</button>
+      <button class="calibrate-action calibrate-confirm" id="tap-save" disabled>儲存到 meta</button>
+    </div>
+  </div>
+
+  <!-- ====== 編譜模式 (原本內容) ====== -->
+  <div id="edit-mode-wrapper" style="display: contents;">
   <!-- 譜面顯示區 -->
   <div class="timeline-container" id="timeline">
     <div class="lanes">
@@ -392,6 +576,7 @@
   <div class="help-text">
     <b>用法:</b> 上下滑動譜面 = 跳時間 · 點空白處 = 在 NOW 位置放音符 · 點現有音符 = 選取 · ±毫秒 = 微調時間
   </div>
+  </div><!-- /edit-mode-wrapper -->
 </div>
 
 <div class="toast" id="toast">儲存成功</div>
@@ -1002,6 +1187,143 @@ function hideToast() {
 // ============================================================
 // Init
 // ============================================================
+// ============================================================
+// 校拍模式
+// ============================================================
+let tapTimes = [];
+let calibrationResult = null;  // { firstBeat, bpm }
+
+function switchMode(mode) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  if (mode === 'edit') {
+    document.getElementById('calibrate-panel').classList.add('hidden');
+    // 顯示編譜元件
+    document.getElementById('timeline').style.display = '';
+    document.getElementById('selected-panel').style.display = '';
+    document.querySelector('.play-controls').style.display = '';
+    document.querySelector('.help-text').style.display = '';
+  } else {
+    document.getElementById('calibrate-panel').classList.remove('hidden');
+    // 隱藏編譜的譜面區跟微調面板, 但保留播放控制
+    document.getElementById('timeline').style.display = 'none';
+    document.getElementById('selected-panel').style.display = 'none';
+    document.querySelector('.help-text').style.display = 'none';
+    // 播放控制保留 (校拍時要能播音樂)
+    document.querySelector('.play-controls').style.display = '';
+    // 切換時停止當前播放
+    stopPlay();
+  }
+}
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+});
+
+function recordTap() {
+  if (!audioCtx) return;
+  // 用 audioCtx 時間軸 (ms 級精度)
+  const now = audioCtx.currentTime;
+  // 必須在播放音樂時 tap 才有意義
+  if (!isPlaying) {
+    showToast('請先播放音樂!', 1500);
+    return;
+  }
+  // 算出當前歌曲時間
+  const songTime = audioStartOffset + (now - audioStartTime);
+  tapTimes.push(songTime);
+
+  // 視覺回饋
+  const btn = document.getElementById('tap-button');
+  btn.classList.add('flash');
+  setTimeout(() => btn.classList.remove('flash'), 80);
+
+  computeCalibration();
+}
+
+function computeCalibration() {
+  document.getElementById('tap-count').textContent = tapTimes.length + ' 下';
+
+  if (tapTimes.length < 4) {
+    document.getElementById('tap-bpm').textContent = '需要 ≥ 4 下';
+    document.getElementById('tap-first').textContent = '—';
+    document.getElementById('tap-save').disabled = true;
+    calibrationResult = null;
+    return;
+  }
+
+  // 排除第一個 tap (人通常第一下不準)
+  const taps = tapTimes.length > 6 ? tapTimes.slice(1) : tapTimes;
+
+  // 算相鄰間距
+  const intervals = [];
+  for (let i = 1; i < taps.length; i++) {
+    intervals.push(taps[i] - taps[i - 1]);
+  }
+  // 中位數法 (避免偶爾按太快/太慢的離群值)
+  intervals.sort((a, b) => a - b);
+  const median = intervals[Math.floor(intervals.length / 2)];
+  const bpm = 60 / median;
+
+  // 算第一拍位置: 用線性回歸從你的 taps 反推
+  // y = first + n * period (n 是第幾拍, 從 0 開始)
+  // 但你 tap 的可能不是第 0/1/2 拍, 而是第 0,1,2,3,4...
+  // 所以直接取第一個 tap 當 first
+  const firstBeat = taps[0];
+
+  document.getElementById('tap-bpm').textContent = bpm.toFixed(1);
+  document.getElementById('tap-first').textContent = firstBeat.toFixed(3) + 's';
+  document.getElementById('tap-save').disabled = false;
+
+  calibrationResult = { firstBeat, bpm };
+}
+
+document.getElementById('tap-button').addEventListener('click', recordTap);
+document.getElementById('tap-button').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  recordTap();
+}, { passive: false });
+
+// 空白鍵也可 TAP (桌機)
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && document.getElementById('mode-calibrate-btn').classList.contains('active')) {
+    e.preventDefault();
+    recordTap();
+  }
+});
+
+document.getElementById('tap-reset').addEventListener('click', () => {
+  tapTimes = [];
+  calibrationResult = null;
+  computeCalibration();
+});
+
+document.getElementById('tap-save').addEventListener('click', () => {
+  if (!calibrationResult || !currentSong) return;
+  // 把 firstBeat + bpm 寫到一個下載 meta.json
+  const newMeta = {
+    id: currentSong.id,
+    title: currentSong.title,
+    artist: currentSong.artist,
+    bpm: parseFloat(calibrationResult.bpm.toFixed(2)),
+    firstBeat: parseFloat(calibrationResult.firstBeat.toFixed(3)),
+    duration: currentSong.duration,
+    audio: currentSong.audio,
+    youtube: currentSong.youtube || '',
+  };
+  const json = JSON.stringify(newMeta, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${currentSong.id}_meta.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('已下載 ' + a.download, 2500);
+});
+
+
 loadSongList();
 </script>
 </body>
