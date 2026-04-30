@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Neon Beat — 編譜器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1a1626;
+    --surface: #2a2438;
+    --surface-2: rgba(255, 245, 225, 0.06);
+    --text: #fff5e1;
+    --text-dim: rgba(255, 245, 225, 0.55);
+    --text-soft: rgba(255, 245, 225, 0.4);
+    --primary: #ffafcc;
+    --primary-dark: #6b1e3a;
+    --accent-blue: #bde0fe;
+    --accent-pink: #ffafcc;
+    --accent-coral: #ffb4a2;
+    --accent-green: #b8e0c8;
+    --danger: #ff8585;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: 'Quicksand', sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    display: flex; flex-direction: column;
+  }
+  button { font-family: inherit; cursor: pointer; }
+
+  /* ============ 載入畫面 ============ */
+  .load-screen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px;
+    z-index: 100;
+  }
+  .load-screen.hidden { display: none; }
+  .load-title {
+    font-size: 22px; font-weight: 700; margin-bottom: 8px;
+  }
+  .load-subtitle {
+    font-size: 12px; color: var(--text-dim); letter-spacing: 2px; margin-bottom: 32px;
+  }
+  .song-pick-list {
+    width: 100%; max-width: 380px;
+    max-height: 50vh; overflow-y: auto;
+    border-radius: 16px;
+    background: var(--surface);
+    margin-bottom: 16px;
+  }
+  .song-pick-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,245,225,0.06);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .song-pick-item:active { background: rgba(255,255,255,0.06); }
+  .song-pick-item:last-child { border-bottom: none; }
+  .song-pick-name { font-size: 14px; font-weight: 600; }
+  .song-pick-meta { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .diff-pick-row {
+    width: 100%; max-width: 380px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px;
+  }
+  .diff-pick-btn {
+    padding: 10px 4px;
+    border: none; border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px; font-weight: 600; letter-spacing: 1px;
+    transition: transform 0.12s, background 0.15s;
+  }
+  .diff-pick-btn:active { transform: scale(0.95); }
+  .diff-pick-btn.active { background: var(--primary); color: var(--primary-dark); }
+
+  /* ============ 主編輯介面 ============ */
+  .editor {
+    display: flex; flex-direction: column; height: 100%;
+    padding: 8px;
+    gap: 8px;
+  }
+  .editor.hidden { display: none; }
+
+  /* 頂部資訊欄 */
+  .top-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 4px;
+    border-bottom: 1px solid rgba(255,245,225,0.08);
+    flex-shrink: 0;
+  }
+  .top-bar-back, .top-bar-save {
+    border: none;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+  }
+  .top-bar-back { background: transparent; color: var(--text); }
+  .top-bar-save { background: var(--primary); color: var(--primary-dark); }
+  .top-bar-info {
+    flex: 1; text-align: center; padding: 0 8px;
+    overflow: hidden;
+  }
+  .top-bar-title {
+    font-size: 13px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .top-bar-meta {
+    font-size: 10px; color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* 譜面顯示區 */
+  .timeline-container {
+    flex: 1; min-height: 0;
+    position: relative;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    overflow: hidden;
+    touch-action: none; /* 自己處理觸控 */
+  }
+  /* 4 條軌道 */
+  .lanes {
+    position: absolute; inset: 0;
+    display: flex;
+  }
+  .lane {
+    flex: 1;
+    border-right: 1px dashed rgba(255,245,225,0.08);
+    position: relative;
+  }
+  .lane:last-child { border-right: none; }
+  .lane-label {
+    position: absolute;
+    bottom: 4px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px; font-weight: 600;
+    color: rgba(255,245,225,0.4);
+    pointer-events: none;
+    z-index: 4;
+  }
+  /* NOW 線 */
+  .now-line {
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    height: 2px;
+    background: var(--primary);
+    box-shadow: 0 0 8px var(--primary);
+    pointer-events: none;
+    z-index: 5;
+  }
+  .now-label {
+    position: absolute;
+    right: 6px;
+    top: calc(50% - 16px);
+    font-size: 8px;
+    color: var(--primary);
+    letter-spacing: 1px;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* Canvas 用來畫音符 */
+  .timeline-canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  /* 微調面板 */
+  .selected-panel {
+    background: rgba(255, 175, 204, 0.08);
+    border: 1px solid rgba(255, 175, 204, 0.2);
+    border-radius: 12px;
+    padding: 8px 10px;
+    flex-shrink: 0;
+  }
+  .selected-panel.hidden { display: none; }
+  .selected-row1 {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px;
+  }
+  .selected-info {
+    font-size: 11px; color: var(--text-dim);
+  }
+  .selected-info b { color: var(--text); }
+  .selected-actions {
+    display: flex; gap: 4px;
+  }
+  .btn-sm {
+    border: none;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 10px; font-weight: 600;
+  }
+  .btn-hold {
+    background: rgba(189,224,254,0.2);
+    color: var(--accent-blue);
+  }
+  .btn-hold.on {
+    background: var(--accent-blue);
+    color: #1e3a5f;
+  }
+  .btn-delete {
+    background: rgba(255, 109, 109, 0.2);
+    color: var(--danger);
+  }
+  .nudge-row {
+    display: flex; gap: 6px; align-items: center; justify-content: center;
+  }
+  .nudge-btn {
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+    font-size: 11px; font-weight: 600;
+  }
+  .nudge-btn:active { background: rgba(255,255,255,0.18); }
+  .nudge-time {
+    font-family: 'SF Mono', 'Consolas', monospace;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--primary);
+    min-width: 76px; text-align: center;
+  }
+
+  /* Hold 拖尾調整 (只在選中 hold 音符時顯示) */
+  .hold-row {
+    display: flex; gap: 6px; align-items: center; justify-content: center;
+    margin-top: 4px;
+  }
+  .hold-row.hidden { display: none; }
+  .hold-label {
+    font-size: 9px; color: var(--text-dim);
+    min-width: 40px;
+  }
+
+  /* 底部播放控制 */
+  .play-controls {
+    display: flex; gap: 6px;
+    flex-shrink: 0;
+  }
+  .play-btn {
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: var(--text);
+    padding: 12px;
+    border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+    flex: 1;
+  }
+  .play-btn:active { background: rgba(255,255,255,0.18); }
+  .play-btn-main {
+    background: var(--primary);
+    color: var(--primary-dark);
+    flex: 2;
+    font-size: 14px;
+  }
+
+  /* 底部用法提示 */
+  .help-text {
+    background: rgba(189,224,254,0.06);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 10px; color: var(--text-dim);
+    line-height: 1.4;
+    flex-shrink: 0;
+  }
+  .help-text b { color: var(--accent-blue); }
+
+  /* 音符選取時的閃爍邊框 */
+  .selected-highlight {
+    outline: 3px solid #fff5e1;
+    outline-offset: 2px;
+  }
+
+  /* 隱藏 toast */
+  .toast {
+    position: fixed;
+    bottom: 80px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.85);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-size: 12px;
+    z-index: 200;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- 載入畫面: 選歌 + 選難度 -->
+<div class="load-screen" id="load-screen">
+  <div class="load-title">Neon Beat 編譜器</div>
+  <div class="load-subtitle">CHART EDITOR</div>
+
+  <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; letter-spacing: 1px;">1. 選擇歌曲</div>
+  <div class="song-pick-list" id="song-pick-list">
+    <div style="padding: 20px; text-align: center; font-size: 12px; color: var(--text-dim);">載入中...</div>
+  </div>
+
+  <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; letter-spacing: 1px;">2. 選擇難度</div>
+  <div class="diff-pick-row" id="diff-pick-row">
+    <button class="diff-pick-btn" data-diff="easy">Easy</button>
+    <button class="diff-pick-btn" data-diff="normal">Normal</button>
+    <button class="diff-pick-btn active" data-diff="hard">Hard</button>
+    <button class="diff-pick-btn" data-diff="insane">Insane</button>
+  </div>
+
+  <div style="margin-top: 24px; font-size: 11px; color: var(--text-soft); text-align: center; max-width: 280px; line-height: 1.6;">
+    手機編譜器 · 點選歌曲開始編輯 ·<br>修改僅存於本機, 需手動下載 charts.json
+  </div>
+</div>
+
+<!-- 主編輯介面 -->
+<div class="editor hidden" id="editor">
+
+  <!-- 頂部 -->
+  <div class="top-bar">
+    <button class="top-bar-back" id="back-btn">‹ 返回</button>
+    <div class="top-bar-info">
+      <div class="top-bar-title" id="title-display">—</div>
+      <div class="top-bar-meta" id="meta-display">00:00.000 · 0 顆</div>
+    </div>
+    <button class="top-bar-save" id="save-btn">下載</button>
+  </div>
+
+  <!-- 譜面顯示區 -->
+  <div class="timeline-container" id="timeline">
+    <div class="lanes">
+      <div class="lane" data-lane="0"><span class="lane-label">D</span></div>
+      <div class="lane" data-lane="1"><span class="lane-label">F</span></div>
+      <div class="lane" data-lane="2"><span class="lane-label">J</span></div>
+      <div class="lane" data-lane="3"><span class="lane-label">K</span></div>
+    </div>
+    <canvas class="timeline-canvas" id="canvas"></canvas>
+    <div class="now-line"></div>
+    <div class="now-label">NOW</div>
+  </div>
+
+  <!-- 微調面板 (選中音符時出現) -->
+  <div class="selected-panel hidden" id="selected-panel">
+    <div class="selected-row1">
+      <div class="selected-info" id="selected-info">D 軌道</div>
+      <div class="selected-actions">
+        <button class="btn-sm btn-hold" id="hold-toggle">Hold</button>
+        <button class="btn-sm btn-delete" id="delete-btn">刪除</button>
+      </div>
+    </div>
+    <div class="nudge-row">
+      <button class="nudge-btn" data-nudge="-100">−100</button>
+      <button class="nudge-btn" data-nudge="-10">−10</button>
+      <div class="nudge-time" id="nudge-time">0.000s</div>
+      <button class="nudge-btn" data-nudge="10">+10</button>
+      <button class="nudge-btn" data-nudge="100">+100</button>
+    </div>
+    <div class="hold-row hidden" id="hold-row">
+      <span class="hold-label">Hold長度</span>
+      <button class="nudge-btn" data-hold-nudge="-100">−100</button>
+      <div class="nudge-time" id="hold-duration">0ms</div>
+      <button class="nudge-btn" data-hold-nudge="100">+100</button>
+    </div>
+  </div>
+
+  <!-- 底部播放控制 -->
+  <div class="play-controls">
+    <button class="play-btn" id="seek-back">⏮ −1s</button>
+    <button class="play-btn play-btn-main" id="play-toggle">▶ 播放</button>
+    <button class="play-btn" id="seek-fwd">+1s ⏭</button>
+  </div>
+
+  <!-- 用法 -->
+  <div class="help-text">
+    <b>用法:</b> 上下滑動譜面 = 跳時間 · 點空白處 = 在 NOW 位置放音符 · 點現有音符 = 選取 · ±毫秒 = 微調時間
+  </div>
+</div>
+
+<div class="toast" id="toast">儲存成功</div>
+
+<script>
+'use strict';
+const VERSION = 'editor-v0.1.0';
+console.log('Neon Beat Editor', VERSION);
+
+const NUM_LANES = 4;
+const NOTE_COLORS = ['#bde0fe', '#ffafcc', '#ffafcc', '#bde0fe'];
+const PIXELS_PER_SECOND = 200;  // 譜面每秒佔多少像素 (越大越精細)
+const NOTE_HEIGHT = 18;
+const NOTE_PADDING_X = 0.12;    // 音符在 lane 內左右各留 12% 空白
+
+// State
+let songs = [];
+let currentSong = null;
+let currentDifficulty = 'hard';
+let currentChart = null;          // { charts: { easy: [...], normal: [...], hard: [...], insane: [...] } }
+let currentNotes = [];            // 當前難度的 notes (引用至 currentChart.charts[diff])
+let selectedIdx = -1;             // 被選中的音符在 currentNotes 的 index
+let currentTime = 0;              // 當前 NOW 對應的歌曲時間 (秒)
+let isPlaying = false;
+let audioCtx = null;
+let audioBuffer = null;
+let audioSource = null;
+let audioStartTime = 0;           // audioCtx.currentTime when started playing
+let audioStartOffset = 0;         // currentTime when started playing
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const timeline = document.getElementById('timeline');
+let cssW = 0, cssH = 0;
+
+function resize() {
+  const rect = timeline.getBoundingClientRect();
+  cssW = rect.width;
+  cssH = rect.height;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', () => { resize(); render(); });
+
+// 譜面 y 座標換算: 給定音符時間 → 螢幕 y
+// NOW 線在 cssH/2, 時間越大 (未來) y 越小 (在上方)
+function timeToY(t) {
+  return cssH / 2 - (t - currentTime) * PIXELS_PER_SECOND;
+}
+function yToTime(y) {
+  return currentTime - (y - cssH / 2) / PIXELS_PER_SECOND;
+}
+
+function render() {
+  if (!currentNotes) return;
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  // 畫節拍格線 (假設 BPM, 每 0.5 秒一條)
+  const bpm = currentSong?.bpm || 120;
+  const beatPeriod = 60 / bpm;
+  const startTime = currentTime - cssH / 2 / PIXELS_PER_SECOND;
+  const endTime = currentTime + cssH / 2 / PIXELS_PER_SECOND;
+  let beatIdx = Math.floor(startTime / beatPeriod);
+  ctx.strokeStyle = 'rgba(255,245,225,0.06)';
+  ctx.lineWidth = 1;
+  while (beatIdx * beatPeriod < endTime) {
+    const t = beatIdx * beatPeriod;
+    const y = timeToY(t);
+    ctx.beginPath();
+    ctx.moveTo(0, y); ctx.lineTo(cssW, y); ctx.stroke();
+    beatIdx++;
+  }
+  // 強拍 (每 4 拍) 加深一點
+  ctx.strokeStyle = 'rgba(255,245,225,0.14)';
+  beatIdx = Math.floor(startTime / beatPeriod);
+  while (beatIdx * beatPeriod < endTime) {
+    if (beatIdx % 4 === 0) {
+      const t = beatIdx * beatPeriod;
+      const y = timeToY(t);
+      ctx.beginPath();
+      ctx.moveTo(0, y); ctx.lineTo(cssW, y); ctx.stroke();
+    }
+    beatIdx++;
+  }
+
+  // 畫音符
+  const laneW = cssW / NUM_LANES;
+  for (let i = 0; i < currentNotes.length; i++) {
+    const n = currentNotes[i];
+    const y = timeToY(n.time);
+    if (y < -100 || y > cssH + 100) continue;  // 不在畫面內
+    const lane = n.lane;
+    const x = lane * laneW + laneW * NOTE_PADDING_X;
+    const w = laneW * (1 - 2 * NOTE_PADDING_X);
+    const isSelected = (i === selectedIdx);
+    const color = NOTE_COLORS[lane];
+
+    // Hold 拖尾
+    if (n.duration && n.duration > 0) {
+      const tailY = timeToY(n.time + n.duration);
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      const grad = ctx.createLinearGradient(0, tailY, 0, y);
+      grad.addColorStop(0, color + '00');
+      grad.addColorStop(1, color + 'cc');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x + w * 0.2, tailY, w * 0.6, y - tailY);
+      ctx.restore();
+    }
+
+    // 音符頭
+    ctx.fillStyle = color;
+    if (isSelected) {
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = '#fff5e1';
+    }
+    roundRect(ctx, x, y - NOTE_HEIGHT / 2, w, NOTE_HEIGHT, 4);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    if (isSelected) {
+      ctx.strokeStyle = '#fff5e1';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - 2, y - NOTE_HEIGHT / 2 - 2, w + 4, NOTE_HEIGHT + 4);
+    }
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ============================================================
+// 觸控與點擊處理
+// ============================================================
+let touchStartY = null;
+let touchStartTime = 0;
+let touchStartTimeline = 0;
+let touchActiveIdx = -1;
+let dragHandled = false;
+let touchStartedAt = 0;
+
+timeline.addEventListener('touchstart', (e) => {
+  if (e.touches.length !== 1) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  touchStartY = t.clientY;
+  touchStartTime = currentTime;
+  const rect = timeline.getBoundingClientRect();
+  const x = t.clientX - rect.left;
+  const y = t.clientY - rect.top;
+  touchStartTimeline = y;
+  touchActiveIdx = findNoteAt(x, y);
+  dragHandled = false;
+  touchStartedAt = Date.now();
+}, { passive: false });
+
+timeline.addEventListener('touchmove', (e) => {
+  if (touchStartY === null) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const dy = t.clientY - touchStartY;
+  // 只要垂直移動超過 10px 就視為「滾譜面」
+  if (Math.abs(dy) > 10) {
+    dragHandled = true;
+    // 往下拖 → 看更早 (時間變小); 往上拖 → 看更晚 (時間變大)
+    currentTime = touchStartTime - dy / PIXELS_PER_SECOND;
+    if (currentTime < 0) currentTime = 0;
+    const dur = currentSong?.duration || 300;
+    if (currentTime > dur) currentTime = dur;
+    render();
+    updateMeta();
+  }
+}, { passive: false });
+
+timeline.addEventListener('touchend', (e) => {
+  if (touchStartY === null) return;
+  e.preventDefault();
+  if (!dragHandled) {
+    // 視為 tap
+    handleTap(touchStartTimeline, touchActiveIdx);
+  }
+  touchStartY = null;
+  touchActiveIdx = -1;
+}, { passive: false });
+
+// 滑鼠支援 (桌機方便測試)
+let mouseDownY = null;
+let mouseStartTime = 0;
+let mouseDragHandled = false;
+let mouseClickIdx = -1;
+let mouseClickY = 0;
+timeline.addEventListener('mousedown', (e) => {
+  mouseDownY = e.clientY;
+  mouseStartTime = currentTime;
+  mouseDragHandled = false;
+  const rect = timeline.getBoundingClientRect();
+  mouseClickY = e.clientY - rect.top;
+  mouseClickIdx = findNoteAt(e.clientX - rect.left, mouseClickY);
+});
+timeline.addEventListener('mousemove', (e) => {
+  if (mouseDownY === null) return;
+  const dy = e.clientY - mouseDownY;
+  if (Math.abs(dy) > 8) {
+    mouseDragHandled = true;
+    currentTime = mouseStartTime - dy / PIXELS_PER_SECOND;
+    if (currentTime < 0) currentTime = 0;
+    const dur = currentSong?.duration || 300;
+    if (currentTime > dur) currentTime = dur;
+    render();
+    updateMeta();
+  }
+});
+timeline.addEventListener('mouseup', (e) => {
+  if (mouseDownY === null) return;
+  if (!mouseDragHandled) {
+    handleTap(mouseClickY, mouseClickIdx);
+  }
+  mouseDownY = null;
+});
+
+// 找出 (x, y) 處的音符 index
+function findNoteAt(x, y) {
+  const laneW = cssW / NUM_LANES;
+  const lane = Math.floor(x / laneW);
+  if (lane < 0 || lane >= NUM_LANES) return -1;
+
+  for (let i = 0; i < currentNotes.length; i++) {
+    const n = currentNotes[i];
+    if (n.lane !== lane) continue;
+    const ny = timeToY(n.time);
+    if (Math.abs(y - ny) < NOTE_HEIGHT) return i;
+    // Hold 拖尾也可選
+    if (n.duration > 0) {
+      const tailY = timeToY(n.time + n.duration);
+      if (y >= tailY && y <= ny) return i;
+    }
+  }
+  return -1;
+}
+
+function handleTap(y, hitIdx) {
+  if (hitIdx >= 0) {
+    selectedIdx = hitIdx;
+    showSelectedPanel();
+    render();
+  } else {
+    // 點空白 → 在 NOW 線位置放音符
+    // 但只有在點到空白「下方」(時間相對遠) 時才放, 避免誤觸
+    // 實際做法: 點哪裡就放在「該 y 對應的時間」
+    const lane = Math.floor((touchActiveIdx >= 0 ? -1 : (lastTapX !== null ? lastTapX : cssW / 2)) / (cssW / NUM_LANES));
+    // 簡化: 點哪個軌道就放在 NOW 時間, 該軌道
+    addNoteAtTap(y);
+  }
+}
+
+let lastTapX = null;
+timeline.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    const rect = timeline.getBoundingClientRect();
+    lastTapX = e.touches[0].clientX - rect.left;
+  }
+}, { passive: true });
+timeline.addEventListener('mousedown', (e) => {
+  const rect = timeline.getBoundingClientRect();
+  lastTapX = e.clientX - rect.left;
+});
+
+function addNoteAtTap(y) {
+  if (lastTapX === null) return;
+  const laneW = cssW / NUM_LANES;
+  const lane = Math.floor(lastTapX / laneW);
+  if (lane < 0 || lane >= NUM_LANES) return;
+
+  // 點擊位置對應的時間
+  const t = yToTime(y);
+  if (t < 0) return;
+
+  // 檢查同 lane 是否已有極接近的音符 (避免重複)
+  for (const n of currentNotes) {
+    if (n.lane === lane && Math.abs(n.time - t) < 0.05) {
+      // 已有近的音符 → 選中那顆
+      selectedIdx = currentNotes.indexOf(n);
+      showSelectedPanel();
+      render();
+      return;
+    }
+  }
+
+  const newNote = { time: t, lane };
+  currentNotes.push(newNote);
+  currentNotes.sort((a, b) => a.time - b.time);
+  selectedIdx = currentNotes.indexOf(newNote);
+  showSelectedPanel();
+  render();
+  updateMeta();
+}
+
+// ============================================================
+// 選中面板
+// ============================================================
+function showSelectedPanel() {
+  const panel = document.getElementById('selected-panel');
+  if (selectedIdx < 0) {
+    panel.classList.add('hidden');
+    return;
+  }
+  panel.classList.remove('hidden');
+  const n = currentNotes[selectedIdx];
+  document.getElementById('selected-info').innerHTML =
+    `<b>${'DFJK'[n.lane]}</b> 軌道 · 第 ${selectedIdx + 1} / ${currentNotes.length} 顆`;
+  document.getElementById('nudge-time').textContent = n.time.toFixed(3) + 's';
+
+  const holdBtn = document.getElementById('hold-toggle');
+  const holdRow = document.getElementById('hold-row');
+  if (n.duration && n.duration > 0) {
+    holdBtn.classList.add('on');
+    holdRow.classList.remove('hidden');
+    document.getElementById('hold-duration').textContent = Math.round(n.duration * 1000) + 'ms';
+  } else {
+    holdBtn.classList.remove('on');
+    holdRow.classList.add('hidden');
+  }
+}
+
+// 微調按鈕
+document.querySelectorAll('[data-nudge]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (selectedIdx < 0) return;
+    const ms = parseInt(btn.dataset.nudge, 10);
+    const n = currentNotes[selectedIdx];
+    n.time = Math.max(0, n.time + ms / 1000);
+    currentNotes.sort((a, b) => a.time - b.time);
+    selectedIdx = currentNotes.indexOf(n);
+    showSelectedPanel();
+    render();
+    // 試聽: 跳到那個瞬間播 0.5 秒
+    auditionAt(n.time);
+  });
+});
+
+document.querySelectorAll('[data-hold-nudge]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (selectedIdx < 0) return;
+    const ms = parseInt(btn.dataset.holdNudge, 10);
+    const n = currentNotes[selectedIdx];
+    n.duration = Math.max(0.1, (n.duration || 0.3) + ms / 1000);
+    showSelectedPanel();
+    render();
+  });
+});
+
+document.getElementById('hold-toggle').addEventListener('click', () => {
+  if (selectedIdx < 0) return;
+  const n = currentNotes[selectedIdx];
+  if (n.duration && n.duration > 0) {
+    delete n.duration;
+  } else {
+    n.duration = 0.3;  // 預設 300ms
+  }
+  showSelectedPanel();
+  render();
+});
+
+document.getElementById('delete-btn').addEventListener('click', () => {
+  if (selectedIdx < 0) return;
+  if (!confirm('刪除這顆音符？')) return;
+  currentNotes.splice(selectedIdx, 1);
+  selectedIdx = -1;
+  showSelectedPanel();
+  render();
+  updateMeta();
+});
+
+// ============================================================
+// 播放控制
+// ============================================================
+async function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+}
+
+async function loadAudio(url) {
+  await ensureAudio();
+  showToast('載入音樂中...');
+  const res = await fetch(url);
+  const arrayBuffer = await res.arrayBuffer();
+  audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  hideToast();
+}
+
+function startPlay() {
+  if (!audioBuffer) return;
+  stopPlay();
+  audioSource = audioCtx.createBufferSource();
+  audioSource.buffer = audioBuffer;
+  audioSource.connect(audioCtx.destination);
+  audioStartTime = audioCtx.currentTime;
+  audioStartOffset = currentTime;
+  audioSource.start(0, currentTime);
+  isPlaying = true;
+  document.getElementById('play-toggle').textContent = '⏸ 暫停';
+  playLoop();
+}
+
+function stopPlay() {
+  if (audioSource) {
+    try { audioSource.stop(); } catch (e) {}
+    audioSource = null;
+  }
+  isPlaying = false;
+  document.getElementById('play-toggle').textContent = '▶ 播放';
+}
+
+function playLoop() {
+  if (!isPlaying) return;
+  const elapsed = audioCtx.currentTime - audioStartTime;
+  currentTime = audioStartOffset + elapsed;
+  if (currentTime >= (currentSong?.duration || 9999)) {
+    stopPlay();
+    return;
+  }
+  render();
+  updateMeta();
+  requestAnimationFrame(playLoop);
+}
+
+document.getElementById('play-toggle').addEventListener('click', () => {
+  if (isPlaying) stopPlay();
+  else startPlay();
+});
+
+document.getElementById('seek-back').addEventListener('click', () => {
+  currentTime = Math.max(0, currentTime - 1);
+  if (isPlaying) { stopPlay(); startPlay(); }
+  else { render(); updateMeta(); }
+});
+document.getElementById('seek-fwd').addEventListener('click', () => {
+  currentTime = Math.min(currentSong?.duration || 9999, currentTime + 1);
+  if (isPlaying) { stopPlay(); startPlay(); }
+  else { render(); updateMeta(); }
+});
+
+// 試聽: 在 t 處播 0.5 秒
+let auditionSource = null;
+function auditionAt(t) {
+  if (!audioBuffer || isPlaying) return;
+  if (auditionSource) {
+    try { auditionSource.stop(); } catch (e) {}
+  }
+  auditionSource = audioCtx.createBufferSource();
+  auditionSource.buffer = audioBuffer;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.7, audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.7, audioCtx.currentTime + 0.4);
+  gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+  auditionSource.connect(gain);
+  gain.connect(audioCtx.destination);
+  auditionSource.start(0, Math.max(0, t - 0.05), 0.55);
+}
+
+// ============================================================
+// 載入 / 儲存
+// ============================================================
+async function loadSongList() {
+  try {
+    const res = await fetch('songs/index.json?t=' + Date.now(), { cache: 'no-store' });
+    const data = await res.json();
+    songs = data.songs;
+    renderSongPickList();
+  } catch (e) {
+    document.getElementById('song-pick-list').innerHTML =
+      '<div style="padding: 20px; text-align: center; font-size: 12px; color: var(--danger);">無法載入歌單<br><small style="opacity: 0.7;">' + e.message + '</small></div>';
+  }
+}
+
+function renderSongPickList() {
+  const list = document.getElementById('song-pick-list');
+  list.innerHTML = '';
+  for (const s of songs) {
+    const item = document.createElement('div');
+    item.className = 'song-pick-item';
+    item.innerHTML = `
+      <div class="song-pick-name">${escapeHtml(s.title)}</div>
+      <div class="song-pick-meta">${escapeHtml(s.artist)} · ${s.bpm.toFixed(0)} BPM · ${formatDuration(s.duration)}</div>
+    `;
+    item.addEventListener('click', () => loadSong(s));
+    list.appendChild(item);
+  }
+}
+
+document.querySelectorAll('.diff-pick-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.diff-pick-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentDifficulty = btn.dataset.diff;
+  });
+});
+
+async function loadSong(song) {
+  currentSong = song;
+  showToast('載入譜面中...');
+  try {
+    const res = await fetch(`songs/${song.id}/charts.json?t=${Date.now()}`, { cache: 'no-store' });
+    currentChart = await res.json();
+    currentNotes = currentChart.charts[currentDifficulty] || [];
+    currentTime = 0;
+    selectedIdx = -1;
+
+    // 切換到編輯介面
+    document.getElementById('load-screen').classList.add('hidden');
+    document.getElementById('editor').classList.remove('hidden');
+    document.getElementById('title-display').textContent = song.title + ' · ' + currentDifficulty;
+    showSelectedPanel();
+    resize();
+    updateMeta();
+    render();
+
+    // 同時載入音樂
+    await loadAudio(`songs/${song.id}/${song.audio}`);
+    showToast('完成! 開始編譜', 1500);
+  } catch (e) {
+    showToast('載入失敗: ' + e.message, 3000);
+  }
+}
+
+function updateMeta() {
+  const t = currentTime;
+  const min = Math.floor(t / 60);
+  const sec = Math.floor(t % 60);
+  const ms = Math.floor((t % 1) * 1000);
+  document.getElementById('meta-display').textContent =
+    `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(ms).padStart(3,'0')} · ${currentNotes.length} 顆`;
+}
+
+document.getElementById('back-btn').addEventListener('click', () => {
+  if (!confirm('確定離開? 未下載的修改會遺失')) return;
+  stopPlay();
+  document.getElementById('editor').classList.add('hidden');
+  document.getElementById('load-screen').classList.remove('hidden');
+});
+
+document.getElementById('save-btn').addEventListener('click', () => {
+  if (!currentSong) return;
+  // 寫回 currentChart 的對應難度
+  currentChart.charts[currentDifficulty] = currentNotes.map(n => {
+    // 按時間排序, 並只保留必要欄位
+    const o = { time: parseFloat(n.time.toFixed(4)), lane: n.lane };
+    if (n.duration && n.duration > 0) o.duration = parseFloat(n.duration.toFixed(4));
+    return o;
+  }).sort((a, b) => a.time - b.time || a.lane - b.lane);
+
+  // 下載
+  const json = JSON.stringify(currentChart);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${currentSong.id}_charts.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('已下載 ' + a.download, 2500);
+});
+
+// ============================================================
+// 工具
+// ============================================================
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function formatDuration(s) {
+  const min = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${min}:${String(sec).padStart(2,'0')}`;
+}
+let toastTimer = null;
+function showToast(msg, duration = 0) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  if (duration > 0) {
+    toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+  }
+}
+function hideToast() {
+  document.getElementById('toast').classList.remove('show');
+}
+
+// ============================================================
+// Init
+// ============================================================
+loadSongList();
+</script>
+</body>
+</html>
