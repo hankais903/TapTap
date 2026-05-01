@@ -459,6 +459,7 @@
   <div style="margin-top: 24px; font-size: 11px; color: var(--text-soft); text-align: center; max-width: 280px; line-height: 1.6;">
     手機編譜器 · 點選歌曲開始編輯 ·<br>修改僅存於本機, 需手動下載 charts.json
   </div>
+  <div style="margin-top: 16px; font-size: 10px; color: var(--text-soft); opacity: 0.55; letter-spacing: 1px; font-family: 'SF Mono', monospace;" id="editor-version">editor-v0.0.0</div>
 </div>
 
 <!-- 主編輯介面 -->
@@ -583,7 +584,8 @@
 
 <script>
 'use strict';
-const VERSION = 'editor-v0.1.0';
+const VERSION = 'editor-v0.2.0';
+document.getElementById('editor-version').textContent = VERSION;
 console.log('Neon Beat Editor', VERSION);
 
 const NUM_LANES = 4;
