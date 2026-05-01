@@ -481,49 +481,51 @@
     <button class="mode-btn" id="mode-calibrate-btn" data-mode="calibrate">校拍</button>
   </div>
 
-  <!-- ====== 校拍模式 ====== -->
+  <!-- ====== 校拍模式 (整首 TAP) ====== -->
   <div class="calibrate-panel hidden" id="calibrate-panel">
     <div class="calibrate-step">
       <div class="calibrate-step-num">1</div>
       <div class="calibrate-step-text">
-        <b>按下方播放</b>聽音樂前奏 / 主歌
+        <b>按播放</b>聽音樂, 從歌頭開始
       </div>
     </div>
     <div class="calibrate-step">
       <div class="calibrate-step-num">2</div>
       <div class="calibrate-step-text">
-        跟著節拍狂點下方 <b>TAP</b> 按鈕 (10 下以上)
+        <b>每一拍 TAP 一下</b>, 整首跟到底 (跟拍越準, 譜面越好)
       </div>
     </div>
     <div class="calibrate-step">
       <div class="calibrate-step-num">3</div>
       <div class="calibrate-step-text">
-        確認結果 → <b>儲存</b>到歌曲 meta
+        播完按 <b>完成</b> → 下載 meta.json 給 AI 生譜
       </div>
     </div>
-
-    <div class="beat-pulse"><div class="beat-pulse-fill" id="beat-pulse-fill"></div></div>
 
     <button class="tap-button" id="tap-button">TAP</button>
 
     <div class="tap-result" id="tap-result">
       <div class="tap-result-row">
-        <span class="tap-result-label">已點擊</span>
-        <span class="tap-result-val" id="tap-count">0 下</span>
+        <span class="tap-result-label">已記錄</span>
+        <span class="tap-result-val" id="tap-count">0 拍</span>
       </div>
       <div class="tap-result-row">
-        <span class="tap-result-label">推測 BPM</span>
-        <span class="tap-result-val" id="tap-bpm">—</span>
+        <span class="tap-result-label">當下節奏</span>
+        <span class="tap-result-val" id="tap-current-bpm">—</span>
       </div>
       <div class="tap-result-row">
-        <span class="tap-result-label">第一拍時間</span>
+        <span class="tap-result-label">平均 BPM</span>
+        <span class="tap-result-val" id="tap-avg-bpm">—</span>
+      </div>
+      <div class="tap-result-row">
+        <span class="tap-result-label">第一拍</span>
         <span class="tap-result-val" id="tap-first">—</span>
       </div>
     </div>
 
     <div class="calibrate-actions">
       <button class="calibrate-action calibrate-reset" id="tap-reset">重置</button>
-      <button class="calibrate-action calibrate-confirm" id="tap-save" disabled>儲存到 meta</button>
+      <button class="calibrate-action calibrate-confirm" id="tap-save" disabled>下載 meta</button>
     </div>
   </div>
 
@@ -584,7 +586,7 @@
 
 <script>
 'use strict';
-const VERSION = 'editor-v0.2.0';
+const VERSION = 'editor-v0.3.0';
 document.getElementById('editor-version').textContent = VERSION;
 console.log('Neon Beat Editor', VERSION);
 
@@ -1190,29 +1192,24 @@ function hideToast() {
 // Init
 // ============================================================
 // ============================================================
-// 校拍模式
+// 校拍模式 (整首 TAP)
 // ============================================================
-let tapTimes = [];
-let calibrationResult = null;  // { firstBeat, bpm }
+let tapTimes = [];           // 你 TAP 的所有時間 (歌曲時間軸)
 
 function switchMode(mode) {
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
   if (mode === 'edit') {
     document.getElementById('calibrate-panel').classList.add('hidden');
-    // 顯示編譜元件
     document.getElementById('timeline').style.display = '';
     document.getElementById('selected-panel').style.display = '';
     document.querySelector('.play-controls').style.display = '';
     document.querySelector('.help-text').style.display = '';
   } else {
     document.getElementById('calibrate-panel').classList.remove('hidden');
-    // 隱藏編譜的譜面區跟微調面板, 但保留播放控制
     document.getElementById('timeline').style.display = 'none';
     document.getElementById('selected-panel').style.display = 'none';
     document.querySelector('.help-text').style.display = 'none';
-    // 播放控制保留 (校拍時要能播音樂)
     document.querySelector('.play-controls').style.display = '';
-    // 切換時停止當前播放
     stopPlay();
   }
 }
@@ -1223,60 +1220,53 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 
 function recordTap() {
   if (!audioCtx) return;
-  // 用 audioCtx 時間軸 (ms 級精度)
-  const now = audioCtx.currentTime;
-  // 必須在播放音樂時 tap 才有意義
   if (!isPlaying) {
     showToast('請先播放音樂!', 1500);
     return;
   }
-  // 算出當前歌曲時間
+  const now = audioCtx.currentTime;
   const songTime = audioStartOffset + (now - audioStartTime);
   tapTimes.push(songTime);
 
-  // 視覺回饋
   const btn = document.getElementById('tap-button');
   btn.classList.add('flash');
-  setTimeout(() => btn.classList.remove('flash'), 80);
+  setTimeout(() => btn.classList.remove('flash'), 60);
 
-  computeCalibration();
+  updateTapDisplay();
 }
 
-function computeCalibration() {
-  document.getElementById('tap-count').textContent = tapTimes.length + ' 下';
+function updateTapDisplay() {
+  document.getElementById('tap-count').textContent = tapTimes.length + ' 拍';
 
   if (tapTimes.length < 4) {
-    document.getElementById('tap-bpm').textContent = '需要 ≥ 4 下';
-    document.getElementById('tap-first').textContent = '—';
+    document.getElementById('tap-current-bpm').textContent = '—';
+    document.getElementById('tap-avg-bpm').textContent = '—';
+    document.getElementById('tap-first').textContent =
+      tapTimes.length > 0 ? tapTimes[0].toFixed(3) + 's' : '—';
     document.getElementById('tap-save').disabled = true;
-    calibrationResult = null;
     return;
   }
 
-  // 排除第一個 tap (人通常第一下不準)
-  const taps = tapTimes.length > 6 ? tapTimes.slice(1) : tapTimes;
-
-  // 算相鄰間距
-  const intervals = [];
-  for (let i = 1; i < taps.length; i++) {
-    intervals.push(taps[i] - taps[i - 1]);
+  // 當下 BPM: 用最近 8 拍的平均間距
+  const recentN = Math.min(8, tapTimes.length - 1);
+  const recent = tapTimes.slice(-recentN - 1);
+  const recentIntervals = [];
+  for (let i = 1; i < recent.length; i++) {
+    recentIntervals.push(recent[i] - recent[i - 1]);
   }
-  // 中位數法 (避免偶爾按太快/太慢的離群值)
-  intervals.sort((a, b) => a - b);
-  const median = intervals[Math.floor(intervals.length / 2)];
-  const bpm = 60 / median;
+  const recentAvg = recentIntervals.reduce((a, b) => a + b, 0) / recentIntervals.length;
+  const recentBpm = 60 / recentAvg;
 
-  // 算第一拍位置: 用線性回歸從你的 taps 反推
-  // y = first + n * period (n 是第幾拍, 從 0 開始)
-  // 但你 tap 的可能不是第 0/1/2 拍, 而是第 0,1,2,3,4...
-  // 所以直接取第一個 tap 當 first
-  const firstBeat = taps[0];
+  // 平均 BPM: 用整段 (頭尾時間 / 拍數-1)
+  const totalSpan = tapTimes[tapTimes.length - 1] - tapTimes[0];
+  const avgPeriod = totalSpan / (tapTimes.length - 1);
+  const avgBpm = 60 / avgPeriod;
 
-  document.getElementById('tap-bpm').textContent = bpm.toFixed(1);
-  document.getElementById('tap-first').textContent = firstBeat.toFixed(3) + 's';
-  document.getElementById('tap-save').disabled = false;
-
-  calibrationResult = { firstBeat, bpm };
+  document.getElementById('tap-current-bpm').textContent = recentBpm.toFixed(1);
+  document.getElementById('tap-avg-bpm').textContent = avgBpm.toFixed(1);
+  document.getElementById('tap-first').textContent = tapTimes[0].toFixed(3) + 's';
+  // 至少 30 拍才允許儲存 (避免太短沒意義)
+  document.getElementById('tap-save').disabled = tapTimes.length < 30;
 }
 
 document.getElementById('tap-button').addEventListener('click', recordTap);
@@ -1285,7 +1275,6 @@ document.getElementById('tap-button').addEventListener('touchstart', (e) => {
   recordTap();
 }, { passive: false });
 
-// 空白鍵也可 TAP (桌機)
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && document.getElementById('mode-calibrate-btn').classList.contains('active')) {
     e.preventDefault();
@@ -1294,20 +1283,28 @@ window.addEventListener('keydown', (e) => {
 });
 
 document.getElementById('tap-reset').addEventListener('click', () => {
+  if (tapTimes.length > 5 && !confirm(`已記錄 ${tapTimes.length} 拍, 確定全部清除?`)) return;
   tapTimes = [];
-  calibrationResult = null;
-  computeCalibration();
+  updateTapDisplay();
 });
 
 document.getElementById('tap-save').addEventListener('click', () => {
-  if (!calibrationResult || !currentSong) return;
-  // 把 firstBeat + bpm 寫到一個下載 meta.json
+  if (!currentSong || tapTimes.length < 30) return;
+
+  // 平滑處理: 簡單滑動平均, 修正手抖
+  const smoothed = smoothBeats(tapTimes);
+
+  // 平均 BPM (顯示用)
+  const totalSpan = smoothed[smoothed.length - 1] - smoothed[0];
+  const avgBpm = (smoothed.length - 1) * 60 / totalSpan;
+
   const newMeta = {
     id: currentSong.id,
     title: currentSong.title,
     artist: currentSong.artist,
-    bpm: parseFloat(calibrationResult.bpm.toFixed(2)),
-    firstBeat: parseFloat(calibrationResult.firstBeat.toFixed(3)),
+    bpm: parseFloat(avgBpm.toFixed(2)),
+    firstBeat: parseFloat(smoothed[0].toFixed(3)),
+    beats: smoothed.map(t => parseFloat(t.toFixed(3))),
     duration: currentSong.duration,
     audio: currentSong.audio,
     youtube: currentSong.youtube || '',
@@ -1322,8 +1319,38 @@ document.getElementById('tap-save').addEventListener('click', () => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast('已下載 ' + a.download, 2500);
+  showToast(`已下載 ${a.download} (${smoothed.length} 拍)`, 3000);
 });
+
+/** 平滑拍點: 用相鄰 5 拍的線性回歸去掉手抖
+ * 但仍保留整體 tempo drift */
+function smoothBeats(taps) {
+  if (taps.length < 5) return taps.slice();
+  const out = [];
+  for (let i = 0; i < taps.length; i++) {
+    const lo = Math.max(0, i - 2);
+    const hi = Math.min(taps.length, i + 3);
+    // 用 [lo, hi) 範圍的點做線性擬合, 取 i 位置上的擬合值
+    const xs = [];
+    const ys = [];
+    for (let j = lo; j < hi; j++) {
+      xs.push(j); ys.push(taps[j]);
+    }
+    const n = xs.length;
+    const xMean = xs.reduce((a, b) => a + b, 0) / n;
+    const yMean = ys.reduce((a, b) => a + b, 0) / n;
+    let num = 0, den = 0;
+    for (let j = 0; j < n; j++) {
+      num += (xs[j] - xMean) * (ys[j] - yMean);
+      den += (xs[j] - xMean) ** 2;
+    }
+    const slope = den > 0 ? num / den : 0;
+    const intercept = yMean - slope * xMean;
+    const fitted = slope * i + intercept;
+    out.push(fitted);
+  }
+  return out;
+}
 
 
 loadSongList();
