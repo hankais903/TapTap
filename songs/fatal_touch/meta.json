@@ -2,7 +2,8 @@
   "id": "fatal_touch",
   "title": "《페이탈 터치 / 致命的觸碰》",
   "artist": "Hank",
-  "bpm": 129.19921875,
+  "bpm": 128.57,
+  "firstBeat": 4.736,
   "duration": 266.6,
   "audio": "audio.mp3",
   "youtube": ""
