@@ -1453,7 +1453,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.10.5';   // 改版時更新
+  const VERSION = 'v0.10.6';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2241,11 +2241,12 @@
 
         const { xL, xR, scale } = this.perspLaneXAt(note.lane, y);
         const color = (note.lane === 1 || note.lane === 2) ? '#ffafcc' : '#bde0fe';
-        const padding = 6 * scale + 4;        // 至少 4px padding 避免擠太邊
+        // padding 也跟著 scale, 確保頂端音符按比例縮小
+        const padding = 8 * scale;
         const noteX = xL + padding;
         const noteW = (xR - xL) - padding * 2;
-        // 音符高度跟著透視, 但有最小 8px 確保看得到
-        const noteH = Math.max(8, CONFIG.noteHeight * scale);
+        // 音符高度純粹按 scale, 不設下限 (頂端 22*0.18=4px, 才能看出透視)
+        const noteH = CONFIG.noteHeight * scale;
 
         ctx.save();
         ctx.shadowBlur = (note.holding ? 28 : 18) * scale;
@@ -2254,9 +2255,9 @@
         this.roundRect(ctx, noteX, y - noteH / 2, noteW, noteH, 4 * scale);
         ctx.fill();
         ctx.shadowBlur = 0;
-        // 上緣高光
+        // 上緣高光 (也跟著 scale)
         ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-        ctx.fillRect(noteX + 3 * scale, y - noteH / 2 + 3 * scale, noteW - 6 * scale, Math.max(1.5, 2 * scale));
+        ctx.fillRect(noteX + 3 * scale, y - noteH / 2 + 2 * scale, Math.max(0, noteW - 6 * scale), Math.max(1, 2 * scale));
         ctx.restore();
       }
       for (const p of this.particles) p.draw(ctx);
