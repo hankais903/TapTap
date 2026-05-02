@@ -1453,7 +1453,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.10.10';   // 改版時更新
+  const VERSION = 'v0.10.11';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2243,9 +2243,9 @@
         const color = (note.lane === 1 || note.lane === 2) ? '#ffafcc' : '#bde0fe';
         // 音符自己也是梯形 (上窄下寬, 跟軌道透視一致)
         // 只保留底部 1/4 那一段 (剪掉上半部突出的, 留下接近判定線的一片)
+        // 這個「片」固定大小, 不再因為透視整體縮小
         const scale = this.perspScaleAtY(y);
-        const fullH = 50;
-        const noteH = (fullH / 4) * Math.pow(scale, 1.2);  // 1/4 高度, 跟著透視縮小
+        const noteH = 18;  // 統一高度 18px (不隨透視縮放, 因為已經是「剪掉的一片」)
         // 底邊釘在 y 位置, 往上延伸 noteH
         const noteTopY = y - noteH;
         const noteBotY = y;
