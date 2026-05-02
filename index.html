@@ -1453,7 +1453,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.10.7';   // 改版時更新
+  const VERSION = 'v0.10.8';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2239,29 +2239,53 @@
         let y = this.spawnY + (this.hitY - this.spawnY) * progress;
         if (note.hit && note.holding) y = this.hitY;
 
-        const { xL, xR, scale } = this.perspLaneXAt(note.lane, y);
         const color = (note.lane === 1 || note.lane === 2) ? '#ffafcc' : '#bde0fe';
-        // padding 也跟著 scale, 確保頂端音符按比例縮小
-        const padding = 8 * scale;
-        const noteX = xL + padding;
-        const noteW = (xR - xL) - padding * 2;
-        // 音符高度: 用 scale^1.4 增加透視差距 (頂端更小、底端更大)
-        // 基準高度 28px (在判定線是 28px, 在頂端 28 * 0.18^1.4 = 2.5px)
-        const baseH = 28;
-        const noteH = baseH * Math.pow(scale, 1.4);
+        // 音符自己也是梯形 (上窄下寬, 跟軌道透視一致)
+        // 必須讓音符有「足夠的高度」才能讓上下邊的寬度差看得出來
+        // 基準高度 50px (在判定線顯著, 在頂端因為 scale 小也會合理變小)
+        const scale = this.perspScaleAtY(y);
+        const baseH = 50;
+        const noteH = baseH * Math.pow(scale, 1.2);  // 1.2 比 1.4 溫和, 頂端不會太細
+        // 音符上下緣的 y
+        const noteTopY = y - noteH / 2;
+        const noteBotY = y + noteH / 2;
+        // 取上下緣的 lane 透視範圍 (這樣音符自己會是梯形)
+        const topLane = this.perspLaneXAt(note.lane, noteTopY);
+        const botLane = this.perspLaneXAt(note.lane, noteBotY);
+        // 音符比 lane 略窄, padding 跟 lane 寬度成比例
+        const padFrac = 0.12;
+        const topPad = (topLane.xR - topLane.xL) * padFrac;
+        const botPad = (botLane.xR - botLane.xL) * padFrac;
+        const noteTopL = topLane.xL + topPad;
+        const noteTopR = topLane.xR - topPad;
+        const noteBotL = botLane.xL + botPad;
+        const noteBotR = botLane.xR - botPad;
 
         ctx.save();
-        // shadowBlur 也跟 scale 走,但用更小的係數避免小音符被光暈撐大
         ctx.shadowBlur = (note.holding ? 16 : 8) * scale;
         ctx.shadowColor = color;
         ctx.fillStyle = color;
-        this.roundRect(ctx, noteX, y - noteH / 2, noteW, noteH, 4 * scale);
+        // 畫梯形音符
+        ctx.beginPath();
+        ctx.moveTo(noteTopL, noteTopY);
+        ctx.lineTo(noteTopR, noteTopY);
+        ctx.lineTo(noteBotR, noteBotY);
+        ctx.lineTo(noteBotL, noteBotY);
+        ctx.closePath();
         ctx.fill();
         ctx.shadowBlur = 0;
-        // 上緣高光 (也跟著 scale)
-        if (scale > 0.4) {  // scale 太小時不畫高光 (4px 內畫不出來會像噪點)
+        // 上緣高光 (跟著梯形上邊)
+        if (scale > 0.4) {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-          ctx.fillRect(noteX + 3 * scale, y - noteH / 2 + 2 * scale, Math.max(0, noteW - 6 * scale), Math.max(1, 2 * scale));
+          const hlH = Math.max(1, 2 * scale);
+          const hlInset = 3 * scale;
+          ctx.beginPath();
+          ctx.moveTo(noteTopL + hlInset, noteTopY + hlInset);
+          ctx.lineTo(noteTopR - hlInset, noteTopY + hlInset);
+          ctx.lineTo(noteTopR - hlInset - 1, noteTopY + hlInset + hlH);
+          ctx.lineTo(noteTopL + hlInset + 1, noteTopY + hlInset + hlH);
+          ctx.closePath();
+          ctx.fill();
         }
         ctx.restore();
       }
