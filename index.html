@@ -1453,7 +1453,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.10.4';   // 改版時更新
+  const VERSION = 'v0.10.5';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2162,7 +2162,11 @@
         let headProg = 1 - (tuHead / CONFIG.fallTime);
         let tailProg = 1 - (tuTail / CONFIG.fallTime);
         let headY = this.spawnY + (this.hitY - this.spawnY) * headProg;
-        const tailY = this.spawnY + (this.hitY - this.spawnY) * tailProg;
+        let tailY = this.spawnY + (this.hitY - this.spawnY) * tailProg;
+
+        // 限制 head 跟 tail 不超過 spawnY (軌道盡頭, 不能在更遠處畫)
+        if (headY < this.spawnY) headY = this.spawnY;
+        if (tailY < this.spawnY) tailY = this.spawnY;
 
         // 如果 hold 已被按住, 頭釘在判定線, 尾巴繼續往下流
         if (isActiveHold) headY = this.hitY;
