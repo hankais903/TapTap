@@ -1453,7 +1453,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.10.0';   // 改版時更新
+  const VERSION = 'v0.10.1';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -1462,7 +1462,7 @@
     windowGood:    0.090,
     windowOkay:    0.135,
     noteHeight: 22,
-    hitLineY:   0.67,
+    hitLineY:   0.82,
     perfectScore: 100,
     goodScore:    60,
     okayScore:    30,
@@ -1820,7 +1820,9 @@
       this.viewW = w; this.viewH = h;
       this.laneWidth = w / CONFIG.lanes;
       this.hitY = h * CONFIG.hitLineY;
-      this.spawnY = -CONFIG.noteHeight;
+      // 軌道盡頭 (音符出現位置) = 螢幕往下 1/3 處
+      // 上方 1/3 整片留空, 軌道感覺從「遠方」延伸過來
+      this.spawnY = h * 0.33;
 
       // 透視參數：軌道在頂端 (spawnY/0) 處比較窄、底部 (hitY) 處 100% 寬
       this.perspTopRatio = 0.18;    // 頂端寬度 = 底部寬度 × 0.18 (極強透視)
@@ -2100,8 +2102,8 @@
       ctx.shadowBlur = 0;
 
       // 6. 按鍵框 + 字母 (按透視繼續往下擴大: 梯形, 下寬上窄相對於判定線)
-      const keyTop = this.hitY + 16;
-      const keyBot = h - 24;            // 一直延伸到接近螢幕底部 (給夠大的觸控區)
+      const keyTop = this.hitY + 12;
+      const keyBot = this.hitY + 130;
       for (let i = 0; i < CONFIG.lanes; i++) {
         // 透視延伸:把整個透視函數的範圍從[spawnY,hitY]延伸到[spawnY,keyBot]
         // 這樣 keyTop/keyBot 都會繼續變寬
@@ -2133,11 +2135,10 @@
 
         // 字母 (字級也跟著放大)
         ctx.fillStyle = pressed ? '#bde0fe' : 'rgba(170, 158, 196, 0.7)';
-        ctx.font = `bold ${Math.round(32 * scaleBot)}px Quicksand, sans-serif`;
+        ctx.font = `bold ${Math.round(28 * scaleBot)}px Quicksand, sans-serif`;
         ctx.textAlign = 'center';
-        // 字母放在按鍵下方 1/3 位置 (因為按鍵變很長,放中間會浮在半空)
-        const cy = keyTop + (keyBot - keyTop) * 0.65;
-        ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), (xLBot + xRBot) / 2, cy);
+        const cy = (keyTop + keyBot) / 2;
+        ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), (xLBot + xRBot) / 2, cy + 10);
       }
       const t = this.audio.getCurrentTime();
 
