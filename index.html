@@ -1453,7 +1453,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.10.3';   // 改版時更新
+  const VERSION = 'v0.10.4';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2177,14 +2177,11 @@
         // 取兩端的 lane 範圍 (同 lane 但兩端的透視寬度不同)
         const topLane = this.perspLaneXAt(note.lane, top);
         const botLane = this.perspLaneXAt(note.lane, bot);
-        // 拖尾比 lane 略窄 (左右各 padding)
-        const padFrac = 0.18;
-        const topPad = (topLane.xR - topLane.xL) * padFrac;
-        const botPad = (botLane.xR - botLane.xL) * padFrac;
-        const tailTopL = topLane.xL + topPad;
-        const tailTopR = topLane.xR - topPad;
-        const tailBotL = botLane.xL + botPad;
-        const tailBotR = botLane.xR - botPad;
+        // 拖尾完全填滿 lane 寬度 (沒有 padding, 跟軌道完全一致)
+        const tailTopL = topLane.xL + 2;  // 1px 間隙避免與 lane 分隔線重疊
+        const tailTopR = topLane.xR - 2;
+        const tailBotL = botLane.xL + 2;
+        const tailBotR = botLane.xR - 2;
 
         ctx.save();
         ctx.globalAlpha = isActiveHold ? 0.65 : 0.45;
