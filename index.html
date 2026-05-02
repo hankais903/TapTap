@@ -1453,7 +1453,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.10.9';   // 改版時更新
+  const VERSION = 'v0.10.10';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2233,8 +2233,8 @@
         if (note.missed) continue;
         const tu = note.time - t;
         if (tu > CONFIG.fallTime) continue;
-        // 過判定線就不畫 (tap 音符), hold 還是要繼續顯示頭部
-        if (note.duration <= 0 && tu < 0) continue;
+        // 任何音符過判定線就不畫頭部 (tap 直接消失, hold 拖尾在另一段繼續畫)
+        if (tu < 0) continue;
 
         let progress = 1 - (tu / CONFIG.fallTime);
         let y = this.spawnY + (this.hitY - this.spawnY) * progress;
@@ -2242,19 +2242,19 @@
 
         const color = (note.lane === 1 || note.lane === 2) ? '#ffafcc' : '#bde0fe';
         // 音符自己也是梯形 (上窄下寬, 跟軌道透視一致)
+        // 只保留底部 1/4 那一段 (剪掉上半部突出的, 留下接近判定線的一片)
         const scale = this.perspScaleAtY(y);
-        const baseH = 13;  // 判定線位置高度 (原 50 的 1/4)
-        const noteH = baseH * Math.pow(scale, 1.2);
-        // 音符上下緣的 y
-        const noteTopY = y - noteH / 2;
-        const noteBotY = y + noteH / 2;
+        const fullH = 50;
+        const noteH = (fullH / 4) * Math.pow(scale, 1.2);  // 1/4 高度, 跟著透視縮小
+        // 底邊釘在 y 位置, 往上延伸 noteH
+        const noteTopY = y - noteH;
+        const noteBotY = y;
         // 取上下緣的 lane 透視範圍
         const topLane = this.perspLaneXAt(note.lane, noteTopY);
         const botLane = this.perspLaneXAt(note.lane, noteBotY);
-        // 用「不同的 padding」強化梯形視覺: 上邊更內縮, 下邊更外擴
-        // 這樣即使音符高度小, 上下寬度差也明顯
-        const topPadFrac = 0.22;  // 上邊內縮 22%
-        const botPadFrac = 0.05;  // 下邊內縮 5% (幾乎填滿 lane)
+        // 用「不同 padding」強化梯形視覺 (即使高度小也明顯)
+        const topPadFrac = 0.22;
+        const botPadFrac = 0.05;
         const topPad = (topLane.xR - topLane.xL) * topPadFrac;
         const botPad = (botLane.xR - botLane.xL) * botPadFrac;
         const noteTopL = topLane.xL + topPad;
