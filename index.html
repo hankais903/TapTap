@@ -1453,7 +1453,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.10.8';   // 改版時更新
+  const VERSION = 'v0.10.9';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2233,7 +2233,8 @@
         if (note.missed) continue;
         const tu = note.time - t;
         if (tu > CONFIG.fallTime) continue;
-        if (note.duration <= 0 && tu < -CONFIG.windowOkay) continue;
+        // 過判定線就不畫 (tap 音符), hold 還是要繼續顯示頭部
+        if (note.duration <= 0 && tu < 0) continue;
 
         let progress = 1 - (tu / CONFIG.fallTime);
         let y = this.spawnY + (this.hitY - this.spawnY) * progress;
@@ -2241,21 +2242,21 @@
 
         const color = (note.lane === 1 || note.lane === 2) ? '#ffafcc' : '#bde0fe';
         // 音符自己也是梯形 (上窄下寬, 跟軌道透視一致)
-        // 必須讓音符有「足夠的高度」才能讓上下邊的寬度差看得出來
-        // 基準高度 50px (在判定線顯著, 在頂端因為 scale 小也會合理變小)
         const scale = this.perspScaleAtY(y);
-        const baseH = 50;
-        const noteH = baseH * Math.pow(scale, 1.2);  // 1.2 比 1.4 溫和, 頂端不會太細
+        const baseH = 13;  // 判定線位置高度 (原 50 的 1/4)
+        const noteH = baseH * Math.pow(scale, 1.2);
         // 音符上下緣的 y
         const noteTopY = y - noteH / 2;
         const noteBotY = y + noteH / 2;
-        // 取上下緣的 lane 透視範圍 (這樣音符自己會是梯形)
+        // 取上下緣的 lane 透視範圍
         const topLane = this.perspLaneXAt(note.lane, noteTopY);
         const botLane = this.perspLaneXAt(note.lane, noteBotY);
-        // 音符比 lane 略窄, padding 跟 lane 寬度成比例
-        const padFrac = 0.12;
-        const topPad = (topLane.xR - topLane.xL) * padFrac;
-        const botPad = (botLane.xR - botLane.xL) * padFrac;
+        // 用「不同的 padding」強化梯形視覺: 上邊更內縮, 下邊更外擴
+        // 這樣即使音符高度小, 上下寬度差也明顯
+        const topPadFrac = 0.22;  // 上邊內縮 22%
+        const botPadFrac = 0.05;  // 下邊內縮 5% (幾乎填滿 lane)
+        const topPad = (topLane.xR - topLane.xL) * topPadFrac;
+        const botPad = (botLane.xR - botLane.xL) * botPadFrac;
         const noteTopL = topLane.xL + topPad;
         const noteTopR = topLane.xR - topPad;
         const noteBotL = botLane.xL + botPad;
