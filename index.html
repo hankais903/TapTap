@@ -1453,7 +1453,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.10.1';   // 改版時更新
+  const VERSION = 'v0.10.3';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2142,7 +2142,7 @@
       }
       const t = this.audio.getCurrentTime();
 
-      // 7. 先畫長按拖尾 (帶透視: 上窄下寬的梯形)
+      // 7. 先畫長按拖尾 (帶透視: 跟軌道一樣的梯形, 上窄下寬)
       for (const note of this.notes) {
         if (note.duration <= 0) continue;
         if (note.completed) continue;
@@ -2164,19 +2164,21 @@
         let headY = this.spawnY + (this.hitY - this.spawnY) * headProg;
         const tailY = this.spawnY + (this.hitY - this.spawnY) * tailProg;
 
+        // 如果 hold 已被按住, 頭釘在判定線, 尾巴繼續往下流
         if (isActiveHold) headY = this.hitY;
 
         const color = (note.lane === 1 || note.lane === 2) ? '#ffafcc' : '#bde0fe';
 
-        // 拖尾的上下端 y
+        // 拖尾上下端 y (top 是較小的 y = 較上面 = 較遠 = 較窄)
         const top = Math.min(tailY, headY);
         const bot = Math.max(tailY, headY);
         if (bot - top <= 1) continue;
 
-        // 拖尾梯形:用兩端的透視 lane 寬度連接
-        const padFrac = 0.20;  // 左右各留 20% 軌道寬
+        // 取兩端的 lane 範圍 (同 lane 但兩端的透視寬度不同)
         const topLane = this.perspLaneXAt(note.lane, top);
         const botLane = this.perspLaneXAt(note.lane, bot);
+        // 拖尾比 lane 略窄 (左右各 padding)
+        const padFrac = 0.18;
         const topPad = (topLane.xR - topLane.xL) * padFrac;
         const botPad = (botLane.xR - botLane.xL) * padFrac;
         const tailTopL = topLane.xL + topPad;
@@ -2185,14 +2187,16 @@
         const tailBotR = botLane.xR - botPad;
 
         ctx.save();
-        ctx.globalAlpha = isActiveHold ? 0.55 : 0.32;
+        ctx.globalAlpha = isActiveHold ? 0.65 : 0.45;
+        // 漸層: 從遠端 (top) 透明 → 近端 (bot) 飽滿
         const grad = ctx.createLinearGradient(0, top, 0, bot);
-        grad.addColorStop(0, color + '00');
-        grad.addColorStop(0.25, color + '88');
-        grad.addColorStop(1, color + 'cc');
+        grad.addColorStop(0,    color + '20');  // 遠端淡
+        grad.addColorStop(0.4,  color + '88');
+        grad.addColorStop(1,    color + 'dd');  // 近端飽滿
         ctx.fillStyle = grad;
-        ctx.shadowBlur = isActiveHold ? 12 : 6;
+        ctx.shadowBlur = isActiveHold ? 14 : 8;
         ctx.shadowColor = color;
+        // 真正的「梯形拖尾」: 用透視 lane 的兩端寬度連接
         ctx.beginPath();
         ctx.moveTo(tailTopL, top);
         ctx.lineTo(tailTopR, top);
@@ -2202,21 +2206,26 @@
         ctx.fill();
 
         if (isActiveHold) {
-          // 中間發光細線 (跟著透視)
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-          ctx.shadowBlur = 0;
+          // 中間發光細線 (跟著透視收窄)
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+          ctx.shadowBlur = 4;
+          ctx.shadowColor = '#ffffff';
+          const topMid = (tailTopL + tailTopR) / 2;
+          const botMid = (tailBotL + tailBotR) / 2;
+          const topHalfW = Math.max(0.6, (tailTopR - tailTopL) * 0.05);
+          const botHalfW = Math.max(1.2, (tailBotR - tailBotL) * 0.05);
           ctx.beginPath();
-          ctx.moveTo((tailTopL + tailTopR) / 2 - 1, top);
-          ctx.lineTo((tailTopL + tailTopR) / 2 + 1, top);
-          ctx.lineTo((tailBotL + tailBotR) / 2 + 1, bot);
-          ctx.lineTo((tailBotL + tailBotR) / 2 - 1, bot);
+          ctx.moveTo(topMid - topHalfW, top);
+          ctx.lineTo(topMid + topHalfW, top);
+          ctx.lineTo(botMid + botHalfW, bot);
+          ctx.lineTo(botMid - botHalfW, bot);
           ctx.closePath();
           ctx.fill();
         }
         ctx.restore();
       }
 
-      // 8. 畫一般音符的頭 (tap + hold) - 近大遠小
+      // 8. 畫一般音符的頭 (tap + hold) - 帶透視, 但有最小可見寬度
       for (const note of this.notes) {
         if (note.hit && note.duration <= 0) continue;
         if (note.completed) continue;
@@ -2231,10 +2240,11 @@
 
         const { xL, xR, scale } = this.perspLaneXAt(note.lane, y);
         const color = (note.lane === 1 || note.lane === 2) ? '#ffafcc' : '#bde0fe';
-        const padding = 10 * scale;
+        const padding = 6 * scale + 4;        // 至少 4px padding 避免擠太邊
         const noteX = xL + padding;
         const noteW = (xR - xL) - padding * 2;
-        const noteH = CONFIG.noteHeight * scale;  // 音符高度也跟著透視
+        // 音符高度跟著透視, 但有最小 8px 確保看得到
+        const noteH = Math.max(8, CONFIG.noteHeight * scale);
 
         ctx.save();
         ctx.shadowBlur = (note.holding ? 28 : 18) * scale;
@@ -2245,20 +2255,24 @@
         ctx.shadowBlur = 0;
         // 上緣高光
         ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-        ctx.fillRect(noteX + 3 * scale, y - noteH / 2 + 3 * scale, noteW - 6 * scale, 2 * scale);
+        ctx.fillRect(noteX + 3 * scale, y - noteH / 2 + 3 * scale, noteW - 6 * scale, Math.max(1.5, 2 * scale));
         ctx.restore();
       }
       for (const p of this.particles) p.draw(ctx);
       for (const j of this.judgments) j.draw(ctx);
 
-      // 9. 上方淡出遮罩 - 讓音符從消失點淡入而不是突然出現
-      const fadeH = h * 0.35;
-      const fadeGrad = ctx.createLinearGradient(0, 0, 0, fadeH);
-      fadeGrad.addColorStop(0,    'rgba(26, 22, 38, 1)');     // 完全遮蔽
-      fadeGrad.addColorStop(0.5,  'rgba(26, 22, 38, 0.85)');  // 半透明
-      fadeGrad.addColorStop(1,    'rgba(26, 22, 38, 0)');     // 完全透明
+      // 9. 上方淡出遮罩 - 讓音符跟軌道盡頭從消失點淡入而不是有硬邊界
+      // fade 區間: 從螢幕頂端 → 軌道盡頭以下一段距離
+      // 這樣軌道的「最遠端」也會被遮蔽, 視覺上像消失到無限遠
+      const fadeStart = 0;
+      const fadeEnd = this.spawnY + 90;  // 延伸到 spawnY 下方 90px
+      const fadeGrad = ctx.createLinearGradient(0, fadeStart, 0, fadeEnd);
+      fadeGrad.addColorStop(0,     'rgba(26, 22, 38, 1)');     // 螢幕頂端: 完全遮蔽
+      fadeGrad.addColorStop(0.7,   'rgba(26, 22, 38, 0.95)');  // 接近 spawnY: 還是很濃
+      fadeGrad.addColorStop(0.88,  'rgba(26, 22, 38, 0.7)');   // spawnY 下方一點: 半透明
+      fadeGrad.addColorStop(1,     'rgba(26, 22, 38, 0)');     // 90px 後: 完全透明
       ctx.fillStyle = fadeGrad;
-      ctx.fillRect(0, 0, w, fadeH);
+      ctx.fillRect(0, fadeStart, w, fadeEnd - fadeStart);
 
       // Intro countdown overlay - 在第一顆音符出現前顯示提示
       const elapsed = this.audio.getCurrentTime();
