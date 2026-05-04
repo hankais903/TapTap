@@ -1453,7 +1453,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.10.11';   // 改版時更新
+  const VERSION = 'v0.11.0';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2027,18 +2027,32 @@
 
       // 1. 漸層背景: 遠處深紫黑 → 近處稍亮的紫
       const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-      bgGrad.addColorStop(0, '#1a1626');     // 遠處更深
+      bgGrad.addColorStop(0, '#1a1626');
       bgGrad.addColorStop(0.6, '#2a2438');
-      bgGrad.addColorStop(1, '#3d3454');     // 近處稍亮 (帶馬卡龍紫)
+      bgGrad.addColorStop(1, '#3d3454');
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, w, h);
 
-      // 2. 畫整個梯形軌道區的背景 (淡淡的軌道區)
+      // 1b. 背景圓環光暈 (在判定線後方, 增加街機 / 深度感)
+      // 用兩個徑向漸層做出「光環」效果
+      const ringCx = w / 2;
+      const ringCy = this.hitY - 40;
+      const ringR = Math.min(w, h) * 0.55;
+      const ringGrad = ctx.createRadialGradient(ringCx, ringCy, ringR * 0.15, ringCx, ringCy, ringR);
+      ringGrad.addColorStop(0,   'rgba(255, 175, 204, 0)');
+      ringGrad.addColorStop(0.55,'rgba(255, 175, 204, 0.06)');
+      ringGrad.addColorStop(0.7, 'rgba(189, 224, 254, 0.10)');
+      ringGrad.addColorStop(0.82,'rgba(189, 224, 254, 0.04)');
+      ringGrad.addColorStop(1,   'rgba(189, 224, 254, 0)');
+      ctx.fillStyle = ringGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // 2. 畫整個梯形軌道區的背景
       const topL = this.perspLaneXAt(0, this.spawnY).xL;
       const topR = this.perspLaneXAt(CONFIG.lanes - 1, this.spawnY).xR;
       const botL = this.perspLaneXAt(0, this.hitY).xL;
       const botR = this.perspLaneXAt(CONFIG.lanes - 1, this.hitY).xR;
-      ctx.fillStyle = 'rgba(61, 52, 84, 0.4)';
+      ctx.fillStyle = 'rgba(61, 52, 84, 0.45)';
       ctx.beginPath();
       ctx.moveTo(topL, this.spawnY);
       ctx.lineTo(topR, this.spawnY);
@@ -2047,13 +2061,30 @@
       ctx.closePath();
       ctx.fill();
 
+      // 2b. 軌道左右外緣發光光暈 (給軌道更強的 "street arcade" 感)
+      ctx.save();
+      ctx.shadowBlur = 16;
+      ctx.shadowColor = '#bde0fe';
+      ctx.strokeStyle = 'rgba(189, 224, 254, 0.55)';
+      ctx.lineWidth = 2.5;
+      // 左邊緣
+      ctx.beginPath();
+      ctx.moveTo(topL, this.spawnY);
+      ctx.lineTo(botL, this.hitY);
+      ctx.stroke();
+      // 右邊緣
+      ctx.beginPath();
+      ctx.moveTo(topR, this.spawnY);
+      ctx.lineTo(botR, this.hitY);
+      ctx.stroke();
+      ctx.restore();
+
       // 3. 各 lane 按下時的高亮 (梯形)
       for (let i = 0; i < CONFIG.lanes; i++) {
         if (this.laneFlash[i] > 0 || this.pressedLanes[i]) {
           const intensity = this.pressedLanes[i] ? 1 : this.laneFlash[i];
           const color = (i === 1 || i === 2) ? '255, 175, 204' : '189, 224, 254';
 
-          // 從 hitY-240 (約) 到 hitY 的那段高亮梯形
           const startY = this.hitY - 240;
           const tL_top = this.perspLaneXAt(i, startY).xL;
           const tR_top = this.perspLaneXAt(i, startY).xR;
@@ -2062,7 +2093,7 @@
 
           const grad = ctx.createLinearGradient(0, startY, 0, this.hitY);
           grad.addColorStop(0, `rgba(${color}, 0)`);
-          grad.addColorStop(1, `rgba(${color}, ${0.32 * intensity})`);
+          grad.addColorStop(1, `rgba(${color}, ${0.42 * intensity})`);
           ctx.fillStyle = grad;
           ctx.beginPath();
           ctx.moveTo(tL_top, startY);
@@ -2074,9 +2105,9 @@
         }
       }
 
-      // 4. 畫 lane 分隔線 (透視: 從上窄到下寬)
-      ctx.strokeStyle = 'rgba(189, 224, 254, 0.18)';
-      ctx.lineWidth = 1;
+      // 4. 畫 lane 分隔線 (粗 + 發光, 跟著馬卡龍主題色)
+      ctx.save();
+      ctx.shadowBlur = 8;
       for (let i = 0; i <= CONFIG.lanes; i++) {
         const xTop = (i === CONFIG.lanes)
           ? this.perspLaneXAt(i - 1, this.spawnY).xR
@@ -2084,22 +2115,51 @@
         const xBot = (i === CONFIG.lanes)
           ? this.perspLaneXAt(i - 1, this.hitY).xR
           : this.perspLaneXAt(i, this.hitY).xL;
+        // 邊緣 lane 用粉紅, 中間用藍 (與馬卡龍色系一致)
+        const isEdge = (i === 0 || i === CONFIG.lanes);
+        const color = isEdge ? '#ffafcc' : '#bde0fe';
+        ctx.shadowColor = color;
+        ctx.strokeStyle = `${color}cc`;  // 80% 不透明
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(xTop, this.spawnY);
         ctx.lineTo(xBot, this.hitY);
         ctx.stroke();
       }
+      ctx.restore();
 
-      // 5. 判定線 (在底部, 全寬)
-      ctx.strokeStyle = 'rgba(255, 175, 204, 0.75)';
-      ctx.lineWidth = 3;
-      ctx.shadowBlur = 22;
+      // 5. 判定線 (強發光光柱: 外光暈 + 內芯白光)
+      // 命中時整條變超亮 (取所有 lane flash 的最大值)
+      const hitFlash = Math.max(this.laneFlash[0] || 0, this.laneFlash[1] || 0,
+                                 this.laneFlash[2] || 0, this.laneFlash[3] || 0);
+      ctx.save();
+      // 外層: 粗粉紅光柱 (大 blur)
+      ctx.shadowBlur = 32 + hitFlash * 30;
       ctx.shadowColor = '#ffafcc';
+      ctx.strokeStyle = `rgba(255, 175, 204, ${0.95})`;
+      ctx.lineWidth = 5 + hitFlash * 4;
+      ctx.beginPath();
+      ctx.moveTo(botL - 8, this.hitY);
+      ctx.lineTo(botR + 8, this.hitY);
+      ctx.stroke();
+      // 中層: 中等亮度
+      ctx.shadowBlur = 12 + hitFlash * 18;
+      ctx.strokeStyle = 'rgba(255, 220, 230, 0.9)';
+      ctx.lineWidth = 2.5 + hitFlash * 2;
+      ctx.beginPath();
+      ctx.moveTo(botL - 4, this.hitY);
+      ctx.lineTo(botR + 4, this.hitY);
+      ctx.stroke();
+      // 內芯: 白色細線 (命中時變更亮更粗)
+      ctx.shadowBlur = hitFlash > 0.3 ? 20 : 0;
+      ctx.shadowColor = '#ffffff';
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.85 + hitFlash * 0.15})`;
+      ctx.lineWidth = 1 + hitFlash * 2;
       ctx.beginPath();
       ctx.moveTo(botL, this.hitY);
       ctx.lineTo(botR, this.hitY);
       ctx.stroke();
-      ctx.shadowBlur = 0;
+      ctx.restore();
 
       // 6. 按鍵框 + 字母 (按透視繼續往下擴大: 梯形, 下寬上窄相對於判定線)
       const keyTop = this.hitY + 12;
