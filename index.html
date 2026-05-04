@@ -715,13 +715,13 @@
       width: 200px; height: 200px;
       margin-bottom: 22px;
     }
-    /* 外緣往內 1px 的 1px 白線 */
+    /* 外緣往外 1px 的 1px 白線 (在 CD 外側 1px 處圈一圈) */
     .detail-cover-wrapper::before {
       content: '';
       position: absolute;
-      top: 1px; left: 1px;
-      width: calc(100% - 2px);
-      height: calc(100% - 2px);
+      top: -2px; left: -2px;
+      width: calc(100% + 4px);
+      height: calc(100% + 4px);
       border-radius: 50%;
       border: 1px solid rgba(255, 255, 255, 0.85);
       pointer-events: none;
@@ -1470,7 +1470,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.12.2';   // 改版時更新
+  const VERSION = 'v0.12.3';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
