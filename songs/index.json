@@ -133,7 +133,7 @@
       "bpm": 112.35,
       "duration": 167.08,
       "audio": "audio.mp3",
-      "youtube": ""
+      "youtube": "https://www.youtube.com/watch?v=0-Cz0_azeIc"
     },
     {
       "id": "fatal_touch",
@@ -142,7 +142,7 @@
       "bpm": 129.2,
       "duration": 266.6,
       "audio": "audio.mp3",
-      "youtube": ""
+      "youtube": "https://www.youtube.com/watch?v=cuxzQBUf_c0"
     },
     {
       "id": "pudding_philosophy",
