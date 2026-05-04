@@ -9,18 +9,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #1a1626;
-    --surface: #2a2438;
-    --surface-2: rgba(255, 245, 225, 0.06);
-    --text: #fff5e1;
-    --text-dim: rgba(255, 245, 225, 0.55);
-    --text-soft: rgba(255, 245, 225, 0.4);
-    --primary: #ffafcc;
-    --primary-dark: #6b1e3a;
-    --accent-blue: #bde0fe;
-    --accent-pink: #ffafcc;
+    --bg: #000000;
+    --surface: #0d1100;
+    --surface-2: rgba(245, 245, 232, 0.06);
+    --text: #f5f5e8;
+    --text-dim: rgba(245, 245, 232, 0.55);
+    --text-soft: rgba(245, 245, 232, 0.4);
+    --primary: #fff260;
+    --primary-dark: #1a2a00;
+    --accent-blue: #9eff5a;
+    --accent-pink: #fff260;
     --accent-coral: #ffb4a2;
-    --accent-green: #b8e0c8;
+    --accent-green: #b0ff4a;
     --danger: #ff8585;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -180,8 +180,8 @@
 
   /* 微調面板 */
   .selected-panel {
-    background: rgba(255, 175, 204, 0.08);
-    border: 1px solid rgba(255, 175, 204, 0.2);
+    background: rgba(255, 242, 96, 0.08);
+    border: 1px solid rgba(255, 242, 96, 0.2);
     border-radius: 12px;
     padding: 8px 10px;
     flex-shrink: 0;
@@ -284,7 +284,7 @@
 
   /* 音符選取時的閃爍邊框 */
   .selected-highlight {
-    outline: 3px solid #fff5e1;
+    outline: 3px solid #f5f5e8;
     outline-offset: 2px;
   }
 
@@ -359,7 +359,7 @@
     padding: 28px;
     border-radius: 16px;
     border: 2px solid var(--primary);
-    background: rgba(255, 175, 204, 0.1);
+    background: rgba(255, 242, 96, 0.1);
     color: var(--primary);
     font-size: 18px;
     font-weight: 700;
@@ -586,12 +586,12 @@
 
 <script>
 'use strict';
-const VERSION = 'editor-v0.3.0';
+const VERSION = 'editor-v0.4.0';
 document.getElementById('editor-version').textContent = VERSION;
 console.log('Neon Beat Editor', VERSION);
 
 const NUM_LANES = 4;
-const NOTE_COLORS = ['#bde0fe', '#ffafcc', '#ffafcc', '#bde0fe'];
+const NOTE_COLORS = ['#9eff5a', '#fff260', '#fff260', '#9eff5a'];
 const PIXELS_PER_SECOND = 200;  // 譜面每秒佔多少像素 (越大越精細)
 const NOTE_HEIGHT = 18;
 const NOTE_PADDING_X = 0.12;    // 音符在 lane 內左右各留 12% 空白
@@ -699,14 +699,14 @@ function render() {
     ctx.fillStyle = color;
     if (isSelected) {
       ctx.shadowBlur = 12;
-      ctx.shadowColor = '#fff5e1';
+      ctx.shadowColor = '#f5f5e8';
     }
     roundRect(ctx, x, y - NOTE_HEIGHT / 2, w, NOTE_HEIGHT, 4);
     ctx.fill();
     ctx.shadowBlur = 0;
 
     if (isSelected) {
-      ctx.strokeStyle = '#fff5e1';
+      ctx.strokeStyle = '#f5f5e8';
       ctx.lineWidth = 2;
       ctx.strokeRect(x - 2, y - NOTE_HEIGHT / 2 - 2, w + 4, NOTE_HEIGHT + 4);
     }

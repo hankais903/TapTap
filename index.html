@@ -27,7 +27,7 @@
        ============================================ */
     :root {
       /* 預設淺色主題 (奶油杏黃) */
-      --bg:           #fff5e1;     /* 主背景 (奶油黃) */
+      --bg:           #f5f5e8;     /* 主背景 (奶油黃) */
       --surface:      #ffffff;     /* 卡片背景 */
       --surface-2:    #fef0d4;     /* 較深的卡片 */
 
@@ -35,13 +35,13 @@
       --text-soft:    #8a5a30;     /* 輔助文字 */
       --text-dim:     #c4a37c;     /* 暗淡文字 */
 
-      --primary:      #ffafcc;     /* 主色 (桃粉) */
-      --primary-dark: #6b1e3a;     /* 桃粉文字色 */
-      --secondary:    #ffd6a5;     /* 副色 (杏黃) */
+      --primary:      #fff260;     /* 主色 (桃粉) */
+      --primary-dark: #1a2a00;     /* 桃粉文字色 */
+      --secondary:    #ffea00;     /* 副色 (杏黃) */
       --secondary-dark:#8a4a1a;    /* 杏黃文字色 */
 
       --accent-pink:  #ffc8dd;     /* 粉 */
-      --accent-blue:  #bde0fe;     /* 藍 */
+      --accent-blue:  #9eff5a;     /* 藍 */
       --accent-green: #d8f3dc;     /* 綠 */
       --accent-coral: #ffadad;     /* 珊瑚 */
 
@@ -61,8 +61,8 @@
     }
 
     [data-theme="dark"] {
-      --bg:           #2a2438;     /* 主背景 (深紫) */
-      --surface:      #3d3454;     /* 卡片背景 */
+      --bg:           #0d1100;     /* 主背景 (深紫) */
+      --surface:      #1a2200;     /* 卡片背景 */
       --surface-2:    #4a3f5e;
 
       --text:         #ffe4d6;     /* 主文字 (奶油色) */
@@ -70,19 +70,19 @@
       --text-dim:     #a797c1;
 
       --primary:      #d4729b;
-      --primary-dark: #2a2438;
+      --primary-dark: #0d1100;
       --secondary:    #6b5a4a;
-      --secondary-dark:#ffd6a5;
+      --secondary-dark:#ffea00;
 
       --accent-pink:  #d4729b;
       --accent-blue:  #7eb6e0;
       --accent-green: #95c4a3;
       --accent-coral: #e08aa3;
 
-      --pink-text:    #2a2438;
-      --blue-text:    #2a2438;
-      --green-text:   #2a2438;
-      --coral-text:   #2a2438;
+      --pink-text:    #0d1100;
+      --blue-text:    #0d1100;
+      --green-text:   #0d1100;
+      --coral-text:   #0d1100;
 
       --shadow:       0 4px 20px rgba(0, 0, 0, 0.35);
       --shadow-soft:  0 2px 10px rgba(0, 0, 0, 0.25);
@@ -455,7 +455,7 @@
       background: linear-gradient(135deg, var(--surface) 0%, color-mix(in srgb, var(--primary) 18%, var(--surface)) 100%);
       box-shadow:
         0 0 0 2px var(--primary),
-        0 8px 24px rgba(255, 175, 204, 0.35),
+        0 8px 24px rgba(255, 242, 96, 0.35),
         0 6px 18px rgba(0, 0, 0, 0.12);
       padding: 14px 12px;
       padding-left: 100px;
@@ -860,7 +860,7 @@
     [data-theme="dark"] .results-grade { color: var(--accent-pink); }
     .results-grade.s, .results-grade.S { color: var(--secondary-dark); }
     [data-theme="dark"] .results-grade.s, [data-theme="dark"] .results-grade.S {
-      color: #ffd6a5;
+      color: #ffea00;
     }
     .results-perfect-badge {
       background: var(--secondary);
@@ -935,7 +935,7 @@
     .stat.good    .stat-value { color: var(--green-text); }
     .stat.okay    .stat-value { color: var(--blue-text); }
     .stat.miss    .stat-value { color: var(--coral-text); }
-    [data-theme="dark"] .stat.perfect .stat-value { color: #ffd6a5; }
+    [data-theme="dark"] .stat.perfect .stat-value { color: #ffea00; }
     [data-theme="dark"] .stat.good    .stat-value { color: var(--accent-green); }
     [data-theme="dark"] .stat.okay    .stat-value { color: var(--accent-blue); }
     [data-theme="dark"] .stat.miss    .stat-value { color: var(--accent-coral); }
@@ -1453,7 +1453,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.11.0';   // 改版時更新
+  const VERSION = 'v0.12.0';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2011,8 +2011,8 @@
           this.combo++;
           this.maxCombo = Math.max(this.maxCombo, this.combo);
           const x = lane * this.laneWidth + this.laneWidth / 2;
-          this.spawnHitEffect(x, this.hitY, '#ffd6a5');
-          this.judgments.push(new Judgment(x, this.hitY - 56, 'HOLD!', '#ffd6a5'));
+          this.spawnHitEffect(x, this.hitY, '#ffea00');
+          this.judgments.push(new Judgment(x, this.hitY - 56, 'HOLD!', '#ffea00'));
         }
       }
       for (const p of this.particles) p.update(dt);
@@ -2027,23 +2027,22 @@
 
       // 1. 漸層背景: 遠處深紫黑 → 近處稍亮的紫
       const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-      bgGrad.addColorStop(0, '#1a1626');
-      bgGrad.addColorStop(0.6, '#2a2438');
-      bgGrad.addColorStop(1, '#3d3454');
+      bgGrad.addColorStop(0, '#000000');
+      bgGrad.addColorStop(0.6, '#0d1100');
+      bgGrad.addColorStop(1, '#1a2200');
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, w, h);
 
-      // 1b. 背景圓環光暈 (在判定線後方, 增加街機 / 深度感)
-      // 用兩個徑向漸層做出「光環」效果
+      // 1b. 背景圓環光暈 (黃綠霓虹光環, 街機感)
       const ringCx = w / 2;
       const ringCy = this.hitY - 40;
       const ringR = Math.min(w, h) * 0.55;
       const ringGrad = ctx.createRadialGradient(ringCx, ringCy, ringR * 0.15, ringCx, ringCy, ringR);
-      ringGrad.addColorStop(0,   'rgba(255, 175, 204, 0)');
-      ringGrad.addColorStop(0.55,'rgba(255, 175, 204, 0.06)');
-      ringGrad.addColorStop(0.7, 'rgba(189, 224, 254, 0.10)');
-      ringGrad.addColorStop(0.82,'rgba(189, 224, 254, 0.04)');
-      ringGrad.addColorStop(1,   'rgba(189, 224, 254, 0)');
+      ringGrad.addColorStop(0,   'rgba(255, 242, 96, 0)');
+      ringGrad.addColorStop(0.45,'rgba(255, 242, 96, 0.22)');
+      ringGrad.addColorStop(0.65,'rgba(158, 255, 90, 0.35)');
+      ringGrad.addColorStop(0.78,'rgba(158, 255, 90, 0.15)');
+      ringGrad.addColorStop(1,   'rgba(158, 255, 90, 0)');
       ctx.fillStyle = ringGrad;
       ctx.fillRect(0, 0, w, h);
 
@@ -2052,7 +2051,7 @@
       const topR = this.perspLaneXAt(CONFIG.lanes - 1, this.spawnY).xR;
       const botL = this.perspLaneXAt(0, this.hitY).xL;
       const botR = this.perspLaneXAt(CONFIG.lanes - 1, this.hitY).xR;
-      ctx.fillStyle = 'rgba(61, 52, 84, 0.45)';
+      ctx.fillStyle = 'rgba(26, 34, 0, 0.45)';
       ctx.beginPath();
       ctx.moveTo(topL, this.spawnY);
       ctx.lineTo(topR, this.spawnY);
@@ -2064,8 +2063,8 @@
       // 2b. 軌道左右外緣發光光暈 (給軌道更強的 "street arcade" 感)
       ctx.save();
       ctx.shadowBlur = 16;
-      ctx.shadowColor = '#bde0fe';
-      ctx.strokeStyle = 'rgba(189, 224, 254, 0.55)';
+      ctx.shadowColor = '#9eff5a';
+      ctx.strokeStyle = 'rgba(158, 255, 90, 0.55)';
       ctx.lineWidth = 2.5;
       // 左邊緣
       ctx.beginPath();
@@ -2083,7 +2082,7 @@
       for (let i = 0; i < CONFIG.lanes; i++) {
         if (this.laneFlash[i] > 0 || this.pressedLanes[i]) {
           const intensity = this.pressedLanes[i] ? 1 : this.laneFlash[i];
-          const color = (i === 1 || i === 2) ? '255, 175, 204' : '189, 224, 254';
+          const color = (i === 0 || i === 2) ? '255, 242, 96' : '158, 255, 90';
 
           const startY = this.hitY - 240;
           const tL_top = this.perspLaneXAt(i, startY).xL;
@@ -2105,9 +2104,9 @@
         }
       }
 
-      // 4. 畫 lane 分隔線 (粗 + 發光, 跟著馬卡龍主題色)
+      // 4. 畫 lane 分隔線 (粗 + 強發光, TAPSONIC 風格)
       ctx.save();
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 14;
       for (let i = 0; i <= CONFIG.lanes; i++) {
         const xTop = (i === CONFIG.lanes)
           ? this.perspLaneXAt(i - 1, this.spawnY).xR
@@ -2115,12 +2114,12 @@
         const xBot = (i === CONFIG.lanes)
           ? this.perspLaneXAt(i - 1, this.hitY).xR
           : this.perspLaneXAt(i, this.hitY).xL;
-        // 邊緣 lane 用粉紅, 中間用藍 (與馬卡龍色系一致)
+        // 黃綠交替: 邊緣黃, 內側黃綠
         const isEdge = (i === 0 || i === CONFIG.lanes);
-        const color = isEdge ? '#ffafcc' : '#bde0fe';
+        const color = isEdge ? '#fff260' : '#9eff5a';
         ctx.shadowColor = color;
-        ctx.strokeStyle = `${color}cc`;  // 80% 不透明
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = color;        // 100% 不透明
+        ctx.lineWidth = 3;              // 更粗
         ctx.beginPath();
         ctx.moveTo(xTop, this.spawnY);
         ctx.lineTo(xBot, this.hitY);
@@ -2128,33 +2127,33 @@
       }
       ctx.restore();
 
-      // 5. 判定線 (強發光光柱: 外光暈 + 內芯白光)
-      // 命中時整條變超亮 (取所有 lane flash 的最大值)
+      // 5. 判定線 (TAPSONIC 風格: 純白光柱 + 黃光暈)
       const hitFlash = Math.max(this.laneFlash[0] || 0, this.laneFlash[1] || 0,
                                  this.laneFlash[2] || 0, this.laneFlash[3] || 0);
       ctx.save();
-      // 外層: 粗粉紅光柱 (大 blur)
-      ctx.shadowBlur = 32 + hitFlash * 30;
-      ctx.shadowColor = '#ffafcc';
-      ctx.strokeStyle = `rgba(255, 175, 204, ${0.95})`;
-      ctx.lineWidth = 5 + hitFlash * 4;
+      // 外層: 粗黃光暈
+      ctx.shadowBlur = 40 + hitFlash * 40;
+      ctx.shadowColor = '#fff260';
+      ctx.strokeStyle = '#fff260';
+      ctx.lineWidth = 6 + hitFlash * 5;
       ctx.beginPath();
-      ctx.moveTo(botL - 8, this.hitY);
-      ctx.lineTo(botR + 8, this.hitY);
+      ctx.moveTo(botL - 10, this.hitY);
+      ctx.lineTo(botR + 10, this.hitY);
       ctx.stroke();
-      // 中層: 中等亮度
-      ctx.shadowBlur = 12 + hitFlash * 18;
-      ctx.strokeStyle = 'rgba(255, 220, 230, 0.9)';
-      ctx.lineWidth = 2.5 + hitFlash * 2;
-      ctx.beginPath();
-      ctx.moveTo(botL - 4, this.hitY);
-      ctx.lineTo(botR + 4, this.hitY);
-      ctx.stroke();
-      // 內芯: 白色細線 (命中時變更亮更粗)
-      ctx.shadowBlur = hitFlash > 0.3 ? 20 : 0;
+      // 中層: 黃白色發光
+      ctx.shadowBlur = 16 + hitFlash * 22;
       ctx.shadowColor = '#ffffff';
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.85 + hitFlash * 0.15})`;
-      ctx.lineWidth = 1 + hitFlash * 2;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.lineWidth = 3 + hitFlash * 2;
+      ctx.beginPath();
+      ctx.moveTo(botL - 5, this.hitY);
+      ctx.lineTo(botR + 5, this.hitY);
+      ctx.stroke();
+      // 內芯: 純白細線 (光柱中軸)
+      ctx.shadowBlur = hitFlash > 0.3 ? 28 : 6;
+      ctx.shadowColor = '#ffffff';
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.95 + hitFlash * 0.05})`;
+      ctx.lineWidth = 1.5 + hitFlash * 2;
       ctx.beginPath();
       ctx.moveTo(botL, this.hitY);
       ctx.lineTo(botR, this.hitY);
@@ -2181,7 +2180,7 @@
         const xRBot = this.vanishX + (lineXR * fullW - this.vanishX) * scaleBot;
 
         const pressed = this.pressedLanes[i];
-        ctx.strokeStyle = pressed ? '#bde0fe' : 'rgba(170, 158, 196, 0.4)';
+        ctx.strokeStyle = pressed ? '#9eff5a' : 'rgba(122, 138, 58, 0.4)';
         ctx.lineWidth = pressed ? 2 : 1;
 
         // 梯形按鍵框
@@ -2194,7 +2193,7 @@
         ctx.stroke();
 
         // 字母 (字級也跟著放大)
-        ctx.fillStyle = pressed ? '#bde0fe' : 'rgba(170, 158, 196, 0.7)';
+        ctx.fillStyle = pressed ? '#9eff5a' : 'rgba(122, 138, 58, 0.7)';
         ctx.font = `bold ${Math.round(28 * scaleBot)}px Quicksand, sans-serif`;
         ctx.textAlign = 'center';
         const cy = (keyTop + keyBot) / 2;
@@ -2231,7 +2230,7 @@
         // 如果 hold 已被按住, 頭釘在判定線, 尾巴繼續往下流
         if (isActiveHold) headY = this.hitY;
 
-        const color = (note.lane === 1 || note.lane === 2) ? '#ffafcc' : '#bde0fe';
+        const color = (note.lane === 0 || note.lane === 2) ? '#fff260' : '#9eff5a';
 
         // 拖尾上下端 y (top 是較小的 y = 較上面 = 較遠 = 較窄)
         const top = Math.min(tailY, headY);
@@ -2300,7 +2299,7 @@
         let y = this.spawnY + (this.hitY - this.spawnY) * progress;
         if (note.hit && note.holding) y = this.hitY;
 
-        const color = (note.lane === 1 || note.lane === 2) ? '#ffafcc' : '#bde0fe';
+        const color = (note.lane === 0 || note.lane === 2) ? '#fff260' : '#9eff5a';
         // 音符自己也是梯形 (上窄下寬, 跟軌道透視一致)
         // 只保留底部 1/4 那一段 (剪掉上半部突出的, 留下接近判定線的一片)
         // 這個「片」固定大小, 不再因為透視整體縮小
@@ -2359,10 +2358,10 @@
       const fadeStart = 0;
       const fadeEnd = this.spawnY + 90;  // 延伸到 spawnY 下方 90px
       const fadeGrad = ctx.createLinearGradient(0, fadeStart, 0, fadeEnd);
-      fadeGrad.addColorStop(0,     'rgba(26, 22, 38, 1)');     // 螢幕頂端: 完全遮蔽
-      fadeGrad.addColorStop(0.7,   'rgba(26, 22, 38, 0.95)');  // 接近 spawnY: 還是很濃
-      fadeGrad.addColorStop(0.88,  'rgba(26, 22, 38, 0.7)');   // spawnY 下方一點: 半透明
-      fadeGrad.addColorStop(1,     'rgba(26, 22, 38, 0)');     // 90px 後: 完全透明
+      fadeGrad.addColorStop(0,     'rgba(0, 0, 0, 1)');     // 螢幕頂端: 完全遮蔽
+      fadeGrad.addColorStop(0.7,   'rgba(0, 0, 0, 0.95)');  // 接近 spawnY: 還是很濃
+      fadeGrad.addColorStop(0.88,  'rgba(0, 0, 0, 0.7)');   // spawnY 下方一點: 半透明
+      fadeGrad.addColorStop(1,     'rgba(0, 0, 0, 0)');     // 90px 後: 完全透明
       ctx.fillStyle = fadeGrad;
       ctx.fillRect(0, fadeStart, w, fadeEnd - fadeStart);
 
@@ -2377,9 +2376,9 @@
           // 早期：GET READY 訊息
           const opacity = Math.min(1, (CONFIG.introDelay - remaining) / 0.6);
           ctx.globalAlpha = opacity;
-          ctx.fillStyle = '#bde0fe';
+          ctx.fillStyle = '#9eff5a';
           ctx.shadowBlur = 24;
-          ctx.shadowColor = '#bde0fe';
+          ctx.shadowColor = '#9eff5a';
           ctx.font = 'bold 32px Quicksand, sans-serif';
           ctx.fillText('GET READY', w / 2, h * 0.42);
 
@@ -2396,7 +2395,7 @@
           const alpha = 1 - fracInSec * 0.85;
 
           ctx.globalAlpha = alpha;
-          ctx.fillStyle = num === 1 ? '#ffafcc' : '#bde0fe';
+          ctx.fillStyle = num === 1 ? '#fff260' : '#9eff5a';
           ctx.shadowBlur = 40;
           ctx.shadowColor = ctx.fillStyle;
           ctx.font = `bold ${Math.floor(110 * scale)}px Quicksand, sans-serif`;
@@ -2480,11 +2479,11 @@
         // 接近完整 → HOLD! 大字 + combo +1 + 金色特效
         this.combo++;
         this.maxCombo = Math.max(this.maxCombo, this.combo);
-        this.spawnHitEffect(x, this.hitY, '#ffd6a5');
-        this.judgments.push(new Judgment(x, this.hitY - 56, 'HOLD!', '#ffd6a5'));
+        this.spawnHitEffect(x, this.hitY, '#ffea00');
+        this.judgments.push(new Judgment(x, this.hitY - 56, 'HOLD!', '#ffea00'));
       } else if (ratio >= 0.4) {
         // 中段放開 → 綠色特效, 無大字提示, 不斷 combo
-        this.spawnHitEffect(x, this.hitY, '#b8e0c8');
+        this.spawnHitEffect(x, this.hitY, '#b0ff4a');
       }
       // 立刻放開 (<40%): 沒有任何 miss 或斷 combo，純粹少拿分而已
     }
@@ -2502,7 +2501,7 @@
 
     recordJudgment(type, lane) {
       this.stats[type]++;
-      const colors = { perfect: '#ffd6a5', good: '#b8e0c8', okay: '#bde0fe', miss: '#ffadad' };
+      const colors = { perfect: '#ffea00', good: '#b0ff4a', okay: '#9eff5a', miss: '#ffadad' };
       const labels = { perfect: 'PERFECT', good: 'GOOD', okay: 'OKAY', miss: 'MISS' };
       if (type === 'miss') { this.combo = 0; }
       else {
