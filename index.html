@@ -690,11 +690,13 @@
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       font-size: 80px;
-      margin-bottom: 22px;
       box-shadow: var(--shadow);
       overflow: hidden;
       position: relative;
       animation: spin-cd 8s linear infinite;
+      /* 中央 24% 圓孔挖空 - 用 mask 讓中央變真正透明 */
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0, transparent 12%, black 12.5%);
+      mask-image: radial-gradient(circle at 50% 50%, transparent 0, transparent 12%, black 12.5%);
     }
     .detail-cover.has-thumb { background: #1a1a1a; }
     .detail-cover .cover-thumb {
@@ -707,24 +709,38 @@
     .detail-cover.color-blue  { background: var(--accent-blue);  color: var(--blue-text); }
     .detail-cover.color-green { background: var(--accent-green); color: var(--green-text); }
     .detail-cover.color-coral { background: var(--accent-coral); color: var(--coral-text); }
-    /* CD 中央的洞 */
-    .detail-cover::after {
+    /* 兩條白線必須畫在「不被 mask 遮蔽的層」, 用 wrapper 包起來 */
+    .detail-cover-wrapper {
+      position: relative;
+      width: 200px; height: 200px;
+      margin-bottom: 22px;
+    }
+    /* 外緣往內 1px 的 1px 白線 */
+    .detail-cover-wrapper::before {
+      content: '';
+      position: absolute;
+      top: 1px; left: 1px;
+      width: calc(100% - 2px);
+      height: calc(100% - 2px);
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      pointer-events: none;
+      z-index: 3;
+      box-sizing: border-box;
+    }
+    /* 中央洞內側往內 1px 的 1px 白線 (洞是 24% 直徑 = 半徑 24px, 往內 1px = 半徑 23px) */
+    .detail-cover-wrapper::after {
       content: '';
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 24%;
-      height: 24%;
+      width: calc(24% - 2px);
+      height: calc(24% - 2px);
       border-radius: 50%;
-      background: var(--bg);
-      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.18) inset;
-      z-index: 2;
+      border: 1px solid rgba(255, 255, 255, 0.85);
       pointer-events: none;
-      animation: spin-cd-reverse 8s linear infinite;
-    }
-    @keyframes spin-cd-reverse {
-      from { transform: translate(-50%, -50%) rotate(0deg); }
-      to   { transform: translate(-50%, -50%) rotate(-360deg); }
+      z-index: 3;
+      box-sizing: border-box;
     }
     .detail-name {
       font-size: 24px;
@@ -1326,7 +1342,9 @@
   <div class="overlay hidden" id="detail-screen">
     <button class="detail-back" id="back-btn">‹ Songs</button>
     <div class="detail-content">
-      <div class="detail-cover" id="detail-cover">♪</div>
+      <div class="detail-cover-wrapper">
+        <div class="detail-cover" id="detail-cover">♪</div>
+      </div>
       <div class="detail-name" id="detail-name">—</div>
       <div class="detail-meta-text" id="detail-meta">—</div>
       <div class="difficulty-label">Select Difficulty</div>
@@ -1452,7 +1470,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.12.1';   // 改版時更新
+  const VERSION = 'v0.12.2';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
