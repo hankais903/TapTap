@@ -108,21 +108,25 @@
     /* 遊戲背景: 歌曲縮圖 blur 放大 (跟難度頁同邏輯) */
     #game-bg {
       position: fixed;
-      inset: 0;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
       z-index: 0;
       background: #000;
       pointer-events: none;
+      overflow: hidden;
+      transition: transform 0.05s linear;  /* 平滑 pulse 縮放 */
     }
     #game-bg.has-image::before {
       content: '';
       position: absolute;
-      inset: 0;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       background-image: var(--game-bg-image);
       background-size: cover;
       background-position: center;
       filter: blur(20px) saturate(1.2);
       opacity: 0.7;
-      transform: scale(1.15);
+      transform: scale(1.2);  /* 預留 scale 空間給 pulse */
     }
 
     /* ============================================
@@ -1491,7 +1495,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.13.4';   // 改版時更新
+  const VERSION = 'v0.13.5';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2097,31 +2101,19 @@
       // 1. 清空 canvas (讓 body 的歌曲縮圖背景透出)
       ctx.clearRect(0, 0, w, h);
 
-      // 1b. 半透明黑色暗化層 (蓋在歌曲背景上, 避免太亮看不清音符)
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-      ctx.fillRect(0, 0, w, h);
-
-      // 1c. 背景圓環光暈 (黃綠霓虹光環, 跟著 bass 脈動)
-      const bassEnergy = this.audio.getBassEnergy();  // 0~1
-      // 平滑 (避免抖動): 每禎往目標值靠攏
-      this.bassPulse = (this.bassPulse || 0) * 0.75 + bassEnergy * 0.25;
+      // 1b. 讀 bass 能量, 平滑後套到背景縮放 (整張背景被低音震動)
+      const bassEnergy = this.audio.getBassEnergy();
+      this.bassPulse = (this.bassPulse || 0) * 0.6 + bassEnergy * 0.4;
       const pulse = this.bassPulse;
-      const ringCx = w / 2;
-      const ringCy = this.hitY - 40;
-      // 光環大小跟著 pulse: 基準 55%, 跳到 70% (差 15%)
-      const ringR = Math.min(w, h) * (0.55 + pulse * 0.15);
-      // 不透明度也跟著 pulse: 強拍時更亮
-      const intensityBoost = 1 + pulse * 1.2;
-      const ringGrad = ctx.createRadialGradient(ringCx, ringCy, ringR * 0.15, ringCx, ringCy, ringR);
-      const a1 = Math.min(1, 0.22 * intensityBoost);
-      const a2 = Math.min(1, 0.35 * intensityBoost);
-      const a3 = Math.min(1, 0.15 * intensityBoost);
-      ringGrad.addColorStop(0,    'rgba(255, 242, 96, 0)');
-      ringGrad.addColorStop(0.45, `rgba(255, 242, 96, ${a1})`);
-      ringGrad.addColorStop(0.65, `rgba(158, 255, 90, ${a2})`);
-      ringGrad.addColorStop(0.78, `rgba(158, 255, 90, ${a3})`);
-      ringGrad.addColorStop(1,    'rgba(158, 255, 90, 0)');
-      ctx.fillStyle = ringGrad;
+      const gameBg = document.getElementById('game-bg');
+      if (gameBg) {
+        // 整個 div scale 1.0 → 1.15 (震動感明顯)
+        const scale = 1 + pulse * 0.15;
+        gameBg.style.transform = `scale(${scale})`;
+      }
+
+      // 1c. 半透明黑色暗化層 (蓋在歌曲背景上, 避免太亮看不清音符)
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
       ctx.fillRect(0, 0, w, h);
 
       // 2. 畫整個梯形軌道區的背景
@@ -2181,27 +2173,35 @@
       ctx.stroke();
       ctx.restore();
 
-      // 3. 各 lane 按下時的高亮 (梯形)
+      // 3. 各 lane 按下時的高亮 (沿曲線, 跟軌道一致)
+      const PRESS_SEG = 14;
       for (let i = 0; i < CONFIG.lanes; i++) {
         if (this.laneFlash[i] > 0 || this.pressedLanes[i]) {
           const intensity = this.pressedLanes[i] ? 1 : this.laneFlash[i];
           const color = (i === 0 || i === 2) ? '255, 242, 96' : '158, 255, 90';
-
           const startY = this.hitY - 240;
-          const tL_top = this.perspLaneXAt(i, startY).xL;
-          const tR_top = this.perspLaneXAt(i, startY).xR;
-          const tL_bot = this.perspLaneXAt(i, this.hitY).xL;
-          const tR_bot = this.perspLaneXAt(i, this.hitY).xR;
 
           const grad = ctx.createLinearGradient(0, startY, 0, this.hitY);
           grad.addColorStop(0, `rgba(${color}, 0)`);
           grad.addColorStop(1, `rgba(${color}, ${0.42 * intensity})`);
           ctx.fillStyle = grad;
+
+          // 沿著曲線描出梯形 (而不是直線兩點)
           ctx.beginPath();
-          ctx.moveTo(tL_top, startY);
-          ctx.lineTo(tR_top, startY);
-          ctx.lineTo(tR_bot, this.hitY);
-          ctx.lineTo(tL_bot, this.hitY);
+          // 左邊界 (從上到下)
+          for (let s = 0; s <= PRESS_SEG; s++) {
+            const tt = s / PRESS_SEG;
+            const y = startY + (this.hitY - startY) * tt;
+            const x = this.perspLaneXAt(i, y).xL;
+            if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          // 右邊界 (從下到上)
+          for (let s = PRESS_SEG; s >= 0; s--) {
+            const tt = s / PRESS_SEG;
+            const y = startY + (this.hitY - startY) * tt;
+            const x = this.perspLaneXAt(i, y).xR;
+            ctx.lineTo(x, y);
+          }
           ctx.closePath();
           ctx.fill();
         }
@@ -2701,6 +2701,7 @@
       const gameBg = document.getElementById('game-bg');
       gameBg.classList.remove('has-image');
       gameBg.style.removeProperty('--game-bg-image');
+      gameBg.style.transform = '';
     }
 
     initTheme() {
