@@ -105,6 +105,26 @@
 
     #game-canvas { display: block; margin: 0 auto; position: relative; z-index: 1; }
 
+    /* 遊戲背景: 歌曲縮圖 blur 放大 (跟難度頁同邏輯) */
+    #game-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: #000;
+      pointer-events: none;
+    }
+    #game-bg.has-image::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: var(--game-bg-image);
+      background-size: cover;
+      background-position: center;
+      filter: blur(20px) saturate(1.2);
+      opacity: 0.7;
+      transform: scale(1.15);
+    }
+
     /* ============================================
        HUD (遊戲中)
        ============================================ */
@@ -1272,6 +1292,7 @@
   </style>
 </head>
 <body>
+  <div id="game-bg"></div>
   <canvas id="game-canvas"></canvas>
 
   <button class="game-exit-btn hidden" id="game-exit-btn" title="退出">✕</button>
@@ -1470,7 +1491,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.13.1';   // 改版時更新
+  const VERSION = 'v0.13.3';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2053,15 +2074,14 @@
     draw() {
       const ctx = this.ctx2d, w = this.viewW, h = this.viewH;
 
-      // 1. 漸層背景: 遠處深紫黑 → 近處稍亮的紫
-      const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-      bgGrad.addColorStop(0, '#000000');
-      bgGrad.addColorStop(0.6, '#0d1100');
-      bgGrad.addColorStop(1, '#1a2200');
-      ctx.fillStyle = bgGrad;
+      // 1. 清空 canvas (讓 body 的歌曲縮圖背景透出)
+      ctx.clearRect(0, 0, w, h);
+
+      // 1b. 半透明黑色暗化層 (蓋在歌曲背景上, 避免太亮看不清音符)
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
       ctx.fillRect(0, 0, w, h);
 
-      // 1b. 背景圓環光暈 (黃綠霓虹光環, 街機感)
+      // 1c. 背景圓環光暈 (黃綠霓虹光環, 街機感)
       const ringCx = w / 2;
       const ringCy = this.hitY - 40;
       const ringR = Math.min(w, h) * 0.55;
@@ -2355,68 +2375,36 @@
         ctx.restore();
       }
 
-      // 8. 畫一般音符的頭 (tap + hold) - 帶透視, 但有最小可見寬度
+      // 8. 畫一般音符的頭 (tap + hold) - 簡單圓角矩形, 高度跟著 scale
       for (const note of this.notes) {
         if (note.hit && note.duration <= 0) continue;
         if (note.completed) continue;
         if (note.missed) continue;
         const tu = note.time - t;
         if (tu > CONFIG.fallTime) continue;
-        // 任何音符過判定線就不畫頭部 (tap 直接消失, hold 拖尾在另一段繼續畫)
         if (tu < 0) continue;
 
         let progress = 1 - (tu / CONFIG.fallTime);
         let y = this.spawnY + (this.hitY - this.spawnY) * progress;
         if (note.hit && note.holding) y = this.hitY;
 
+        const { xL, xR, scale } = this.perspLaneXAt(note.lane, y);
         const color = (note.lane === 0 || note.lane === 2) ? '#fff260' : '#9eff5a';
-        // 音符自己也是梯形 (上窄下寬, 跟軌道透視一致)
-        // 只保留底部 1/4 那一段 (剪掉上半部突出的, 留下接近判定線的一片)
-        // 這個「片」固定大小, 不再因為透視整體縮小
-        const scale = this.perspScaleAtY(y);
-        const noteH = 18;  // 統一高度 18px (不隨透視縮放, 因為已經是「剪掉的一片」)
-        // 底邊釘在 y 位置, 往上延伸 noteH
-        const noteTopY = y - noteH;
-        const noteBotY = y;
-        // 取上下緣的 lane 透視範圍
-        const topLane = this.perspLaneXAt(note.lane, noteTopY);
-        const botLane = this.perspLaneXAt(note.lane, noteBotY);
-        // 用「不同 padding」強化梯形視覺 (即使高度小也明顯)
-        const topPadFrac = 0.22;
-        const botPadFrac = 0.05;
-        const topPad = (topLane.xR - topLane.xL) * topPadFrac;
-        const botPad = (botLane.xR - botLane.xL) * botPadFrac;
-        const noteTopL = topLane.xL + topPad;
-        const noteTopR = topLane.xR - topPad;
-        const noteBotL = botLane.xL + botPad;
-        const noteBotR = botLane.xR - botPad;
+        const padding = 10 * scale;
+        const noteX = xL + padding;
+        const noteW = (xR - xL) - padding * 2;
+        const noteH = CONFIG.noteHeight * scale;
 
         ctx.save();
-        ctx.shadowBlur = (note.holding ? 16 : 8) * scale;
+        ctx.shadowBlur = (note.holding ? 28 : 18) * scale;
         ctx.shadowColor = color;
         ctx.fillStyle = color;
-        // 畫梯形音符
-        ctx.beginPath();
-        ctx.moveTo(noteTopL, noteTopY);
-        ctx.lineTo(noteTopR, noteTopY);
-        ctx.lineTo(noteBotR, noteBotY);
-        ctx.lineTo(noteBotL, noteBotY);
-        ctx.closePath();
+        this.roundRect(ctx, noteX, y - noteH / 2, noteW, noteH, 4 * scale);
         ctx.fill();
         ctx.shadowBlur = 0;
-        // 上緣高光 (跟著梯形上邊)
-        if (scale > 0.4) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-          const hlH = Math.max(1, 2 * scale);
-          const hlInset = 3 * scale;
-          ctx.beginPath();
-          ctx.moveTo(noteTopL + hlInset, noteTopY + hlInset);
-          ctx.lineTo(noteTopR - hlInset, noteTopY + hlInset);
-          ctx.lineTo(noteTopR - hlInset - 1, noteTopY + hlInset + hlH);
-          ctx.lineTo(noteTopL + hlInset + 1, noteTopY + hlInset + hlH);
-          ctx.closePath();
-          ctx.fill();
-        }
+        // 上緣高光
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+        ctx.fillRect(noteX + 3 * scale, y - noteH / 2 + 3 * scale, noteW - 6 * scale, 2 * scale);
         ctx.restore();
       }
       for (const p of this.particles) p.draw(ctx);
@@ -2662,6 +2650,27 @@
       // mqdefault 是純 16:9 的縮圖 (320x180), 沒有黑色 letterbox
       // hqdefault 雖然較大 (480x360) 但因為強制 4:3 框架, 上下會有黑邊
       return `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
+    }
+
+    /** 套用當前歌曲的縮圖到遊戲背景 (跟難度頁一樣的模糊放大效果) */
+    applyGameBg() {
+      const gameBg = document.getElementById('game-bg');
+      const song = this.currentSong;
+      const thumbUrl = song ? this.youtubeThumbUrl(song.youtube) : null;
+      if (thumbUrl) {
+        gameBg.style.setProperty('--game-bg-image', `url("${thumbUrl}")`);
+        gameBg.classList.add('has-image');
+      } else {
+        gameBg.classList.remove('has-image');
+        gameBg.style.removeProperty('--game-bg-image');
+      }
+    }
+
+    /** 清掉遊戲背景 (退出遊戲時呼叫) */
+    clearGameBg() {
+      const gameBg = document.getElementById('game-bg');
+      gameBg.classList.remove('has-image');
+      gameBg.style.removeProperty('--game-bg-image');
     }
 
     initTheme() {
@@ -3067,6 +3076,8 @@
         document.getElementById('detail-screen').classList.add('hidden');
         document.getElementById('results-screen').classList.add('hidden');
         document.getElementById('game-exit-btn').classList.remove('hidden');
+        // 把難度頁的背景圖搬到遊戲背景上
+        this.applyGameBg();
         await this.game.start(this.selectedDifficulty);
       });
 
@@ -3074,6 +3085,7 @@
         this.bgMusic.stop();
         document.getElementById('results-screen').classList.add('hidden');
         document.getElementById('game-exit-btn').classList.remove('hidden');
+        this.applyGameBg();
         await this.game.start(this.selectedDifficulty);
       });
 
@@ -3098,6 +3110,7 @@
       this.game.abort();
       document.getElementById('game-exit-btn').classList.add('hidden');
       document.getElementById('results-screen').classList.add('hidden');
+      this.clearGameBg();
       // 回到該歌的難度選擇頁，並接著播這首歌
       if (this.currentSong) {
         document.getElementById('detail-screen').classList.remove('hidden');
@@ -3306,6 +3319,7 @@
       document.getElementById('detail-screen').classList.add('hidden');
       document.getElementById('results-screen').classList.add('hidden');
       document.getElementById('game-exit-btn').classList.add('hidden');
+      this.clearGameBg();
       this.renderSongList();
       // 滾動到上次選的歌 (或第一首)
       const target = this.lastPlayedSong || this.songs[0];
