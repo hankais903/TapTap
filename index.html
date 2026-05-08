@@ -1491,7 +1491,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.13.3';   // 改版時更新
+  const VERSION = 'v0.13.4';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -1555,6 +1555,15 @@
     async init() {
       if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       if (this.ctx.state === 'suspended') await this.ctx.resume();
+      // 一次建立 analyser, 給整個播放週期用
+      if (!this.analyser) {
+        this.analyser = this.ctx.createAnalyser();
+        this.analyser.fftSize = 256;        // 128 個頻段, 反應快
+        this.analyser.smoothingTimeConstant = 0.6;  // 0~1, 越大越平滑
+        this.freqData = new Uint8Array(this.analyser.frequencyBinCount);
+        // analyser 接到 destination 一次就好
+        this.analyser.connect(this.ctx.destination);
+      }
     }
     async loadFromUrl(url) {
       await this.init();
@@ -1567,7 +1576,8 @@
       this.stop();
       this.source = this.ctx.createBufferSource();
       this.source.buffer = this.buffer;
-      this.source.connect(this.ctx.destination);
+      // 路徑: source → analyser → destination (改成走 analyser)
+      this.source.connect(this.analyser);
       this.source.start(when);
       this.scheduledStart = when;
     }
@@ -1577,6 +1587,16 @@
         this.source.disconnect();
         this.source = null;
       }
+    }
+    /** 取得當下「低頻能量」(0~1), 用於背景脈動
+     * 取頻段 0-15 (約 0~250Hz, 鼓 + bass 範圍) 的平均 */
+    getBassEnergy() {
+      if (!this.analyser || !this.source) return 0;
+      this.analyser.getByteFrequencyData(this.freqData);
+      let sum = 0;
+      const N = 16;
+      for (let i = 0; i < N; i++) sum += this.freqData[i];
+      return (sum / N) / 255;  // 標準化到 0~1
     }
     getCurrentTime() { return this.ctx.currentTime - this.scheduledStart; }
     get audioTime() { return this.ctx.currentTime; }
@@ -2081,16 +2101,26 @@
       ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
       ctx.fillRect(0, 0, w, h);
 
-      // 1c. 背景圓環光暈 (黃綠霓虹光環, 街機感)
+      // 1c. 背景圓環光暈 (黃綠霓虹光環, 跟著 bass 脈動)
+      const bassEnergy = this.audio.getBassEnergy();  // 0~1
+      // 平滑 (避免抖動): 每禎往目標值靠攏
+      this.bassPulse = (this.bassPulse || 0) * 0.75 + bassEnergy * 0.25;
+      const pulse = this.bassPulse;
       const ringCx = w / 2;
       const ringCy = this.hitY - 40;
-      const ringR = Math.min(w, h) * 0.55;
+      // 光環大小跟著 pulse: 基準 55%, 跳到 70% (差 15%)
+      const ringR = Math.min(w, h) * (0.55 + pulse * 0.15);
+      // 不透明度也跟著 pulse: 強拍時更亮
+      const intensityBoost = 1 + pulse * 1.2;
       const ringGrad = ctx.createRadialGradient(ringCx, ringCy, ringR * 0.15, ringCx, ringCy, ringR);
-      ringGrad.addColorStop(0,   'rgba(255, 242, 96, 0)');
-      ringGrad.addColorStop(0.45,'rgba(255, 242, 96, 0.22)');
-      ringGrad.addColorStop(0.65,'rgba(158, 255, 90, 0.35)');
-      ringGrad.addColorStop(0.78,'rgba(158, 255, 90, 0.15)');
-      ringGrad.addColorStop(1,   'rgba(158, 255, 90, 0)');
+      const a1 = Math.min(1, 0.22 * intensityBoost);
+      const a2 = Math.min(1, 0.35 * intensityBoost);
+      const a3 = Math.min(1, 0.15 * intensityBoost);
+      ringGrad.addColorStop(0,    'rgba(255, 242, 96, 0)');
+      ringGrad.addColorStop(0.45, `rgba(255, 242, 96, ${a1})`);
+      ringGrad.addColorStop(0.65, `rgba(158, 255, 90, ${a2})`);
+      ringGrad.addColorStop(0.78, `rgba(158, 255, 90, ${a3})`);
+      ringGrad.addColorStop(1,    'rgba(158, 255, 90, 0)');
       ctx.fillStyle = ringGrad;
       ctx.fillRect(0, 0, w, h);
 
