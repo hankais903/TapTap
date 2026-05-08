@@ -1495,7 +1495,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.13.5';   // 改版時更新
+  const VERSION = 'v0.13.6';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2682,15 +2682,20 @@
       return `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
     }
 
-    /** 套用當前歌曲的縮圖到遊戲背景 (跟難度頁一樣的模糊放大效果) */
+    /** 套用當前歌曲的縮圖到遊戲背景 (跟難度頁完全一樣的圖片來源) */
     applyGameBg() {
       const gameBg = document.getElementById('game-bg');
-      const song = this.currentSong;
-      const thumbUrl = song ? this.youtubeThumbUrl(song.youtube) : null;
-      if (thumbUrl) {
-        gameBg.style.setProperty('--game-bg-image', `url("${thumbUrl}")`);
+      const detailScreen = document.getElementById('detail-screen');
+      // 直接讀難度頁實際在用的背景圖變數
+      // (難度頁可能用 YouTube 縮圖, 也可能用 CD 圖, 我們直接 mirror)
+      const detailBgImage = detailScreen.style.getPropertyValue('--detail-bg-image');
+      const hasBgImage = detailScreen.classList.contains('has-bg-image');
+
+      if (hasBgImage && detailBgImage) {
+        gameBg.style.setProperty('--game-bg-image', detailBgImage);
         gameBg.classList.add('has-image');
       } else {
+        // 難度頁是色塊不是圖 → 遊戲頁也保持純黑
         gameBg.classList.remove('has-image');
         gameBg.style.removeProperty('--game-bg-image');
       }
