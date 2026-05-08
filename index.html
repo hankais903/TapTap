@@ -1470,7 +1470,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.12.3';   // 改版時更新
+  const VERSION = 'v0.13.0';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -1853,15 +1853,26 @@
       return this.perspTopRatio + (1 - this.perspTopRatio) * clamped;
     }
 
-    // 計算某 lane 在指定 y 處的左右 x 座標 (帶透視)
+    // 軌道整體曲線 (鐘形): 中段水平偏移最大, 兩端為 0
+    // curveStrength: 偏移峰值 (px). 正值=往右彎, 負值=往左彎
+    curveOffsetAtY(y) {
+      const curveStrength = 18;  // 輕微彎度. 想更彎調大, 想直回 0
+      const t = (y - this.spawnY) / (this.hitY - this.spawnY);
+      const clamped = Math.max(0, Math.min(1, t));
+      // sin(πt) 給出 0→1→0 的鐘形 (中段最大, 兩端為 0)
+      return Math.sin(clamped * Math.PI) * curveStrength;
+    }
+
+    // 計算某 lane 在指定 y 處的左右 x 座標 (帶透視 + 曲線)
     perspLaneXAt(lane, y) {
       const scale = this.perspScaleAtY(y);
+      const offset = this.curveOffsetAtY(y);
       const fullW = this.viewW;
-      const lineX = lane / CONFIG.lanes;       // 0~1, lane 起始位置 (沒透視時)
-      const lineXR = (lane + 1) / CONFIG.lanes; // lane 結束位置
-      // 以 vanishX 為中心壓縮
-      const xL = this.vanishX + (lineX * fullW - this.vanishX) * scale;
-      const xR = this.vanishX + (lineXR * fullW - this.vanishX) * scale;
+      const lineX = lane / CONFIG.lanes;
+      const lineXR = (lane + 1) / CONFIG.lanes;
+      // 以 vanishX 為中心壓縮 + 整體曲線偏移
+      const xL = this.vanishX + (lineX * fullW - this.vanishX) * scale + offset;
+      const xR = this.vanishX + (lineXR * fullW - this.vanishX) * scale + offset;
       return { xL, xR, scale };
     }
 
@@ -2068,16 +2079,33 @@
       const topR = this.perspLaneXAt(CONFIG.lanes - 1, this.spawnY).xR;
       const botL = this.perspLaneXAt(0, this.hitY).xL;
       const botR = this.perspLaneXAt(CONFIG.lanes - 1, this.hitY).xR;
+      // 軌道區背景 (用多段沿曲線勾勒)
+      const TRACK_SEG = 12;
       ctx.fillStyle = 'rgba(26, 34, 0, 0.45)';
       ctx.beginPath();
+      // 上邊
       ctx.moveTo(topL, this.spawnY);
       ctx.lineTo(topR, this.spawnY);
-      ctx.lineTo(botR, this.hitY);
+      // 右邊曲線 (從上往下)
+      for (let s = 1; s <= TRACK_SEG; s++) {
+        const t = s / TRACK_SEG;
+        const y = this.spawnY + (this.hitY - this.spawnY) * t;
+        const x = this.perspLaneXAt(CONFIG.lanes - 1, y).xR;
+        ctx.lineTo(x, y);
+      }
+      // 下邊
       ctx.lineTo(botL, this.hitY);
+      // 左邊曲線 (從下往上)
+      for (let s = TRACK_SEG - 1; s >= 0; s--) {
+        const t = s / TRACK_SEG;
+        const y = this.spawnY + (this.hitY - this.spawnY) * t;
+        const x = this.perspLaneXAt(0, y).xL;
+        ctx.lineTo(x, y);
+      }
       ctx.closePath();
       ctx.fill();
 
-      // 2b. 軌道左右外緣發光光暈 (給軌道更強的 "street arcade" 感)
+      // 2b. 軌道左右外緣發光光暈 (沿曲線)
       ctx.save();
       ctx.shadowBlur = 16;
       ctx.shadowColor = '#9eff5a';
@@ -2085,13 +2113,21 @@
       ctx.lineWidth = 2.5;
       // 左邊緣
       ctx.beginPath();
-      ctx.moveTo(topL, this.spawnY);
-      ctx.lineTo(botL, this.hitY);
+      for (let s = 0; s <= TRACK_SEG; s++) {
+        const t = s / TRACK_SEG;
+        const y = this.spawnY + (this.hitY - this.spawnY) * t;
+        const x = this.perspLaneXAt(0, y).xL;
+        if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
       ctx.stroke();
       // 右邊緣
       ctx.beginPath();
-      ctx.moveTo(topR, this.spawnY);
-      ctx.lineTo(botR, this.hitY);
+      for (let s = 0; s <= TRACK_SEG; s++) {
+        const t = s / TRACK_SEG;
+        const y = this.spawnY + (this.hitY - this.spawnY) * t;
+        const x = this.perspLaneXAt(CONFIG.lanes - 1, y).xR;
+        if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
       ctx.stroke();
       ctx.restore();
 
@@ -2121,25 +2157,26 @@
         }
       }
 
-      // 4. 畫 lane 分隔線 (粗 + 強發光, TAPSONIC 風格)
+      // 4. 畫 lane 分隔線 (粗 + 強發光 + 鐘形曲線)
       ctx.save();
       ctx.shadowBlur = 14;
+      const SEGMENTS = 12;  // 多段折線模擬曲線
       for (let i = 0; i <= CONFIG.lanes; i++) {
-        const xTop = (i === CONFIG.lanes)
-          ? this.perspLaneXAt(i - 1, this.spawnY).xR
-          : this.perspLaneXAt(i, this.spawnY).xL;
-        const xBot = (i === CONFIG.lanes)
-          ? this.perspLaneXAt(i - 1, this.hitY).xR
-          : this.perspLaneXAt(i, this.hitY).xL;
-        // 黃綠交替: 邊緣黃, 內側黃綠
         const isEdge = (i === 0 || i === CONFIG.lanes);
         const color = isEdge ? '#fff260' : '#9eff5a';
         ctx.shadowColor = color;
-        ctx.strokeStyle = color;        // 100% 不透明
-        ctx.lineWidth = 3;              // 更粗
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(xTop, this.spawnY);
-        ctx.lineTo(xBot, this.hitY);
+        for (let s = 0; s <= SEGMENTS; s++) {
+          const t = s / SEGMENTS;
+          const y = this.spawnY + (this.hitY - this.spawnY) * t;
+          const x = (i === CONFIG.lanes)
+            ? this.perspLaneXAt(i - 1, y).xR
+            : this.perspLaneXAt(i, y).xL;
+          if (s === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
         ctx.stroke();
       }
       ctx.restore();
@@ -2254,48 +2291,64 @@
         const bot = Math.max(tailY, headY);
         if (bot - top <= 1) continue;
 
-        // 取兩端的 lane 範圍 (同 lane 但兩端的透視寬度不同)
-        const topLane = this.perspLaneXAt(note.lane, top);
-        const botLane = this.perspLaneXAt(note.lane, bot);
-        // 拖尾完全填滿 lane 寬度 (沒有 padding, 跟軌道完全一致)
-        const tailTopL = topLane.xL + 2;  // 1px 間隙避免與 lane 分隔線重疊
-        const tailTopR = topLane.xR - 2;
-        const tailBotL = botLane.xL + 2;
-        const tailBotR = botLane.xR - 2;
-
         ctx.save();
         ctx.globalAlpha = isActiveHold ? 0.65 : 0.45;
-        // 漸層: 從遠端 (top) 透明 → 近端 (bot) 飽滿
         const grad = ctx.createLinearGradient(0, top, 0, bot);
-        grad.addColorStop(0,    color + '20');  // 遠端淡
+        grad.addColorStop(0,    color + '20');
         grad.addColorStop(0.4,  color + '88');
-        grad.addColorStop(1,    color + 'dd');  // 近端飽滿
+        grad.addColorStop(1,    color + 'dd');
         ctx.fillStyle = grad;
         ctx.shadowBlur = isActiveHold ? 14 : 8;
         ctx.shadowColor = color;
-        // 真正的「梯形拖尾」: 用透視 lane 的兩端寬度連接
+
+        // 沿曲線畫拖尾 (不是簡單梯形, 而是跟著 lane 彎)
+        const TAIL_SEG = 8;
         ctx.beginPath();
-        ctx.moveTo(tailTopL, top);
-        ctx.lineTo(tailTopR, top);
-        ctx.lineTo(tailBotR, bot);
-        ctx.lineTo(tailBotL, bot);
+        // 上邊界 (左到右)
+        for (let s = 0; s <= TAIL_SEG; s++) {
+          const tt = s / TAIL_SEG;
+          const y = top + (bot - top) * tt;
+          const lane = this.perspLaneXAt(note.lane, y);
+          const x = lane.xL + 2;
+          if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        // 下邊界 (右到左, 從 bot 回到 top)
+        for (let s = TAIL_SEG; s >= 0; s--) {
+          const tt = s / TAIL_SEG;
+          const y = top + (bot - top) * tt;
+          const lane = this.perspLaneXAt(note.lane, y);
+          const x = lane.xR - 2;
+          ctx.lineTo(x, y);
+        }
         ctx.closePath();
         ctx.fill();
 
         if (isActiveHold) {
-          // 中間發光細線 (跟著透視收窄)
+          // 中間發光細線 (沿曲線中軸)
           ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
           ctx.shadowBlur = 4;
           ctx.shadowColor = '#ffffff';
-          const topMid = (tailTopL + tailTopR) / 2;
-          const botMid = (tailBotL + tailBotR) / 2;
-          const topHalfW = Math.max(0.6, (tailTopR - tailTopL) * 0.05);
-          const botHalfW = Math.max(1.2, (tailBotR - tailBotL) * 0.05);
           ctx.beginPath();
-          ctx.moveTo(topMid - topHalfW, top);
-          ctx.lineTo(topMid + topHalfW, top);
-          ctx.lineTo(botMid + botHalfW, bot);
-          ctx.lineTo(botMid - botHalfW, bot);
+          // 左邊 (沿著 lane 中軸偏左 5%)
+          for (let s = 0; s <= TAIL_SEG; s++) {
+            const tt = s / TAIL_SEG;
+            const y = top + (bot - top) * tt;
+            const lane = this.perspLaneXAt(note.lane, y);
+            const mid = (lane.xL + lane.xR) / 2;
+            const halfW = Math.max(0.6, (lane.xR - lane.xL) * 0.05);
+            const x = mid - halfW;
+            if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          // 右邊
+          for (let s = TAIL_SEG; s >= 0; s--) {
+            const tt = s / TAIL_SEG;
+            const y = top + (bot - top) * tt;
+            const lane = this.perspLaneXAt(note.lane, y);
+            const mid = (lane.xL + lane.xR) / 2;
+            const halfW = Math.max(0.6, (lane.xR - lane.xL) * 0.05);
+            const x = mid + halfW;
+            ctx.lineTo(x, y);
+          }
           ctx.closePath();
           ctx.fill();
         }
