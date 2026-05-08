@@ -116,6 +116,14 @@
       overflow: hidden;
       transition: transform 0.05s linear;  /* 平滑 pulse 縮放 */
     }
+    /* 遊戲進行中: game-bg 拉到所有 overlay 之上 (但仍在 canvas 下) */
+    body.game-active #game-bg {
+      z-index: 0;
+    }
+    body.game-active .overlay.hidden {
+      /* 確保隱藏的 overlay 不會擋背景 - display none 而不是 opacity 0 */
+      display: none;
+    }
     #game-bg.has-image::before {
       content: '';
       position: absolute;
@@ -1495,7 +1503,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.13.8';   // 改版時更新
+  const VERSION = 'v0.13.9';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2684,6 +2692,7 @@
 
     /** 套用當前歌曲的縮圖到遊戲背景 (跟難度頁完全一樣的圖片來源) */
     applyGameBg() {
+      document.body.classList.add('game-active');  // 隱藏所有 overlay 背景
       const gameBg = document.getElementById('game-bg');
       const detailScreen = document.getElementById('detail-screen');
       const detailBgImage = detailScreen.style.getPropertyValue('--detail-bg-image');
@@ -2700,6 +2709,7 @@
 
     /** 清掉遊戲背景 (退出遊戲時呼叫) */
     clearGameBg() {
+      document.body.classList.remove('game-active');
       const gameBg = document.getElementById('game-bg');
       gameBg.classList.remove('has-image');
       gameBg.style.removeProperty('--game-bg-image');
