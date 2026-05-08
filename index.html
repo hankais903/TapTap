@@ -1470,7 +1470,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.13.0';   // 改版時更新
+  const VERSION = 'v0.13.1';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -1853,14 +1853,14 @@
       return this.perspTopRatio + (1 - this.perspTopRatio) * clamped;
     }
 
-    // 軌道整體曲線 (鐘形): 中段水平偏移最大, 兩端為 0
-    // curveStrength: 偏移峰值 (px). 正值=往右彎, 負值=往左彎
+    // 軌道整體曲線 (S 型): 上半往右、下半往左
+    // curveStrength: 偏移峰值 (px). 正值 = 上半往右
     curveOffsetAtY(y) {
-      const curveStrength = 18;  // 輕微彎度. 想更彎調大, 想直回 0
+      const curveStrength = 35;  // S 型彎度. 鐘形時用 18, S 型放大到 35
       const t = (y - this.spawnY) / (this.hitY - this.spawnY);
       const clamped = Math.max(0, Math.min(1, t));
-      // sin(πt) 給出 0→1→0 的鐘形 (中段最大, 兩端為 0)
-      return Math.sin(clamped * Math.PI) * curveStrength;
+      // sin(2πt) 給 S 型: t=0.25 最右、t=0.75 最左、兩端 0
+      return Math.sin(clamped * Math.PI * 2) * curveStrength;
     }
 
     // 計算某 lane 在指定 y 處的左右 x 座標 (帶透視 + 曲線)
@@ -2080,7 +2080,7 @@
       const botL = this.perspLaneXAt(0, this.hitY).xL;
       const botR = this.perspLaneXAt(CONFIG.lanes - 1, this.hitY).xR;
       // 軌道區背景 (用多段沿曲線勾勒)
-      const TRACK_SEG = 12;
+      const TRACK_SEG = 20;
       ctx.fillStyle = 'rgba(26, 34, 0, 0.45)';
       ctx.beginPath();
       // 上邊
@@ -2160,7 +2160,7 @@
       // 4. 畫 lane 分隔線 (粗 + 強發光 + 鐘形曲線)
       ctx.save();
       ctx.shadowBlur = 14;
-      const SEGMENTS = 12;  // 多段折線模擬曲線
+      const SEGMENTS = 20;  // 多段折線模擬曲線
       for (let i = 0; i <= CONFIG.lanes; i++) {
         const isEdge = (i === 0 || i === CONFIG.lanes);
         const color = isEdge ? '#fff260' : '#9eff5a';
@@ -2302,7 +2302,7 @@
         ctx.shadowColor = color;
 
         // 沿曲線畫拖尾 (不是簡單梯形, 而是跟著 lane 彎)
-        const TAIL_SEG = 8;
+        const TAIL_SEG = 14;
         ctx.beginPath();
         // 上邊界 (左到右)
         for (let s = 0; s <= TAIL_SEG; s++) {
