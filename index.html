@@ -1503,7 +1503,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.13.9';   // 改版時更新
+  const VERSION = 'v0.13.10';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2448,16 +2448,15 @@
       for (const p of this.particles) p.draw(ctx);
       for (const j of this.judgments) j.draw(ctx);
 
-      // 9. 上方淡出遮罩 - 讓音符跟軌道盡頭從消失點淡入而不是有硬邊界
-      // fade 區間: 從螢幕頂端 → 軌道盡頭以下一段距離
-      // 這樣軌道的「最遠端」也會被遮蔽, 視覺上像消失到無限遠
-      const fadeStart = 0;
-      const fadeEnd = this.spawnY + 90;  // 延伸到 spawnY 下方 90px
+      // 9. 上方淡出遮罩 - 讓音符跟軌道盡頭從消失點淡入
+      // 修正: 不再用純黑全遮 (那會蓋掉 game-bg), 改成只在軌道盡頭附近輕微暗化
+      const fadeStart = this.spawnY - 30;
+      const fadeEnd = this.spawnY + 90;
       const fadeGrad = ctx.createLinearGradient(0, fadeStart, 0, fadeEnd);
-      fadeGrad.addColorStop(0,     'rgba(0, 0, 0, 1)');     // 螢幕頂端: 完全遮蔽
-      fadeGrad.addColorStop(0.7,   'rgba(0, 0, 0, 0.95)');  // 接近 spawnY: 還是很濃
-      fadeGrad.addColorStop(0.88,  'rgba(0, 0, 0, 0.7)');   // spawnY 下方一點: 半透明
-      fadeGrad.addColorStop(1,     'rgba(0, 0, 0, 0)');     // 90px 後: 完全透明
+      fadeGrad.addColorStop(0,    'rgba(0, 0, 0, 0)');     // 上方: 完全透明 (背景透出)
+      fadeGrad.addColorStop(0.4,  'rgba(0, 0, 0, 0.55)');  // 軌道盡頭: 半透暗化
+      fadeGrad.addColorStop(0.7,  'rgba(0, 0, 0, 0.35)');
+      fadeGrad.addColorStop(1,    'rgba(0, 0, 0, 0)');     // 下方: 透明
       ctx.fillStyle = fadeGrad;
       ctx.fillRect(0, fadeStart, w, fadeEnd - fadeStart);
 
