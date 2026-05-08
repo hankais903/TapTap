@@ -2686,18 +2686,21 @@
     applyGameBg() {
       const gameBg = document.getElementById('game-bg');
       const detailScreen = document.getElementById('detail-screen');
-      // 直接讀難度頁實際在用的背景圖變數
-      // (難度頁可能用 YouTube 縮圖, 也可能用 CD 圖, 我們直接 mirror)
       const detailBgImage = detailScreen.style.getPropertyValue('--detail-bg-image');
       const hasBgImage = detailScreen.classList.contains('has-bg-image');
+
+      console.log('[applyGameBg] currentSong:', this.currentSong?.id);
+      console.log('[applyGameBg] detail has-bg-image class:', hasBgImage);
+      console.log('[applyGameBg] detail --detail-bg-image:', detailBgImage);
 
       if (hasBgImage && detailBgImage) {
         gameBg.style.setProperty('--game-bg-image', detailBgImage);
         gameBg.classList.add('has-image');
+        console.log('[applyGameBg] ✓ applied:', detailBgImage);
       } else {
-        // 難度頁是色塊不是圖 → 遊戲頁也保持純黑
         gameBg.classList.remove('has-image');
         gameBg.style.removeProperty('--game-bg-image');
+        console.log('[applyGameBg] ✗ no image (color block fallback)');
       }
     }
 
