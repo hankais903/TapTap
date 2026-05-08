@@ -124,8 +124,8 @@
       background-image: var(--game-bg-image);
       background-size: cover;
       background-position: center;
-      filter: blur(20px) saturate(1.2);
-      opacity: 0.7;
+      filter: blur(14px) saturate(1.4);
+      opacity: 1;
       transform: scale(1.2);  /* 預留 scale 空間給 pulse */
     }
 
@@ -1495,7 +1495,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.13.7';   // 改版時更新
+  const VERSION = 'v0.13.8';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2112,8 +2112,8 @@
         gameBg.style.transform = `scale(${scale})`;
       }
 
-      // 1c. 半透明黑色暗化層 (蓋在歌曲背景上, 避免太亮看不清音符)
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      // 1c. 半透明黑色暗化層 (蓋在歌曲背景上, 但讓背景仍清楚可見)
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.30)';
       ctx.fillRect(0, 0, w, h);
 
       // 2. 畫整個梯形軌道區的背景
@@ -2689,37 +2689,13 @@
       const detailBgImage = detailScreen.style.getPropertyValue('--detail-bg-image');
       const hasBgImage = detailScreen.classList.contains('has-bg-image');
 
-      // 把 debug 印在螢幕上 (因為 iOS Safari console 難看)
-      let dbg = document.getElementById('bg-debug');
-      if (!dbg) {
-        dbg = document.createElement('div');
-        dbg.id = 'bg-debug';
-        dbg.style.cssText = 'position:fixed;top:50px;left:8px;right:8px;z-index:9999;background:rgba(0,0,0,0.85);color:#fff260;padding:8px;font:11px monospace;border:1px solid #fff260;border-radius:4px;pointer-events:none;word-break:break-all;';
-        document.body.appendChild(dbg);
-      }
-      dbg.innerHTML = `
-        <div>song: ${this.currentSong?.id || 'NULL'}</div>
-        <div>youtube: ${this.currentSong?.youtube || 'NULL'}</div>
-        <div>detail.has-bg-image: ${hasBgImage}</div>
-        <div>--detail-bg-image: ${detailBgImage || 'EMPTY'}</div>
-        <div>game-bg el exists: ${!!gameBg}</div>
-      `;
-
       if (hasBgImage && detailBgImage) {
         gameBg.style.setProperty('--game-bg-image', detailBgImage);
         gameBg.classList.add('has-image');
-        dbg.innerHTML += `<div style="color:#9eff5a">✓ APPLIED</div>`;
       } else {
         gameBg.classList.remove('has-image');
         gameBg.style.removeProperty('--game-bg-image');
-        dbg.innerHTML += `<div style="color:#ff6b6b">✗ NO IMAGE - 改用色塊</div>`;
       }
-    }
-
-    /** 清掉螢幕上的 debug 資訊 */
-    clearBgDebug() {
-      const dbg = document.getElementById('bg-debug');
-      if (dbg) dbg.remove();
     }
 
     /** 清掉遊戲背景 (退出遊戲時呼叫) */
@@ -2728,7 +2704,6 @@
       gameBg.classList.remove('has-image');
       gameBg.style.removeProperty('--game-bg-image');
       gameBg.style.transform = '';
-      this.clearBgDebug();
     }
 
     initTheme() {
