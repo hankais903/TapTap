@@ -586,7 +586,7 @@
 
 <script>
 'use strict';
-const VERSION = 'editor-v0.4.0';
+const VERSION = 'editor-v0.5.0';
 document.getElementById('editor-version').textContent = VERSION;
 console.log('Neon Beat Editor', VERSION);
 
@@ -815,6 +815,8 @@ timeline.addEventListener('mouseup', (e) => {
   }
   mouseDownY = null;
 });
+// 在 timeline 外面放開滑鼠時也要解除拖曳, 否則狀態會卡住
+window.addEventListener('mouseup', () => { mouseDownY = null; });
 
 // 找出 (x, y) 處的音符 index
 function findNoteAt(x, y) {
@@ -842,11 +844,7 @@ function handleTap(y, hitIdx) {
     showSelectedPanel();
     render();
   } else {
-    // 點空白 → 在 NOW 線位置放音符
-    // 但只有在點到空白「下方」(時間相對遠) 時才放, 避免誤觸
-    // 實際做法: 點哪裡就放在「該 y 對應的時間」
-    const lane = Math.floor((touchActiveIdx >= 0 ? -1 : (lastTapX !== null ? lastTapX : cssW / 2)) / (cssW / NUM_LANES));
-    // 簡化: 點哪個軌道就放在 NOW 時間, 該軌道
+    // 點空白 → 在「該 y 對應的時間」放音符, 軌道由 lastTapX 決定
     addNoteAtTap(y);
   }
 }
@@ -1081,7 +1079,7 @@ function renderSongPickList() {
     item.className = 'song-pick-item';
     item.innerHTML = `
       <div class="song-pick-name">${escapeHtml(s.title)}</div>
-      <div class="song-pick-meta">${escapeHtml(s.artist)} · ${s.bpm.toFixed(0)} BPM · ${formatDuration(s.duration)}</div>
+      <div class="song-pick-meta">${escapeHtml(s.artist || 'Unknown')} · ${Math.round(s.bpm || 0)} BPM · ${formatDuration(s.duration || 0)}</div>
     `;
     item.addEventListener('click', () => loadSong(s));
     list.appendChild(item);
@@ -1100,6 +1098,13 @@ async function loadSong(song) {
   currentSong = song;
   showToast('載入譜面中...');
   try {
+    // meta.json 才是單一真相來源 — index.json 可能過時 (BPM 會讓節拍格線畫錯,
+    // duration 會讓時間軸提早截斷, 歌曲後段根本編不到)
+    try {
+      const mRes = await fetch(`songs/${song.id}/meta.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (mRes.ok) currentSong = { ...song, ...(await mRes.json()) };
+    } catch (e) { /* 沒有 meta.json 就沿用 index.json 的值 */ }
+
     const res = await fetch(`songs/${song.id}/charts.json?t=${Date.now()}`, { cache: 'no-store' });
     currentChart = await res.json();
     currentNotes = currentChart.charts[currentDifficulty] || [];
@@ -1109,7 +1114,7 @@ async function loadSong(song) {
     // 切換到編輯介面
     document.getElementById('load-screen').classList.add('hidden');
     document.getElementById('editor').classList.remove('hidden');
-    document.getElementById('title-display').textContent = song.title + ' · ' + currentDifficulty;
+    document.getElementById('title-display').textContent = currentSong.title + ' · ' + currentDifficulty;
     showSelectedPanel();
     resize();
     updateMeta();
@@ -1298,15 +1303,15 @@ document.getElementById('tap-save').addEventListener('click', () => {
   const totalSpan = smoothed[smoothed.length - 1] - smoothed[0];
   const avgBpm = (smoothed.length - 1) * 60 / totalSpan;
 
+  // 以現有 meta 為底只覆寫拍點相關欄位 —
+  // 直接重建整包會把 duration 之類的欄位倒退成 index.json 的舊值
   const newMeta = {
-    id: currentSong.id,
-    title: currentSong.title,
-    artist: currentSong.artist,
+    ...currentSong,
     bpm: parseFloat(avgBpm.toFixed(2)),
     firstBeat: parseFloat(smoothed[0].toFixed(3)),
     beats: smoothed.map(t => parseFloat(t.toFixed(3))),
-    duration: currentSong.duration,
-    audio: currentSong.audio,
+    // 音檔長度以實際解碼的音訊為準, 不要相信任何 JSON
+    duration: audioBuffer ? parseFloat(audioBuffer.duration.toFixed(2)) : currentSong.duration,
     youtube: currentSong.youtube || '',
   };
   const json = JSON.stringify(newMeta, null, 2);

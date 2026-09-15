@@ -99,52 +99,59 @@ def generate_charts(beat_times, onset_times, str_norm, cent_norm,
     chart.sort(key=lambda x: (x['time'], x['lane']))
     out['normal'] = chart
 
-    # ---- HARD ----
-    chart = []
-    prev = -1
-    for i, t in enumerate(beat_times):
-        lane = (i * 3 + 1) % 4
-        if lane == prev:
-            lane = (lane + 1) % 4
-        chart.append({'time': float(t), 'lane': lane, '_strong': True})
-        prev = lane
+    # ---- HARD / INSANE (同一套組裝邏輯, 只是門檻與雙押率不同) ----
+    def dense_chart(threshold, min_gap, dbl_rate, lane_step):
+        c_prev = -1
+        ch = []
+        for i, t in enumerate(beat_times):
+            lane = (i * lane_step + 1) % 4
+            if lane == c_prev:
+                lane = (lane + 1) % 4
+            ch.append({'time': float(t), 'lane': lane, '_strong': True})
+            c_prev = lane
 
-    existing = sorted([c['time'] for c in chart])
-    for i, t in enumerate(onset_times):
-        if str_norm[i] < hard_threshold:
-            continue
-        idx = np.searchsorted(existing, t)
-        min_dist = float('inf')
-        if idx < len(existing):
-            min_dist = min(min_dist, abs(existing[idx] - t))
-        if idx > 0:
-            min_dist = min(min_dist, abs(existing[idx - 1] - t))
-        if min_dist < 0.08:
-            continue
-        lane = assign_lane(cent_norm[i], prev, rng)
-        chart.append({'time': float(t), 'lane': lane})
-        prev = lane
-        existing.insert(idx, float(t))
+        existing = sorted([c['time'] for c in ch])
+        for i, t in enumerate(onset_times):
+            if str_norm[i] < threshold:
+                continue
+            idx = np.searchsorted(existing, t)
+            min_dist = float('inf')
+            if idx < len(existing):
+                min_dist = min(min_dist, abs(existing[idx] - t))
+            if idx > 0:
+                min_dist = min(min_dist, abs(existing[idx - 1] - t))
+            if min_dist < min_gap:
+                continue
+            lane = assign_lane(cent_norm[i], c_prev, rng)
+            ch.append({'time': float(t), 'lane': lane})
+            c_prev = lane
+            existing.insert(idx, float(t))
 
-    # 雙押
-    chart.sort(key=lambda x: x['time'])
-    for c in list(chart):
-        if not c.get('_strong'):
-            continue
-        if rng.random() < double_rate:
-            chart.append({'time': c['time'], 'lane': (c['lane'] + 2) % 4})
+        # 雙押 (在強拍處加一顆對側的)
+        ch.sort(key=lambda x: x['time'])
+        for c in list(ch):
+            if not c.get('_strong'):
+                continue
+            if rng.random() < dbl_rate:
+                ch.append({'time': c['time'], 'lane': (c['lane'] + 2) % 4})
 
-    for c in chart:
-        c.pop('_strong', None)
-    chart.sort(key=lambda x: (x['time'], x['lane']))
-    out['hard'] = chart
+        for c in ch:
+            c.pop('_strong', None)
+        ch.sort(key=lambda x: (x['time'], x['lane']))
+        return ch
 
-    # 全難度共通：移除同軌過密
+    out['hard'] = dense_chart(hard_threshold, 0.08, double_rate, 3)
+    # INSANE: onset 門檻減半 (抓更多細碎音)、間隔放寬到 60ms、雙押率 1.6 倍
+    out['insane'] = dense_chart(hard_threshold * 0.5, 0.06,
+                                min(1.0, double_rate * 1.6), 1)
+
+    # 全難度共通：移除同軌過密 (insane 允許更密一點)
     for diff_name, diff_chart in out.items():
+        gap = 0.06 if diff_name == 'insane' else 0.08
         cleaned = []
         last = {}
         for n in diff_chart:
-            if n['lane'] in last and n['time'] - last[n['lane']] < 0.08:
+            if n['lane'] in last and n['time'] - last[n['lane']] < gap:
                 continue
             cleaned.append(n)
             last[n['lane']] = n['time']
@@ -198,6 +205,9 @@ def analyze_audio(path, fixed_bpm=None):
 
 
 # ========== Update index.json ==========
+INDEX_KEYS = ['id', 'title', 'artist', 'bpm', 'duration', 'audio', 'youtube']
+
+
 def update_index(songs_dir: Path, song_id: str, entry: dict):
     index_path = songs_dir / 'index.json'
     if index_path.exists():
@@ -206,12 +216,32 @@ def update_index(songs_dir: Path, song_id: str, entry: dict):
     else:
         data = {'songs': []}
 
-    data['songs'] = [s for s in data['songs'] if s['id'] != song_id]
-    data['songs'].append(entry)
-    data['songs'].sort(key=lambda s: s.get('title', '').lower())
+    # 保留舊資料裡手動填的欄位 (youtube 只存在 index/meta, 重跑時不能被洗掉)
+    previous = next((s for s in data['songs'] if s.get('id') == song_id), {})
+    merged = {k: entry.get(k, previous.get(k, '')) for k in INDEX_KEYS}
+    for k in ('youtube',):
+        if not merged.get(k):
+            merged[k] = previous.get(k, '') or ''
+
+    data['songs'] = [s for s in data['songs'] if s.get('id') != song_id]
+    data['songs'].append(merged)
+    data['songs'].sort(key=lambda s: (s.get('title') or '').lower())
+
+    # 丟掉資料夾已經不存在的死資料 (刪歌時常忘了同步 index.json)
+    alive, dead = [], []
+    for s in data['songs']:
+        if (songs_dir / s['id'] / 'meta.json').exists():
+            alive.append(s)
+        else:
+            dead.append(s['id'])
+    data['songs'] = alive
+    for d in dead:
+        print(f"  ! 移除死資料: {d} (songs/{d}/meta.json 不存在)")
 
     with open(index_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write('\n')
+    return merged
 
 
 # ========== Main ==========
@@ -226,6 +256,8 @@ def main():
                         help='Hard onset threshold 0.05-0.5 (default 0.15, lower = denser)')
     parser.add_argument('--double-rate', type=float, default=0.25,
                         help='Hard double-tap rate 0-1 (default 0.25)')
+    parser.add_argument('--force', action='store_true',
+                        help='Overwrite an existing song folder (charts.json included)')
     args = parser.parse_args()
 
     audio_path = Path(args.audio).expanduser().resolve()
@@ -241,6 +273,13 @@ def main():
     songs_dir.mkdir(exist_ok=True)
     song_dir = songs_dir / song_id
 
+    # 手編過的譜面不該被無聲蓋掉
+    if (song_dir / 'charts.json').exists() and not args.force:
+        print(f"Error: songs/{song_id}/charts.json already exists.", file=sys.stderr)
+        print("       Re-running would discard any hand-edited chart.", file=sys.stderr)
+        print("       Use --force to overwrite, or --id to pick another folder name.",
+              file=sys.stderr)
+        return 1
     if song_dir.exists():
         print(f"  ! Folder exists, overwriting: {song_dir}")
     song_dir.mkdir(parents=True, exist_ok=True)
@@ -258,6 +297,16 @@ def main():
         double_rate=args.double_rate,
     )
 
+    # 沿用既有 meta 的手填欄位 (youtube), 不要每次重跑都清掉
+    meta_path = song_dir / 'meta.json'
+    previous_meta = {}
+    if meta_path.exists():
+        try:
+            with open(meta_path, encoding='utf-8') as f:
+                previous_meta = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            previous_meta = {}
+
     meta = {
         'id': song_id,
         'title': title,
@@ -265,16 +314,19 @@ def main():
         'bpm': info['bpm'],
         'duration': info['duration'],
         'audio': audio_filename,
+        'youtube': previous_meta.get('youtube', '') or '',
     }
-    with open(song_dir / 'meta.json', 'w', encoding='utf-8') as f:
+    with open(meta_path, 'w', encoding='utf-8') as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
+        f.write('\n')
     with open(song_dir / 'charts.json', 'w', encoding='utf-8') as f:
         json.dump({'charts': charts}, f, ensure_ascii=False)
 
+    # index.json 必須跟 meta.json 一致 — 兩邊漂掉會讓編譜器讀到錯的 BPM / 長度
     update_index(songs_dir, song_id, meta)
 
     print()
-    for diff in ['easy', 'normal', 'hard']:
+    for diff in ['easy', 'normal', 'hard', 'insane']:
         n = len(charts[diff])
         print(f"  {diff:>6}: {n:4d} notes  ({n / info['duration']:.2f} n/s)")
     print(f"\n✓ Done. Folder: songs/{song_id}/")

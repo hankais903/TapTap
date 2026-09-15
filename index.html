@@ -141,8 +141,13 @@
        HUD (遊戲中)
        ============================================ */
     #hud {
+      /* 跟 game-canvas 一樣最寬 540px 並置中 — 否則桌機上 Score 會被甩到視窗最左邊,
+         離實際軌道好幾百 px。右邊留 52px 給退出鈕, 免得壓到 Accuracy。 */
       position: fixed; top: 0; left: 0; right: 0;
+      width: 100%; max-width: 540px; margin: 0 auto;
       padding: 16px 24px;
+      /* 退出鈕是 40px 寬、距欄右緣 14px，再留 10px 間隙 */
+      padding-right: 64px;
       display: flex; justify-content: space-between; align-items: flex-start;
       pointer-events: none; z-index: 10;
       padding-top: max(16px, env(safe-area-inset-top));
@@ -187,14 +192,15 @@
       display: flex; flex-direction: column;
       background: var(--bg);
       z-index: 100;
-      transition: opacity 0.3s;
+      transition: opacity 0.3s, visibility 0.3s;
       padding: 20px 16px;
       padding-top: max(20px, env(safe-area-inset-top));
       padding-bottom: max(20px, env(safe-area-inset-bottom));
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
-    .overlay.hidden { opacity: 0; pointer-events: none; }
+    /* visibility 一起切掉, 否則隱藏畫面裡的按鈕仍會被 Tab 聚焦到 */
+    .overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
     /* ============================================
        首頁 (Home Screen)
@@ -940,9 +946,11 @@
     [data-theme="dark"] .new-record { color: var(--primary-dark); }
     .new-record.hidden { display: none; }
     .results-max-combo {
-      display: flex; align-items: baseline; gap: 8px;
+      display: flex; align-items: baseline; justify-content: center;
+      gap: 8px 22px; flex-wrap: wrap;
       margin-bottom: 24px;
     }
+    .mc-pair { display: flex; align-items: baseline; gap: 8px; }
     .mc-label {
       font-size: 11px;
       color: var(--text-dim);
@@ -1086,7 +1094,8 @@
     .game-exit-btn {
       position: fixed;
       top: max(14px, env(safe-area-inset-top));
-      right: 14px;
+      /* 對齊 540px 的遊戲欄右緣 (視窗更寬時往內縮), 而不是黏在視窗最右邊 */
+      right: max(14px, calc((100vw - 540px) / 2 + 14px));
       width: 40px; height: 40px;
       background: var(--surface);
       border: none;
@@ -1416,8 +1425,10 @@
     <div class="results-score" id="final-score">000000</div>
     <div class="new-record hidden" id="new-record">★ New Record</div>
     <div class="results-max-combo">
-      <span class="mc-label">Max Combo</span>
-      <span class="mc-value" id="max-combo-value">0</span>
+      <span class="mc-pair"><span class="mc-label">Max Combo</span>
+        <span class="mc-value" id="max-combo-value">0</span></span>
+      <span class="mc-pair"><span class="mc-label">Accuracy</span>
+        <span class="mc-value" id="results-accuracy">100.00%</span></span>
     </div>
     <div class="results-stats">
       <div class="stat perfect"><div class="stat-label">Perfect</div><div class="stat-value" id="stat-perfect">0</div></div>
@@ -1503,7 +1514,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.13.10';   // 改版時更新
+  const VERSION = 'v0.14.0';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -1600,6 +1611,11 @@
         this.source = null;
       }
     }
+    /** 釋放解碼後的 buffer (一首歌的 PCM 可能有數十 MB) */
+    release() {
+      this.stop();
+      this.buffer = null;
+    }
     /** 取得當下「低頻能量」(0~1), 用於背景脈動
      * 取頻段 0-15 (約 0~250Hz, 鼓 + bass 範圍) 的平均 */
     getBassEnergy() {
@@ -1621,14 +1637,36 @@
   class BackgroundMusicPlayer {
     constructor(audioEngine) {
       this.engine = audioEngine;
+      // 兩層 cache 都是 LRU (Map 保留插入順序, 取用時重新 set 就會移到尾端)
+      // 解碼後的 AudioBuffer 是未壓縮 PCM, 一首 3 分鐘的歌約 60MB, 所以上限抓很小
       this.bufferCache = new Map();    // url -> AudioBuffer (已解碼, 可直接播)
       this.bytesCache = new Map();     // url -> ArrayBuffer (原始位元, 還沒解碼)
       this.fetchPromises = new Map();  // url -> Promise (進行中的 fetch, 避免重複)
+      this.maxDecoded = 3;             // 最多保留幾首解碼結果
+      this.maxBytes = 6;               // 最多保留幾首原始位元
       this.activeSource = null;
       this.activeGain = null;
       this.activeUrl = null;
       this.targetVolume = 0.55;
       this.onChange = null;
+    }
+
+    /** LRU: 取用時把 key 移到尾端, 超過上限就從頭 (最久沒用) 開始丟 */
+    _touch(map, key) {
+      if (!map.has(key)) return undefined;
+      const v = map.get(key);
+      map.delete(key);
+      map.set(key, v);
+      return v;
+    }
+    _evict(map, limit, keepUrl) {
+      while (map.size > limit) {
+        const oldest = map.keys().next().value;
+        // 正在播的那首不能丟
+        if (oldest === keepUrl && map.size <= limit + 1) break;
+        if (oldest === keepUrl) { this._touch(map, oldest); continue; }
+        map.delete(oldest);
+      }
     }
 
     /**
@@ -1646,6 +1684,7 @@
           if (!res.ok) return;
           const arrayBuffer = await res.arrayBuffer();
           this.bytesCache.set(url, arrayBuffer);
+          this._evict(this.bytesCache, this.maxBytes, this.activeUrl);
         } catch (e) {
           // 預載失敗不影響使用者體驗 (真要播時會再試)
         } finally {
@@ -1678,10 +1717,10 @@
       this.activeUrl = url;  // 立刻記下來, 讓後續 play(同 url) 能識別
 
       // 載入 buffer (三層 cache)
-      let buffer = this.bufferCache.get(url);
+      let buffer = this._touch(this.bufferCache, url);
       if (!buffer) {
         // 看看 bytes 有沒有預載過
-        let arrayBuffer = this.bytesCache.get(url);
+        let arrayBuffer = this._touch(this.bytesCache, url);
         if (!arrayBuffer) {
           // 看看正在 fetch 的 promise (預載中)
           const pending = this.fetchPromises.get(url);
@@ -1696,10 +1735,12 @@
           if (!res.ok) throw new Error('BG fetch failed');
           arrayBuffer = await res.arrayBuffer();
           this.bytesCache.set(url, arrayBuffer);
+          this._evict(this.bytesCache, this.maxBytes, url);
         }
         // decodeAudioData 會消耗 ArrayBuffer, 所以先 slice 一份備份
         buffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
         this.bufferCache.set(url, buffer);
+        this._evict(this.bufferCache, this.maxDecoded, url);
       }
 
       // 在 await 期間如果有更新的 play 請求, 則放棄這次播放 (避免兩個 source 同時播)
@@ -1977,6 +2018,12 @@
       this.canvas.addEventListener('touchcancel', e => touchHandler(e, false), { passive: false });
     }
 
+    /** 實際會出現在遊戲裡的音符 (introDelay 之前的會被丟掉)
+     * 難度頁顯示的顆數必須走這個函式, 否則會跟實際打到的數量對不上 */
+    static playableNotes(chart) {
+      return (chart || []).filter(n => n.time >= CONFIG.introDelay);
+    }
+
     setDifficulty(diff) {
       this.currentDifficulty = diff;
       Object.assign(CONFIG, DIFFICULTY_PRESETS[diff]);
@@ -1996,10 +2043,8 @@
 
     async start(diff) {
       this.setDifficulty(diff);
-      const rawNotes = this.allCharts[diff];
       // 過濾掉太早的音符 (introDelay 秒前的)，讓玩家先聽幾秒音樂
-      this.notes = rawNotes
-        .filter(n => n.time >= CONFIG.introDelay)
+      this.notes = Game.playableNotes(this.allCharts[diff])
         .map((n, i) => ({
           id: i,
           time: n.time,
@@ -2015,6 +2060,10 @@
       this.score = 0; this.combo = 0; this.maxCombo = 0;
       this.stats = { perfect: 0, good: 0, okay: 0, miss: 0 };
       this.holdingNote = [null, null, null, null];
+      // 重置按鍵/觸控狀態 — 若上一局結束時手指還按著, 這些旗標會殘留, 讓該軌整局打不到
+      this.pressedLanes = [false, false, false, false];
+      this.laneFlash = [0, 0, 0, 0];
+      this.touchToLane.clear();
       this.paused = false;
 
       if (this.audio.ctx.state === 'suspended') await this.audio.ctx.resume();
@@ -2033,6 +2082,15 @@
       this.running = false;
       this.paused = false;
       this.audio.stop();
+      this.releaseInput();
+    }
+
+    /** 清掉所有按住狀態 (遊戲結束時 touchend 會被 running 檢查擋掉, 必須主動清) */
+    releaseInput() {
+      this.pressedLanes = [false, false, false, false];
+      this.laneFlash = [0, 0, 0, 0];
+      this.touchToLane.clear();
+      this.holdingNote = [null, null, null, null];
     }
 
     pause() {
@@ -2286,10 +2344,13 @@
         const fullW = this.viewW;
         const lineX = i / CONFIG.lanes;
         const lineXR = (i + 1) / CONFIG.lanes;
-        const xLTop = this.vanishX + (lineX * fullW - this.vanishX) * scaleTop;
-        const xRTop = this.vanishX + (lineXR * fullW - this.vanishX) * scaleTop;
-        const xLBot = this.vanishX + (lineX * fullW - this.vanishX) * scaleBot;
-        const xRBot = this.vanishX + (lineXR * fullW - this.vanishX) * scaleBot;
+        // 判定線以下 scale > 1, 最外側兩軌會被推到畫布外 (實測 x ≈ -52px),
+        // 框線跟 D / K 字母都會被切掉 → 夾回畫布範圍內
+        const clampX = (x) => Math.max(0, Math.min(fullW, x));
+        const xLTop = clampX(this.vanishX + (lineX * fullW - this.vanishX) * scaleTop);
+        const xRTop = clampX(this.vanishX + (lineXR * fullW - this.vanishX) * scaleTop);
+        const xLBot = clampX(this.vanishX + (lineX * fullW - this.vanishX) * scaleBot);
+        const xRBot = clampX(this.vanishX + (lineXR * fullW - this.vanishX) * scaleBot);
 
         const pressed = this.pressedLanes[i];
         ctx.strokeStyle = pressed ? '#9eff5a' : 'rgba(122, 138, 58, 0.4)';
@@ -2420,11 +2481,15 @@
         if (note.missed) continue;
         const tu = note.time - t;
         if (tu > CONFIG.fallTime) continue;
-        if (tu < 0) continue;
+        // 判定窗還有 ±windowOkay, 所以音符過了判定線仍要看得到 —
+        // 舊版 tu < 0 就直接不畫, 晚按等於盲打
+        if (tu < -CONFIG.windowOkay) continue;
 
         let progress = 1 - (tu / CONFIG.fallTime);
         let y = this.spawnY + (this.hitY - this.spawnY) * progress;
         if (note.hit && note.holding) y = this.hitY;
+        // 過線之後邊往下走邊淡出
+        const pastAlpha = tu < 0 ? Math.max(0, 1 + tu / CONFIG.windowOkay) : 1;
 
         const { xL, xR, scale } = this.perspLaneXAt(note.lane, y);
         const color = (note.lane === 0 || note.lane === 2) ? '#fff260' : '#9eff5a';
@@ -2434,6 +2499,7 @@
         const noteH = CONFIG.noteHeight * scale;
 
         ctx.save();
+        ctx.globalAlpha = pastAlpha;
         ctx.shadowBlur = (note.holding ? 28 : 18) * scale;
         ctx.shadowColor = color;
         ctx.fillStyle = color;
@@ -2609,26 +2675,31 @@
       const x = lane * this.laneWidth + this.laneWidth / 2;
       this.judgments.push(new Judgment(x, this.hitY - 56, labels[type], colors[type]));
     }
+    /** Accuracy 的單一來源 — HUD 與結算畫面都走這裡, 避免兩套公式對不上
+     * 加權: Perfect 1 / Good 0.7 / Okay 0.4 / Miss 0
+     * 分母: 遊戲中 = 目前為止的判定數; 結算 = 總音符數與判定數取大者
+     *       (取大者是為了讓「空按 miss」也算進去 — 否則亂按不影響評級) */
+    accuracy(final = false) {
+      const judged = this.stats.perfect + this.stats.good + this.stats.okay + this.stats.miss;
+      const denom = final ? Math.max(judged, this.totalNotes) : judged;
+      if (denom <= 0) return 100;
+      const w = this.stats.perfect * 1 + this.stats.good * 0.7 + this.stats.okay * 0.4;
+      return (w / denom) * 100;
+    }
     updateHUD() {
       document.querySelector('#score-display .hud-value').textContent =
         String(Math.floor(this.score)).padStart(6, '0');
       const c = document.getElementById('combo-display');
       c.querySelector('.hud-value').textContent = this.combo;
       c.classList.toggle('zero', this.combo === 0);
-      const total = this.stats.perfect + this.stats.good + this.stats.okay + this.stats.miss;
-      let acc = 100;
-      if (total > 0) {
-        const w = this.stats.perfect * 1 + this.stats.good * 0.7 + this.stats.okay * 0.4;
-        acc = (w / total) * 100;
-      }
-      document.querySelector('#accuracy-display .hud-value').textContent = acc.toFixed(2) + '%';
+      document.querySelector('#accuracy-display .hud-value').textContent =
+        this.accuracy().toFixed(2) + '%';
     }
     end() {
       this.running = false;
       this.audio.stop();
-      const total = this.totalNotes;
-      const w = this.stats.perfect * 1 + this.stats.good * 0.7 + this.stats.okay * 0.4;
-      const acc = total > 0 ? (w / total) * 100 : 0;
+      this.releaseInput();
+      const acc = this.accuracy(true);
       let grade = 'F';
       if (acc >= 95) grade = 'S';
       else if (acc >= 88) grade = 'A';
@@ -2637,8 +2708,8 @@
       else if (acc >= 50) grade = 'D';
       const isNewRecord = Highscore.set(this.currentSong.id, this.currentDifficulty, Math.floor(this.score));
       if (this.onEnd) this.onEnd({
-        grade, score: Math.floor(this.score), stats: { ...this.stats },
-        maxCombo: this.maxCombo,
+        grade, accuracy: acc, score: Math.floor(this.score), stats: { ...this.stats },
+        maxCombo: this.maxCombo, totalNotes: this.totalNotes,
         difficulty: this.currentDifficulty, isNewRecord, song: this.currentSong,
       });
     }
@@ -3066,14 +3137,32 @@
       }
     }
 
-    /** 慢速預載全部歌曲 (低優先, 進入歌單 5 秒後才開始, 一次一首避免塞網路) */
+    /** 是否該省流量 (使用者開了資料節省, 或是 2G/3G) */
+    shouldSaveData() {
+      const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      if (!c) return false;
+      if (c.saveData) return true;
+      return ['slow-2g', '2g', '3g'].includes(c.effectiveType);
+    }
+
+    /** 低優先預載 (進入歌單 5 秒後才開始)
+     * 以當前歌曲為中心往外抓, 最多抓到 bgMusic 的 cache 上限為止 —
+     * 舊版是無條件抓全部 16 首 (約 58MB), 手機一進歌單就把流量燒光 */
     async prefetchAllInBackground() {
-      // 延遲啟動, 讓首次互動相關的請求先跑完
+      if (this.shouldSaveData()) return;
       await new Promise(r => setTimeout(r, 5000));
-      for (const s of this.songs) {
-        const url = `songs/${s.id}/${s.audio}`;
+      const center = Math.max(0, this.songs.findIndex(s =>
+        this.lastPlayedSong && s.id === this.lastPlayedSong.id));
+      const budget = this.bgMusic.maxBytes;
+      const order = [];
+      for (let d = 1; order.length < budget && d <= this.songs.length; d++) {
+        for (const i of [center + d, center - d]) {
+          if (i >= 0 && i < this.songs.length && order.length < budget) order.push(this.songs[i]);
+        }
+      }
+      for (const s of order) {
         try {
-          await this.bgMusic.prefetch(url);
+          await this.bgMusic.prefetch(`songs/${s.id}/${s.audio}`);
         } catch (e) { /* 失敗就略過 */ }
       }
     }
@@ -3224,10 +3313,12 @@
           }
           const btn = document.querySelector(`.diff-btn[data-diff="${diff}"]`);
           if (btn) btn.disabled = false;
-          const nps = (notes.length / song.duration).toFixed(1);
+          const playable = Game.playableNotes(notes).length;
+          const playSecs = Math.max(1, song.duration - CONFIG.introDelay);
+          const nps = (playable / playSecs).toFixed(1);
           const hi = Highscore.get(song.id, diff);
           const hiText = hi ? ` · best ${String(hi).padStart(6,'0')}` : '';
-          document.getElementById(`meta-${diff}`).textContent = `${notes.length} notes · ${nps}/s${hiText}`;
+          document.getElementById(`meta-${diff}`).textContent = `${playable} notes · ${nps}/s${hiText}`;
         }
         if (!this.game.allCharts[this.selectedDifficulty]) {
           this.selectedDifficulty = 'normal';
@@ -3338,25 +3429,37 @@
         document.getElementById('val-fallTime').textContent = v.toFixed(2) + 's';
         this.saveUserSettings(this.settingsCurrentDiff, { fallTime: v });
       });
-      sp.addEventListener('input', () => {
-        const ms = parseInt(sp.value, 10);
-        document.getElementById('val-perfect').textContent = ms + 'ms';
-        this.saveUserSettings(this.settingsCurrentDiff, { windowPerfect: ms / 1000 });
-      });
-      sg.addEventListener('input', () => {
-        const ms = parseInt(sg.value, 10);
-        document.getElementById('val-good').textContent = ms + 'ms';
-        this.saveUserSettings(this.settingsCurrentDiff, { windowGood: ms / 1000 });
-      });
-      so.addEventListener('input', () => {
-        const ms = parseInt(so.value, 10);
-        document.getElementById('val-okay').textContent = ms + 'ms';
-        this.saveUserSettings(this.settingsCurrentDiff, { windowOkay: ms / 1000 });
-      });
+      // 三個判定窗必須滿足 perfect <= good <= okay, 否則判定邏輯會失去意義
+      // (例如 perfect 120ms > okay 60ms 時, 任何打到的音符都會被判 perfect)
+      // 動到其中一個就把另外兩個推開, 而不是讓使用者存下矛盾設定
+      const applyWindows = (changed) => {
+        let pf = parseInt(sp.value, 10);
+        let gd = parseInt(sg.value, 10);
+        let ok = parseInt(so.value, 10);
+        if (changed === 'perfect') { gd = Math.max(gd, pf); ok = Math.max(ok, gd); }
+        else if (changed === 'good') { pf = Math.min(pf, gd); ok = Math.max(ok, gd); }
+        else { gd = Math.min(gd, ok); pf = Math.min(pf, gd); }
+        // 夾回各自滑桿的合法範圍
+        pf = Math.min(Math.max(pf, +sp.min), +sp.max);
+        gd = Math.min(Math.max(gd, +sg.min), +sg.max);
+        ok = Math.min(Math.max(ok, +so.min), +so.max);
+        sp.value = pf; sg.value = gd; so.value = ok;
+        document.getElementById('val-perfect').textContent = pf + 'ms';
+        document.getElementById('val-good').textContent = gd + 'ms';
+        document.getElementById('val-okay').textContent = ok + 'ms';
+        this.saveUserSettings(this.settingsCurrentDiff, {
+          windowPerfect: pf / 1000, windowGood: gd / 1000, windowOkay: ok / 1000,
+        });
+      };
+      sp.addEventListener('input', () => applyWindows('perfect'));
+      sg.addEventListener('input', () => applyWindows('good'));
+      so.addEventListener('input', () => applyWindows('okay'));
     }
 
     showMenu() {
       this.game.abort();
+      // 回歌單代表這首歌的譜面/音檔暫時用不到了, 釋放掉解碼後的 PCM
+      this.game.audio.release();
       document.getElementById('menu-screen').classList.remove('hidden');
       document.getElementById('detail-screen').classList.add('hidden');
       document.getElementById('results-screen').classList.add('hidden');
@@ -3379,8 +3482,10 @@
     }
 
     showResults(r) {
-      // 遊戲結束 → 隱藏退出按鈕
+      // 遊戲結束 → 隱藏退出按鈕, 並清掉遊戲背景狀態
+      // (舊版沒清, body.game-active 與 game-bg 的 pulse scale 會一路殘留到下一個畫面)
       document.getElementById('game-exit-btn').classList.add('hidden');
+      this.clearGameBg();
       const dn = r.difficulty.charAt(0).toUpperCase() + r.difficulty.slice(1);
       document.getElementById('results-diff-label').textContent = `${r.song.title} · ${dn}`;
       const gradeEl = document.getElementById('grade');
@@ -3389,6 +3494,8 @@
       document.getElementById('final-score').textContent = String(r.score).padStart(6, '0');
       document.getElementById('new-record').classList.toggle('hidden', !r.isNewRecord);
       document.getElementById('max-combo-value').textContent = r.maxCombo || 0;
+      document.getElementById('results-accuracy').textContent =
+        (r.accuracy != null ? r.accuracy : 0).toFixed(2) + '%';
       document.getElementById('stat-perfect').textContent = r.stats.perfect;
       document.getElementById('stat-good').textContent = r.stats.good;
       document.getElementById('stat-okay').textContent = r.stats.okay;
