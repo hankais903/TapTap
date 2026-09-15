@@ -1,22 +1,27 @@
 # NEON BEAT — 多歌節奏遊戲
 
-落下式 4 軌節奏遊戲。每首歌會自動產生三個難度的譜面（Easy / Normal / Hard），
-含分數、判定、Combo、最高分紀錄。
+落下式 4 軌節奏遊戲。每首歌會產生四個難度的譜面（Easy / Normal / Hard / Insane），
+含分數、判定、Combo、長按音符、最高分紀錄。
 
 ## 目錄結構
 
 ```
 neon-beat/
 ├── index.html              # 遊戲主程式（單一檔案，純 HTML/CSS/JS）
+├── editor.html             # 手動編譜器 + 校拍工具
+├── settings.json           # 各難度的落速與判定窗
 ├── songs/
 │   ├── index.json          # 歌曲清單（add_song.py 自動維護）
 │   └── midnight_filter/    # 每首歌一個資料夾
 │       ├── audio.mp3       # 音檔
-│       ├── charts.json     # 三難度譜面
-│       └── meta.json       # 標題、BPM、長度
+│       ├── charts.json     # 四難度譜面
+│       └── meta.json       # 標題、BPM、長度（單一真相來源）
 └── tools/
     └── add_song.py         # 把新 mp3 加進清單的工具
 ```
+
+> `meta.json` 是每首歌 metadata 的單一真相來源，`index.json` 只是它的快取清單。
+> 兩邊漂掉的話遊戲會用 meta、編譜器也會用 meta，但請用 `add_song.py` 讓它們保持一致。
 
 ## 怎麼跑
 
@@ -64,14 +69,21 @@ pip install librosa numpy
 | `--bpm 128` | 強制指定 BPM (跳過自動偵測) | 自動 |
 | `--hard-density 0.1` | Hard 譜面密度 (0.05–0.5，越低越密) | 0.15 |
 | `--double-rate 0.4` | Hard 雙押機率 (0–1) | 0.25 |
+| `--force` | 蓋掉已存在的歌曲資料夾（含手編過的 charts.json） | 關閉 |
+
+沒有 `--force` 時，如果 `songs/<id>/charts.json` 已經存在就會直接中止，避免手編的譜面被自動生成的蓋掉。
+`youtube` 欄位重跑時會保留。
 
 如果 librosa 自動偵測的 BPM 是實際 BPM 的兩倍 / 半倍 (常見問題)，用 `--bpm` 強制覆寫。
 
 ## 操作
 
 - **D F J K** 對應四個軌道，從左到右
-- 手機 / 觸控可以直接點軌道下半部
-- 判定窗：Perfect ±45ms / Good ±90ms / Okay ±135ms (Normal 難度)
+- 手機 / 觸控可以直接點軌道下半部，支援多指同時按
+- 長按音符要按住到尾巴：按滿 95% 以上給 `HOLD!` 加 combo，中途放開只是少拿分，不會斷 combo
+- 判定窗預設 Perfect ±60ms / Good ±110ms / Okay ±160ms（四個難度相同，見 `settings.json`）
+- 進設定頁可以自己調落速與判定窗，會存在 localStorage；三個判定窗會自動維持 Perfect ≤ Good ≤ Okay
+- 音樂開始後有 4 秒 intro（`CONFIG.introDelay`），這段時間內的音符不會出現
 - 最高分會存在瀏覽器 localStorage，不同瀏覽器各自獨立
 
 ## 譜面是怎麼自動生成的
@@ -85,7 +97,8 @@ mp3 → librosa
 譜面組裝
        ├── Easy: 每兩拍一顆 (跟主節拍)
        ├── Normal: 每拍一顆 + 中強 onset
-       └── Hard: 全 onset + 雙押 (在強拍處)
+       ├── Hard: 全 onset + 雙押 (在強拍處)
+       └── Insane: onset 門檻減半 + 雙押率 1.6 倍 + 同軌間隔放寬到 60ms
 
 軌道分配規則
        ├── 低頻 (鼓 / bass)   → 外側 D / K
@@ -97,20 +110,35 @@ mp3 → librosa
 
 不只是音符數變多，**落速 + 判定窗也跟著調整**：
 
-| 難度 | 落速 | Perfect 窗 |
+落速由 `settings.json` 決定，判定窗目前四個難度相同 —— 難度差異來自落速與音符密度：
+
+| 難度 | 落速 | Perfect / Good / Okay 窗 |
 |---|---|---|
-| Easy | 1.4s（看得很清楚） | ±60ms |
-| Normal | 1.1s | ±45ms |
-| Hard | 0.9s（要快速讀譜） | ±35ms |
+| Easy | 1.4s（看得很清楚） | ±60 / ±110 / ±160ms |
+| Normal | 1.1s | ±60 / ±110 / ±160ms |
+| Hard | 0.9s（要快速讀譜） | ±60 / ±110 / ±160ms |
+| Insane | 0.75s | ±60 / ±110 / ±160ms |
+
+## 手動編譜 (editor.html)
+
+自動生成的譜面可以再用編譜器手工修。一樣要透過本地伺服器開：`http://localhost:8000/editor.html`
+
+- **編譜模式**：點軌道空白處新增音符、點音符選取、可微調時間 (±5/±10ms)、切換 Hold 並調長度、刪除
+- **校拍模式**：邊聽邊按 TAP 記錄拍點（至少 30 拍），會做線性回歸平滑掉手抖，算出 BPM 與 `firstBeat`
+- 兩種模式都是**下載檔案**（`<id>_charts.json` / `<id>_meta.json`），要自己覆蓋回 `songs/<id>/`
 
 ## 想自己改
 
 - **譜面演算法**：`tools/add_song.py` 的 `generate_charts()`
 - **遊戲設定**：`index.html` 的 `CONFIG` 與 `DIFFICULTY_PRESETS`
-- **視覺風格**：`index.html` 頂部的 CSS 變數 (`--neon-cyan` 等)
+- **視覺風格**：`index.html` 頂部的 CSS 變數
+- **音訊快取上限**：`index.html` 的 `BackgroundMusicPlayer` 的 `maxDecoded` / `maxBytes`
+  （解碼後的 AudioBuffer 是未壓縮 PCM，一首 3 分鐘的歌約 60MB，所以預設只留 3 首）
 
 ## 已知限制
 
 - librosa 對某些電子樂的 BPM 偵測會半速 / 倍速 → 用 `--bpm` 手動修正
+- `--bpm` 固定模式假設第一拍在 0 秒，沒有 offset 參數
 - 自動譜面少了人工編譜的「設計感」，但骨幹節奏準確
-- 目前只支援普通音符 (tap)，沒有長按 / 滑鍵 / 雙線
+- 自動生成只產普通音符 (tap)；長按 (hold) 要用 `editor.html` 手動加
+- 沒有滑鍵 / 雙線；編譜器沒有 undo
