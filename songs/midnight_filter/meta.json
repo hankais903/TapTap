@@ -2,8 +2,9 @@
   "id": "midnight_filter",
   "title": "《午夜濾鏡》",
   "artist": "Hank",
-  "bpm": 95.703125,
+  "bpm": 95.0,
   "duration": 160.24,
   "audio": "audio.mp3",
-  "youtube": ""
+  "youtube": "",
+  "firstBeat": -0.665
 }

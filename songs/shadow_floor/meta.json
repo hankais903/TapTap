@@ -2,8 +2,9 @@
   "id": "shadow_floor",
   "title": "《Shadow on the Floor》",
   "artist": "Hank",
-  "bpm": 112.34714673913044,
+  "bpm": 114.0,
   "duration": 220.96,
   "audio": "audio.mp3",
-  "youtube": "https://www.youtube.com/watch?v=E5e9oaSEQaA"
+  "youtube": "https://www.youtube.com/watch?v=E5e9oaSEQaA",
+  "firstBeat": 0.045
 }

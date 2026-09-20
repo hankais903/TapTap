@@ -586,7 +586,7 @@
 
 <script>
 'use strict';
-const VERSION = 'editor-v0.5.0';
+const VERSION = 'editor-v0.6.0';
 document.getElementById('editor-version').textContent = VERSION;
 console.log('Neon Beat Editor', VERSION);
 
@@ -992,9 +992,10 @@ function startPlay() {
   audioSource = audioCtx.createBufferSource();
   audioSource.buffer = audioBuffer;
   audioSource.connect(audioCtx.destination);
-  audioStartTime = audioCtx.currentTime;
+  // 排在 50ms 後起播, 讓 audioStartTime 精確等於實際起播的 ctx 時間 (start(0) 會晚一個 render quantum)
+  audioStartTime = audioCtx.currentTime + 0.05;
   audioStartOffset = currentTime;
-  audioSource.start(0, currentTime);
+  audioSource.start(audioStartTime, currentTime);
   isPlaying = true;
   document.getElementById('play-toggle').textContent = '⏸ 暫停';
   playLoop();
@@ -1223,13 +1224,24 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', () => switchMode(btn.dataset.mode));
 });
 
-function recordTap() {
+/** 瀏覽器回報的輸出延遲 (秒); 拿不到就用保守預設 */
+function outputLatency() {
+  if (!audioCtx) return 0;
+  const v = (audioCtx.outputLatency || 0) + (audioCtx.baseLatency || 0);
+  if (v > 0.002 && v < 0.5) return v;
+  return /iPhone|iPad|iPod/.test(navigator.userAgent) ? 0.020 : /Android/.test(navigator.userAgent) ? 0.060 : 0.025;
+}
+
+function recordTap(evTs) {
   if (!audioCtx) return;
   if (!isPlaying) {
     showToast('請先播放音樂!', 1500);
     return;
   }
-  const now = audioCtx.currentTime;
+  // 事件發生那一刻的 ctx 時間 (不是 handler 跑到的時間), 再扣掉輸出延遲:
+  // 舊版直接記 audioCtx.currentTime, 五首手拍歌因此整體晚了 12~48ms
+  const age = evTs != null ? Math.max(0, (performance.now() - evTs) / 1000) : 0;
+  const now = audioCtx.currentTime - age - outputLatency();
   const songTime = audioStartOffset + (now - audioStartTime);
   tapTimes.push(songTime);
 
@@ -1274,16 +1286,17 @@ function updateTapDisplay() {
   document.getElementById('tap-save').disabled = tapTimes.length < 30;
 }
 
-document.getElementById('tap-button').addEventListener('click', recordTap);
+document.getElementById('tap-button').addEventListener('click', (e) => recordTap(e.timeStamp));
 document.getElementById('tap-button').addEventListener('touchstart', (e) => {
   e.preventDefault();
-  recordTap();
+  recordTap(e.timeStamp);
 }, { passive: false });
 
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && document.getElementById('mode-calibrate-btn').classList.contains('active')) {
     e.preventDefault();
-    recordTap();
+    if (e.repeat) return;
+    recordTap(e.timeStamp);
   }
 });
 

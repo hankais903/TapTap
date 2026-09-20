@@ -2,8 +2,9 @@
   "id": "alleyway_star",
   "title": "《巷弄影帝》",
   "artist": "Hank",
-  "bpm": 123.046875,
+  "bpm": 126.0,
   "duration": 164.88,
   "audio": "audio.mp3",
-  "youtube": ""
+  "youtube": "",
+  "firstBeat": 0.61
 }

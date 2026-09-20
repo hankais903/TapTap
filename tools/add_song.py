@@ -160,23 +160,90 @@ def generate_charts(beat_times, onset_times, str_norm, cent_norm,
     return out
 
 
+# ========== Beat grid fitting ==========
+# librosa.beat.beat_track 回傳的 tempo 被量化在 512/22050 s 的整數倍週期上
+# (例如 112.347 / 117.454 / 107.666), 跟真實 BPM 差 0.2~2.5%。拿它做等距格子,
+# 每拍差 1~11ms, 幾十秒後就漂掉半拍 —— 這就是舊版 16 首裡 11 首「對不到拍」的原因。
+# 所以改成: 對高解析 (hop 128 ≈ 5.8ms) 的 onset 包絡做 0.01 BPM 解析度的等距格子擬合,
+# 同時搜尋相位; 擬合結果離整數 BPM 很近時 (DAW 做的歌幾乎都是整數) 就吸附到整數。
+FIT_HOP = 128
+
+
+def _norm_env(env, sr, hop):
+    w = max(1, int(round(1.0 * sr / hop)))
+    k = np.ones(w) / w
+    loc = np.sqrt(np.convolve(env ** 2, k, mode='same')) + 1e-6
+    e = env / loc
+    return np.clip(e, 0, np.percentile(e, 99.5))
+
+
+def _grid_score(env, sr, hop, bpm, phase, duration):
+    period = 60.0 / bpm
+    t = phase + np.arange(0, int((duration - phase) / period)) * period
+    f = np.round(t * sr / hop).astype(int)
+    f = f[(f >= 0) & (f < len(env))]
+    return float(env[f].mean()) if len(f) else 0.0
+
+
+def fit_beat_grid(env, sr, hop, bpm0, duration, span=4.0, step=0.01):
+    """回傳 (bpm, phase, score): 在 bpm0 ± span 內找最貼合 onset 包絡的等距格子"""
+    env = _norm_env(env, sr, hop)
+    best = (-1.0, bpm0, 0.0)
+    # 粗掃: 0.1 BPM × 4ms 相位
+    for bpm in np.arange(bpm0 - span, bpm0 + span + 1e-9, 0.1):
+        period = 60.0 / bpm
+        for ph in np.arange(0, period, 0.004):
+            sc = _grid_score(env, sr, hop, bpm, ph, duration)
+            if sc > best[0]:
+                best = (sc, float(bpm), float(ph))
+    # 細掃: 0.01 BPM × 1ms 相位, 只在粗掃最佳附近
+    sc0, b0, p0 = best
+    for bpm in np.arange(b0 - 0.15, b0 + 0.15 + 1e-9, step):
+        period = 60.0 / bpm
+        for ph in np.arange(max(0, p0 - 0.03), p0 + 0.03, 0.001):
+            sc = _grid_score(env, sr, hop, bpm, ph % period, duration)
+            if sc > sc0:
+                sc0, b0, p0 = sc, float(bpm), float(ph % period)
+    # 吸附整數 BPM (差 < 0.15 且分數沒明顯變差)
+    bi = float(round(b0))
+    if abs(bi - b0) < 0.15:
+        period = 60.0 / bi
+        phs = np.arange(max(0, p0 - 0.03), p0 + 0.03, 0.001)
+        scs = [_grid_score(env, sr, hop, bi, ph % period, duration) for ph in phs]
+        j = int(np.argmax(scs))
+        if scs[j] >= sc0 * 0.97:
+            sc0, b0, p0 = scs[j], bi, float(phs[j] % period)
+    return b0, p0, sc0
+
+
 # ========== Audio analysis ==========
-def analyze_audio(path, fixed_bpm=None):
+def analyze_audio(path, fixed_bpm=None, first_beat=None):
     print(f"  Loading {path.name}...")
     y, sr = librosa.load(str(path), sr=22050, mono=True)
     duration = len(y) / sr
 
+    # 高解析 onset 包絡, 給格子擬合用
+    fine_env = librosa.onset.onset_strength(y=y, sr=sr, hop_length=FIT_HOP)
+
     if fixed_bpm:
         tempo = float(fixed_bpm)
-        # 用固定 BPM 算等距 beat
-        beat_dur = 60.0 / tempo
-        beat_times = np.arange(0, duration, beat_dur)
-        print(f"  BPM (fixed): {tempo}, beats: {len(beat_times)}")
+        if first_beat is not None:
+            phase = float(first_beat) % (60.0 / tempo)
+        else:
+            # BPM 給定, 只搜相位
+            _, phase, _ = fit_beat_grid(fine_env, sr, FIT_HOP, tempo, duration, span=0.0, step=1.0)
+        print(f"  BPM (fixed): {tempo}, first beat: {phase:.3f}s")
     else:
-        tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
-        beat_times = librosa.frames_to_time(beat_frames, sr=sr)
-        tempo = float(tempo[0]) if hasattr(tempo, '__len__') else float(tempo)
-        print(f"  BPM (detected): {tempo:.1f}, beats: {len(beat_times)}")
+        tempo0, _ = librosa.beat.beat_track(y=y, sr=sr)
+        tempo0 = float(tempo0[0]) if hasattr(tempo0, '__len__') else float(tempo0)
+        tempo, phase, score = fit_beat_grid(fine_env, sr, FIT_HOP, tempo0, duration)
+        print(f"  BPM: librosa 粗估 {tempo0:.2f} → 格子擬合 {tempo:.2f}, first beat {phase:.3f}s (score {score:.2f})")
+        if first_beat is not None:
+            phase = float(first_beat) % (60.0 / tempo)
+    beat_dur = 60.0 / tempo
+    beat_times = phase + np.arange(0, int((duration - phase) / beat_dur) + 1) * beat_dur
+    beat_times = beat_times[beat_times < duration]
+    print(f"  beats: {len(beat_times)}")
 
     onset_frames = librosa.onset.onset_detect(y=y, sr=sr, units='frames', backtrack=True)
     onset_times = librosa.frames_to_time(onset_frames, sr=sr)
@@ -251,7 +318,9 @@ def main():
     parser.add_argument('--title', help='Song title (default: file name)')
     parser.add_argument('--artist', default='Unknown', help='Artist (default: Unknown)')
     parser.add_argument('--id', help='Song folder name (default: derived from title)')
-    parser.add_argument('--bpm', type=float, help='Force BPM (skip auto-detect)')
+    parser.add_argument('--bpm', type=float, help='Force BPM (skip auto-detect; phase is still fitted)')
+    parser.add_argument('--first-beat', type=float, dest='first_beat',
+                        help='Force first beat time in seconds (skip phase fitting)')
     parser.add_argument('--hard-density', type=float, default=0.15,
                         help='Hard onset threshold 0.05-0.5 (default 0.15, lower = denser)')
     parser.add_argument('--double-rate', type=float, default=0.25,
@@ -289,7 +358,7 @@ def main():
     target_audio = song_dir / audio_filename
     shutil.copy(audio_path, target_audio)
 
-    info = analyze_audio(audio_path, fixed_bpm=args.bpm)
+    info = analyze_audio(audio_path, fixed_bpm=args.bpm, first_beat=args.first_beat)
     charts = generate_charts(
         info['beat_times'], info['onset_times'],
         info['str_norm'], info['cent_norm'],
@@ -311,7 +380,8 @@ def main():
         'id': song_id,
         'title': title,
         'artist': args.artist,
-        'bpm': info['bpm'],
+        'bpm': round(info['bpm'], 2),
+        'firstBeat': round(float(info['beat_times'][0]), 3) if len(info['beat_times']) else 0.0,
         'duration': info['duration'],
         'audio': audio_filename,
         'youtube': previous_meta.get('youtube', '') or '',

@@ -2,8 +2,9 @@
   "id": "critical_point",
   "title": "《臨界點》",
   "artist": "Hank",
-  "bpm": 117.45383522727273,
+  "bpm": 117.0,
   "duration": 161.6,
   "audio": "audio.mp3",
-  "youtube": "https://www.youtube.com/watch?v=MhxmpGEKRcA"
+  "youtube": "https://www.youtube.com/watch?v=MhxmpGEKRcA",
+  "firstBeat": -0.352
 }

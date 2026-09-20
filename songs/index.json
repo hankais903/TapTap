@@ -40,7 +40,7 @@
       "id": "shadow_floor",
       "title": "《Shadow on the Floor》",
       "artist": "Hank",
-      "bpm": 112.34714673913044,
+      "bpm": 114.0,
       "duration": 220.96,
       "audio": "audio.mp3",
       "youtube": "https://www.youtube.com/watch?v=E5e9oaSEQaA"
@@ -49,7 +49,7 @@
       "id": "left_your_plants",
       "title": "《You Left Your Plants》",
       "artist": "Hank",
-      "bpm": 107.666015625,
+      "bpm": 106.0,
       "duration": 121.64,
       "audio": "audio.mp3",
       "youtube": "https://www.youtube.com/watch?v=nyB8O3QUcao"
@@ -58,7 +58,7 @@
       "id": "midnight_filter",
       "title": "《午夜濾鏡》",
       "artist": "Hank",
-      "bpm": 95.703125,
+      "bpm": 95.0,
       "duration": 160.24,
       "audio": "audio.mp3",
       "youtube": ""
@@ -67,7 +67,7 @@
       "id": "alleyway_star",
       "title": "《巷弄影帝》",
       "artist": "Hank",
-      "bpm": 123.046875,
+      "bpm": 126.0,
       "duration": 164.88,
       "audio": "audio.mp3",
       "youtube": ""
@@ -76,7 +76,7 @@
       "id": "rule_of_indifference",
       "title": "《無所謂法則》",
       "artist": "Hank",
-      "bpm": 107.666015625,
+      "bpm": 107.0,
       "duration": 106.2,
       "audio": "audio.mp3",
       "youtube": ""
@@ -85,7 +85,7 @@
       "id": "critical_point",
       "title": "《臨界點》",
       "artist": "Hank",
-      "bpm": 117.45383522727273,
+      "bpm": 117.0,
       "duration": 161.6,
       "audio": "audio.mp3",
       "youtube": "https://www.youtube.com/watch?v=MhxmpGEKRcA"
@@ -94,7 +94,7 @@
       "id": "old_love_shadow",
       "title": "《舊愛殘影》",
       "artist": "Hank",
-      "bpm": 107.666015625,
+      "bpm": 107.0,
       "duration": 114.92,
       "audio": "audio.mp3",
       "youtube": "https://www.youtube.com/watch?v=hqAiL2gJfCs"
@@ -103,7 +103,7 @@
       "id": "distant_grey",
       "title": "《遠方的灰》",
       "artist": "Hank",
-      "bpm": 86.1328125,
+      "bpm": 86.0,
       "duration": 197.12,
       "audio": "audio.mp3",
       "youtube": "https://www.youtube.com/watch?v=IbgqQj4BN7s"
@@ -112,7 +112,7 @@
       "id": "dawn_summit",
       "title": "《零時訊號》",
       "artist": "Hank",
-      "bpm": 89.10290948275862,
+      "bpm": 88.01,
       "duration": 209.52,
       "audio": "audio.mp3",
       "youtube": "https://www.youtube.com/watch?v=4J_9_EsJSEg"
@@ -121,7 +121,7 @@
       "id": "phantom_thief",
       "title": "《괴도 / 怪盜》",
       "artist": "Hank",
-      "bpm": 112.34714673913044,
+      "bpm": 113.0,
       "duration": 195.36,
       "audio": "audio.mp3",
       "youtube": "https://www.youtube.com/watch?v=0-Cz0_azeIc"
@@ -139,7 +139,7 @@
       "id": "pudding_philosophy",
       "title": "《푸딩의 철학 / 社畜的布丁哲學》",
       "artist": "Hank",
-      "bpm": 117.45383522727273,
+      "bpm": 115.0,
       "duration": 163.16,
       "audio": "audio.mp3",
       "youtube": "https://www.youtube.com/watch?v=GEn1TITWRY4"
