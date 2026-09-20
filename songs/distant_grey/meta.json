@@ -2,8 +2,9 @@
   "id": "distant_grey",
   "title": "《遠方的灰》",
   "artist": "Hank",
-  "bpm": 86.1328125,
+  "bpm": 86.0,
   "duration": 197.12,
   "audio": "audio.mp3",
-  "youtube": "https://www.youtube.com/watch?v=IbgqQj4BN7s"
+  "youtube": "https://www.youtube.com/watch?v=IbgqQj4BN7s",
+  "firstBeat": -0.238
 }

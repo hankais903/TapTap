@@ -2,8 +2,9 @@
   "id": "left_your_plants",
   "title": "《You Left Your Plants》",
   "artist": "Hank",
-  "bpm": 107.666015625,
+  "bpm": 106.0,
   "duration": 121.64,
   "audio": "audio.mp3",
-  "youtube": "https://www.youtube.com/watch?v=nyB8O3QUcao"
+  "youtube": "https://www.youtube.com/watch?v=nyB8O3QUcao",
+  "firstBeat": 0.002
 }
