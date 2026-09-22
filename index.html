@@ -1448,7 +1448,7 @@
       background: var(--hi); transform: rotate(-5deg); pointer-events: none; z-index: 0; opacity: 0.9;
     }
     [data-theme="light"] .overlay:not(.home-screen)::after { background: var(--ink); }
-    .overlay > * { position: relative; z-index: 1; }
+    .overlay:not(.home-screen) > * { position: relative; z-index: 1; }
 
     /* 標題類全部換濃縮重黑體 + 大寫 */
     .menu-title, .settings-title, .calib-title, .confirm-title, .detail-name,
@@ -1505,11 +1505,10 @@
     /* 黃主題: 一般卡片是米色, 按鈕用黑底黃字; 置中卡片是黑色, 按鈕反過來 */
     [data-theme="light"] .song-card .play-btn { background: var(--ink); color: var(--hi); }
     [data-theme="light"] .song-card.centered .play-btn { background: var(--hi); color: var(--ink); }
-    .song-card .cover { border-radius: 0 !important; border: 2px solid var(--line); transform: rotate(-4deg); }
-    .song-card .cover.has-thumb { border-radius: 0 !important; }
+    .song-card .cover { border: 2px solid var(--line); }   /* 圓形唱片不動 */
 
     /* 難度頁 */
-    .detail-cover { border-radius: 0 !important; border: 3px solid var(--line); box-shadow: 8px 8px 0 var(--hard); transform: rotate(-3deg); }
+    .detail-cover { border: 3px solid var(--line); box-shadow: 6px 6px 0 var(--hard); }   /* 保持圓形 + spin-cd 旋轉 */
     .detail-name { font-size: 34px; letter-spacing: 0.04em; transform: rotate(-1deg); display: inline-block;
       background: var(--paper); color: var(--ink); padding: 2px 16px 0; box-shadow: 5px 5px 0 var(--hard); }
     .diff-btn {
@@ -1865,7 +1864,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.17.0';   // 改版時更新
+  const VERSION = 'v0.17.1';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
