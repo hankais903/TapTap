@@ -18,7 +18,7 @@
   <title>NEON BEAT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Anton&display=swap" rel="stylesheet" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -203,152 +203,216 @@
     .overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
     /* ============================================
-       首頁 (Home Screen)
+       首頁 (Home Screen) — 紅黑白剪紙風
+       單一視覺世界: 不跟 data-theme 連動, 所有顏色都在這裡寫死
        ============================================ */
     .home-screen {
       display: block !important;
       position: fixed; inset: 0;
       overflow: hidden;
       padding: 0;
+      background: #0a0a0a;
+      color: #fff;
+      --p5-red: #e60012;
+      --p5-red-dark: #9e0010;
+      --p5-white: #f6f2ea;
+      --p5-black: #0a0a0a;
+      --p5-font: 'Anton', 'Impact', 'Arial Narrow Bold', 'Noto Sans TC', sans-serif;
     }
-    .home-theme-toggle {
+    /* 背景層 1: 大塊紅色剪紙, 斜切 */
+    .home-screen::before {
+      content: '';
+      position: absolute; inset: -10%;
+      background: var(--p5-red);
+      clip-path: polygon(0 0, 62% 0, 48% 30%, 70% 55%, 38% 78%, 55% 110%, 0 110%);
+      z-index: 0;
+    }
+    /* 背景層 2: 半調網點, 只出現在一條斜帶上 */
+    .home-screen::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.55) 1.3px, transparent 1.6px);
+      background-size: 9px 9px;
+      clip-path: polygon(55% 0, 100% 0, 100% 42%, 30% 100%, 0 100%, 0 88%);
+      opacity: 0.35;
+      z-index: 0;
+      pointer-events: none;
+    }
+    /* 白色斜線條 (兩條) */
+    .p5-slash {
+      position: absolute; left: -20%; width: 140%; height: 10px;
+      background: var(--p5-white);
+      transform: rotate(-18deg);
+      z-index: 1; pointer-events: none;
+    }
+    .p5-slash-1 { top: 27%; }
+    .p5-slash-2 { top: 29%; height: 3px; opacity: 0.8; }
+    /* 背後慢轉的紅黑星芒 */
+    .p5-burst {
+      position: absolute; left: 50%; top: 42%;
+      width: 130vmin; height: 130vmin;
+      margin: -65vmin 0 0 -65vmin;
+      background: conic-gradient(from 0deg,
+        var(--p5-black) 0 9deg, var(--p5-red-dark) 9deg 18deg,
+        var(--p5-black) 18deg 27deg, var(--p5-red-dark) 27deg 36deg,
+        var(--p5-black) 36deg 45deg, var(--p5-red-dark) 45deg 54deg,
+        var(--p5-black) 54deg 63deg, var(--p5-red-dark) 63deg 72deg,
+        var(--p5-black) 72deg 81deg, var(--p5-red-dark) 81deg 90deg,
+        var(--p5-black) 90deg 99deg, var(--p5-red-dark) 99deg 108deg,
+        var(--p5-black) 108deg 117deg, var(--p5-red-dark) 117deg 126deg,
+        var(--p5-black) 126deg 135deg, var(--p5-red-dark) 135deg 144deg,
+        var(--p5-black) 144deg 153deg, var(--p5-red-dark) 153deg 162deg,
+        var(--p5-black) 162deg 171deg, var(--p5-red-dark) 171deg 180deg,
+        var(--p5-black) 180deg 189deg, var(--p5-red-dark) 189deg 198deg,
+        var(--p5-black) 198deg 207deg, var(--p5-red-dark) 207deg 216deg,
+        var(--p5-black) 216deg 225deg, var(--p5-red-dark) 225deg 234deg,
+        var(--p5-black) 234deg 243deg, var(--p5-red-dark) 243deg 252deg,
+        var(--p5-black) 252deg 261deg, var(--p5-red-dark) 261deg 270deg,
+        var(--p5-black) 270deg 279deg, var(--p5-red-dark) 279deg 288deg,
+        var(--p5-black) 288deg 297deg, var(--p5-red-dark) 297deg 306deg,
+        var(--p5-black) 306deg 315deg, var(--p5-red-dark) 315deg 324deg,
+        var(--p5-black) 324deg 333deg, var(--p5-red-dark) 333deg 342deg,
+        var(--p5-black) 342deg 351deg, var(--p5-red-dark) 351deg 360deg);
+      clip-path: polygon(50% 0, 58% 36%, 100% 22%, 66% 50%, 100% 78%, 58% 64%, 50% 100%, 42% 64%, 0 78%, 34% 50%, 0 22%, 42% 36%);
+      opacity: 0.55;
+      mix-blend-mode: screen;
+      animation: p5spin 60s linear infinite;
+      z-index: 0; pointer-events: none;
+    }
+    @keyframes p5spin { to { transform: rotate(360deg); } }
+
+    .home-screen .home-theme-toggle {
       position: absolute;
-      top: max(16px, env(safe-area-inset-top));
-      right: 16px;
+      top: max(14px, env(safe-area-inset-top));
+      right: 14px;
       z-index: 5;
+      /* 首頁是單一深色世界, 切換鈕改成剪紙標籤 */
+      background: var(--p5-white); color: var(--p5-black);
+      border-radius: 0; box-shadow: 4px 4px 0 var(--p5-red);
+      transform: rotate(6deg);
     }
     .home-content {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 90%;
-      max-width: 360px;
-      text-align: center;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 18px;
-    }
-    .home-title-block {
-      display: flex; flex-direction: column;
-      align-items: center;
-      gap: 6px;
-    }
-    .home-heart {
-      font-size: 38px;
-      color: var(--primary);
-      animation: heartbeat 2s ease-in-out infinite;
-    }
-    [data-theme="dark"] .home-heart { color: var(--accent-pink); }
-    @keyframes heartbeat {
-      0%, 100% { transform: scale(1); }
-      15% { transform: scale(1.12); }
-      30% { transform: scale(1); }
-      45% { transform: scale(1.08); }
-      60% { transform: scale(1); }
-    }
-    .home-title {
-      font-size: 42px;
-      font-weight: 700;
-      color: var(--secondary-dark);
-      letter-spacing: 1px;
-      line-height: 1;
-    }
-    [data-theme="dark"] .home-title { color: var(--secondary-dark); }
-    .home-subtitle {
-      font-size: 11px;
-      color: var(--text-dim);
-      letter-spacing: 3px;
-      margin-top: 4px;
-    }
-    .home-start-btn {
-      background: var(--primary);
-      color: var(--primary-dark);
-      border: none;
-      border-radius: 18px;
-      padding: 16px 56px;
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 3px;
-      cursor: pointer;
-      font-family: inherit;
-      box-shadow: var(--shadow);
-      transition: transform 0.15s, filter 0.15s;
-      animation: float 3s ease-in-out infinite;
-      margin-top: 60px;
-    }
-    [data-theme="dark"] .home-start-btn { color: var(--primary-dark); }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-6px); }
-    }
-    .home-start-btn:active { transform: scale(0.96); filter: brightness(0.95); animation: none; }
-    .home-hint {
-      font-size: 10px;
-      color: var(--text-dim);
-      letter-spacing: 2px;
-      margin-top: 4px;
-    }
-    .home-editor-btn {
-      margin-top: 28px;
-      padding: 8px 18px;
-      border: 1px solid var(--text-soft);
-      border-radius: 999px;
-      background: transparent;
-      color: var(--text-soft);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 1.5px;
-      text-decoration: none;
-      transition: transform 0.12s, color 0.15s, border-color 0.15s;
-    }
-    .home-editor-btn:active {
-      transform: scale(0.96);
-      color: var(--primary);
-      border-color: var(--primary);
-    }
-    .home-version {
-      position: absolute;
-      bottom: max(14px, env(safe-area-inset-bottom));
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 10px;
-      color: var(--text-dim);
-      opacity: 0.55;
-      letter-spacing: 1px;
-      font-family: 'SF Mono', 'Consolas', monospace;
-      pointer-events: none;
-      z-index: 1;
+      position: relative; z-index: 2;
+      height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 26px;
+      padding: 24px 16px;
+      padding-top: max(24px, env(safe-area-inset-top));
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
     }
 
-    /* 飄浮的小裝飾 */
-    .home-deco {
-      position: absolute;
+    /* ---- 標題: 每個字母一張剪貼 ---- */
+    .home-title-block { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .home-title {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 2px;
+      font-family: var(--p5-font);
+      font-size: clamp(64px, 17vw, 110px);
+      line-height: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      filter: drop-shadow(6px 6px 0 rgba(0,0,0,0.85));
+    }
+    .home-title .rl {
+      display: inline-block;
+      padding: 0.02em 0.08em 0.06em;
+      transform: rotate(var(--r, 0deg)) translateY(var(--y, 0));
+      animation: p5slam 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+      animation-delay: var(--d, 0s);
+    }
+    .home-title .rl.w { background: var(--p5-white); color: var(--p5-black); }
+    .home-title .rl.b { background: var(--p5-black); color: var(--p5-white); outline: 3px solid var(--p5-white); outline-offset: -3px; }
+    .home-title .rl.r { background: var(--p5-red); color: var(--p5-white); }
+    .home-title .sp { flex-basis: 100%; height: 0; }   /* 強制換行: NEON / BEAT */
+    .home-title .rl:nth-child(n+6) { margin-left: 0.18em; }  /* 第二行整體右移一點, 剪貼感 */
+    @keyframes p5slam {
+      0%   { transform: rotate(var(--r, 0deg)) translateY(var(--y, 0)) scale(2.2); opacity: 0; }
+      60%  { transform: rotate(var(--r, 0deg)) translateY(var(--y, 0)) scale(0.94); opacity: 1; }
+      100% { transform: rotate(var(--r, 0deg)) translateY(var(--y, 0)) scale(1); opacity: 1; }
+    }
+    .home-subtitle {
+      font-family: var(--p5-font);
+      font-size: 15px; letter-spacing: 0.35em; text-transform: uppercase;
+      background: var(--p5-white); color: var(--p5-black);
+      padding: 6px 16px 5px 20px;
+      transform: rotate(-3deg);
+      clip-path: polygon(0 0, 100% 0, 96% 100%, 3% 100%);
+      box-shadow: 4px 4px 0 var(--p5-red);
+    }
+
+    /* ---- START: 紅色斜切按鈕, 白邊硬陰影 ---- */
+    .home-start-btn {
+      position: relative;
+      font-family: var(--p5-font);
+      font-size: 34px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--p5-white); background: var(--p5-red);
+      border: none; cursor: pointer;
+      padding: 12px 54px 12px 46px;
+      clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%);
+      transform: rotate(-2deg);
+      transition: transform 0.08s;
+      animation: p5pulse 1.6s ease-in-out infinite;
+    }
+    /* 白色描邊靠外層偽元素: clip-path 之後畫不出 outline, 用大一點的白底墊在下面 */
+    .home-start-wrap {
+      position: relative; display: inline-block;
+      filter: drop-shadow(7px 7px 0 var(--p5-black)) drop-shadow(-2px -2px 0 var(--p5-white)) drop-shadow(2px 2px 0 var(--p5-white));
+    }
+    .home-start-btn:active { transform: rotate(-2deg) scale(0.95); animation: none; }
+    .home-start-btn:focus-visible { outline: 3px dashed var(--p5-white); outline-offset: 4px; }
+    @keyframes p5pulse {
+      0%, 100% { transform: rotate(-2deg) scale(1); }
+      50%      { transform: rotate(-2deg) scale(1.04); }
+    }
+    .home-hint {
+      font-family: var(--p5-font);
+      font-size: 13px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--p5-white); opacity: 0.85;
+      transform: rotate(-2deg);
+    }
+
+    .home-editor-btn {
+      font-family: var(--p5-font);
+      font-size: 14px; letter-spacing: 0.15em; text-transform: uppercase;
+      text-decoration: none;
+      color: var(--p5-black); background: var(--p5-white);
+      padding: 8px 18px 7px;
+      clip-path: polygon(0 0, 97% 0, 100% 100%, 4% 100%);
+      transform: rotate(2deg);
+      box-shadow: 3px 3px 0 var(--p5-red);
+      transition: transform 0.12s;
+    }
+    .home-editor-btn:active { transform: rotate(2deg) scale(0.95); }
+
+    .home-version {
+      position: absolute; left: 14px; bottom: max(14px, env(safe-area-inset-bottom));
+      z-index: 3;
+      font-family: var(--p5-font);
+      font-size: 11px; letter-spacing: 0.2em;
+      color: var(--p5-white); background: var(--p5-black);
+      padding: 4px 10px 3px;
+      transform: rotate(-4deg);
+      outline: 2px solid var(--p5-white);
       pointer-events: none;
-      color: var(--accent-pink);
-      opacity: 0.45;
-      z-index: 1;
-      animation: drift 6s ease-in-out infinite;
     }
-    [data-theme="dark"] .home-deco { color: var(--accent-pink); opacity: 0.55; }
-    @keyframes drift {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      50%      { transform: translate(4px, -8px) rotate(8deg); }
+    /* 右下角的「!」感嘆星, P5 選單的招牌符號 */
+    .p5-mark {
+      position: absolute; right: 6%; bottom: 12%;
+      width: 78px; height: 78px; z-index: 1;
+      background: var(--p5-white);
+      clip-path: polygon(50% 0, 63% 32%, 100% 26%, 74% 52%, 92% 90%, 55% 70%, 30% 100%, 33% 62%, 0 56%, 30% 40%, 18% 6%);
+      display: grid; place-items: center;
+      font-family: var(--p5-font); font-size: 40px; color: var(--p5-red);
+      transform: rotate(12deg);
+      animation: p5wobble 3s ease-in-out infinite;
+      pointer-events: none;
     }
-    .home-deco-1 { top: 18%;  left: 12%; font-size: 22px; animation-delay: 0s;   color: var(--accent-pink); }
-    .home-deco-2 { top: 24%;  right: 14%; font-size: 16px; animation-delay: 1.2s; color: var(--accent-blue); }
-    .home-deco-3 { bottom: 22%; left: 10%; font-size: 14px; animation-delay: 2.4s; color: var(--secondary-dark); opacity: 0.4; }
-    .home-deco-4 { bottom: 28%; right: 12%; font-size: 18px; animation-delay: 0.8s; color: var(--accent-coral); }
-    .home-deco-5 { top: 14%;  right: 32%; font-size: 13px; animation-delay: 3.6s; color: var(--accent-pink); }
-    .home-deco-6 { bottom: 18%; left: 32%; font-size: 15px; animation-delay: 1.8s; color: var(--accent-blue); }
-    [data-theme="dark"] .home-deco-1 { color: var(--accent-pink); }
-    [data-theme="dark"] .home-deco-2 { color: var(--accent-blue); }
-    [data-theme="dark"] .home-deco-3 { color: var(--secondary-dark); }
-    [data-theme="dark"] .home-deco-4 { color: var(--accent-coral); }
-    [data-theme="dark"] .home-deco-5 { color: var(--accent-pink); }
-    [data-theme="dark"] .home-deco-6 { color: var(--accent-blue); }
+    @keyframes p5wobble {
+      0%, 100% { transform: rotate(12deg) scale(1); }
+      50%      { transform: rotate(18deg) scale(1.08); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .p5-burst, .home-start-btn, .p5-mark, .home-title .rl { animation: none; }
+    }
 
     /* ============================================
        主選單頁 - 標題列
@@ -1381,27 +1445,24 @@
 
   <!-- 0. HOME -->
   <div class="overlay home-screen" id="home-screen">
+    <div class="p5-burst"></div>
+    <div class="p5-slash p5-slash-1"></div>
+    <div class="p5-slash p5-slash-2"></div>
     <button class="theme-toggle home-theme-toggle" id="home-theme-toggle" title="切換深淺色">☾</button>
-    <div class="home-deco home-deco-1">♪</div>
-    <div class="home-deco home-deco-2">♫</div>
-    <div class="home-deco home-deco-3">✿</div>
-    <div class="home-deco home-deco-4">☆</div>
-    <div class="home-deco home-deco-5">♡</div>
-    <div class="home-deco home-deco-6">♪</div>
 
     <div class="home-content">
       <div class="home-title-block">
-        <div class="home-heart">♡</div>
-        <div class="home-title">neon beat</div>
-        <div class="home-subtitle">SOFT RHYTHM GAME</div>
+        <div class="home-title" aria-label="NEON BEAT"><span class="rl w" style="--r:-6deg;--y:0px;--d:0.0s">N</span><span class="rl b" style="--r:4deg;--y:6px;--d:0.06s">E</span><span class="rl r" style="--r:-3deg;--y:-4px;--d:0.12s">O</span><span class="rl w" style="--r:5deg;--y:3px;--d:0.18s">N</span><span class="sp"></span><span class="rl r" style="--r:-5deg;--y:2px;--d:0.26s">B</span><span class="rl w" style="--r:3deg;--y:-5px;--d:0.32s">E</span><span class="rl b" style="--r:-4deg;--y:4px;--d:0.38s">A</span><span class="rl r" style="--r:6deg;--y:-2px;--d:0.44s">T</span></div>
+        <div class="home-subtitle">Rhythm Game</div>
       </div>
 
-      <button class="home-start-btn" id="home-start-btn">▶ START</button>
-      <div class="home-hint">tap to begin</div>
+      <span class="home-start-wrap"><button class="home-start-btn" id="home-start-btn">Start</button></span>
+      <div class="home-hint">Take your beat</div>
 
       <a class="home-editor-btn" href="editor.html">編譜器 ›</a>
     </div>
 
+    <div class="p5-mark">!</div>
     <div class="home-version" id="home-version">v0.0.0</div>
   </div>
 
@@ -1609,7 +1670,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.15.1';   // 改版時更新
+  const VERSION = 'v0.16.0';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
