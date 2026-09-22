@@ -1539,6 +1539,22 @@
       font-style: italic;
     }
     .results-grade.s, .results-grade.S { color: var(--hi); text-shadow: 6px 5px 0 var(--paper), 12px 10px 0 var(--ink); }
+    /* 評級進場: 從 3 倍大砸下來, 回彈, 然後一直輕微呼吸 */
+    .results-grade.slam {
+      animation: gradeSlam 0.75s cubic-bezier(0.2, 1.4, 0.4, 1) both,
+                 gradeBreathe 1.8s ease-in-out 0.75s infinite;
+    }
+    @keyframes gradeSlam {
+      0%   { transform: rotate(-16deg) scale(3.2); opacity: 0; filter: blur(6px); }
+      45%  { transform: rotate(-2deg) scale(0.9); opacity: 1; filter: blur(0); }
+      65%  { transform: rotate(-5deg) scale(1.08); }
+      100% { transform: rotate(-4deg) scale(1); }
+    }
+    @keyframes gradeBreathe {
+      0%, 100% { transform: rotate(-4deg) scale(1); }
+      50%      { transform: rotate(-3deg) scale(1.05); }
+    }
+    @media (prefers-reduced-motion: reduce) { .results-grade.slam { animation: none; } }
     [data-theme="light"] .results-grade { -webkit-text-stroke: 2px var(--ink); text-shadow: 6px 5px 0 var(--ink); color: var(--paper); }
     .results-score { font-size: 46px; letter-spacing: 0.06em; }
     .results-title { background: var(--surface); border: 2px solid var(--line); padding: 4px 12px; transform: rotate(-1deg); }
@@ -1870,7 +1886,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.18.0';   // 改版時更新
+  const VERSION = 'v0.18.1';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2141,7 +2157,7 @@
       return promise;
     }
 
-    async play(url) {
+    async play(url, opts = {}) {
       await this.engine.init();
       const ctx = this.engine.ctx;
       if (ctx.state === 'suspended') await ctx.resume();
@@ -2210,10 +2226,15 @@
       gain.connect(ctx.destination);
 
       const now = ctx.currentTime;
-      gain.gain.setValueAtTime(this.targetVolume, now);
+      if (opts.fadeIn > 0) {
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(this.targetVolume, now + opts.fadeIn);
+      } else {
+        gain.gain.setValueAtTime(this.targetVolume, now);
+      }
 
       // 從歌曲中段 30 秒處開始播 (但若歌曲短於 30 秒，從 1/3 處開始)
-      const startOffset = Math.min(30, buffer.duration / 3);
+      const startOffset = opts.fromMiddle ? buffer.duration / 2 : Math.min(30, buffer.duration / 3);
 
       source.start(now, startOffset);
       this.activeSource = source;
@@ -2628,8 +2649,8 @@
       const pulse = this.bassPulse;
       const gameBg = document.getElementById('game-bg');
       if (gameBg) {
-        // 整個 div scale 1.0 → 1.15 (震動感明顯)
-        const scale = 1 + pulse * 0.15;
+        // 整個 div scale 1.0 → 1.22 (跟著鼓點震)
+        const scale = 1 + pulse * 0.22;
         gameBg.style.transform = `scale(${scale})`;
       }
 
@@ -2681,9 +2702,19 @@
         }
         ctx.closePath();
       };
-      trackPath(6, 6); ctx.fillStyle = '#ffd60a'; ctx.fill();
-      trackPath(0, 0); ctx.fillStyle = '#0f0f14'; ctx.fill();
-      ctx.strokeStyle = '#f6f2ea'; ctx.lineWidth = 3; ctx.stroke();
+      // 半透明, 讓底下的唱片封面透出來; 側邊發光邊由 2b 畫, 頂邊不描 (要淡出)
+      trackPath(0, 0); ctx.fillStyle = 'rgba(12, 12, 18, 0.62)'; ctx.fill();
+      // 黃色硬影只畫在紙片沒蓋到的那條邊 (even-odd: 影子多邊形 − 紙片多邊形), 不然會把整條軌道染黃
+      ctx.beginPath();
+      const addPath = (ox, oy) => {
+        ctx.moveTo(topL + ox, this.spawnY + oy); ctx.lineTo(topR + ox, this.spawnY + oy);
+        for (let s2 = 1; s2 <= TRACK_SEG; s2++) { const t = s2 / TRACK_SEG, y = this.spawnY + (this.hitY - this.spawnY) * t; ctx.lineTo(this.perspLaneXAt(CONFIG.lanes - 1, y).xR + ox, y + oy); }
+        ctx.lineTo(botL + ox, this.hitY + oy);
+        for (let s2 = TRACK_SEG - 1; s2 >= 0; s2--) { const t = s2 / TRACK_SEG, y = this.spawnY + (this.hitY - this.spawnY) * t; ctx.lineTo(this.perspLaneXAt(0, y).xL + ox, y + oy); }
+        ctx.closePath();
+      };
+      addPath(6, 6); addPath(0, 0);
+      ctx.fillStyle = '#ffd60a'; ctx.fill('evenodd');
 
       // 左緣進度條: 歌曲播到哪, 黃線就長到哪
       const prog = Math.max(0, Math.min(1, this.audio.heardTime() / Math.max(1, this.audio.duration)));
@@ -2818,9 +2849,11 @@
 
         const pressed = this.pressedLanes[i];
         // 紙片: 用按鍵格的中線寬度畫一張直立的卡, 交錯傾斜 ±1.5°; 按下 → 黃底黑字 + 壓扁下沉
-        const cardW = Math.min(xRBot - xLBot, xRTop - xLTop) - 14;
+        // 四張卡等寬等距: 直接把畫布寬度四等分, 不跟透視走 (透視會讓外側兩張被夾窄)
+        const slot = fullW / CONFIG.lanes;
+        const cardW = slot - 14;
         const cardH = keyBot - keyTop - 6;
-        const cx = ((xLTop + xRTop) / 2 + (xLBot + xRBot) / 2) / 2;
+        const cx = slot * (i + 0.5);
         const cy = (keyTop + keyBot) / 2;
         ctx.save();
         ctx.translate(cx, cy + (pressed ? 5 : 0));
@@ -2986,15 +3019,26 @@
 
       // 9. 上方淡出遮罩 - 讓音符跟軌道盡頭從消失點淡入
       // 修正: 不再用純黑全遮 (那會蓋掉 game-bg), 改成只在軌道盡頭附近輕微暗化
-      const fadeStart = this.spawnY - 30;
-      const fadeEnd = this.spawnY + 90;
+      // 軌道盡頭要「消失在遠方」, 分兩層:
+      // (a) 全寬的輕微暗化, 跟原本一樣的強度 (0.55 → 0.35), 讓封面還看得到
+      const fadeStart = this.spawnY - 30, fadeEnd = this.spawnY + 90;
       const fadeGrad = ctx.createLinearGradient(0, fadeStart, 0, fadeEnd);
-      fadeGrad.addColorStop(0,    'rgba(0, 0, 0, 0)');     // 上方: 完全透明 (背景透出)
-      fadeGrad.addColorStop(0.4,  'rgba(0, 0, 0, 0.55)');  // 軌道盡頭: 半透暗化
-      fadeGrad.addColorStop(0.7,  'rgba(0, 0, 0, 0.35)');
-      fadeGrad.addColorStop(1,    'rgba(0, 0, 0, 0)');     // 下方: 透明
+      fadeGrad.addColorStop(0,   'rgba(7, 7, 10, 0)');
+      fadeGrad.addColorStop(0.4, 'rgba(7, 7, 10, 0.55)');
+      fadeGrad.addColorStop(0.7, 'rgba(7, 7, 10, 0.35)');
+      fadeGrad.addColorStop(1,   'rgba(7, 7, 10, 0)');
       ctx.fillStyle = fadeGrad;
       ctx.fillRect(0, fadeStart, w, fadeEnd - fadeStart);
+      // (b) 只在軌道紙片範圍內再加一層濃的, 把紙片與黃影的硬頂邊吃掉
+      ctx.save();
+      ctx.beginPath(); addPath(6, 6); addPath(0, 0); ctx.clip();
+      const edgeGrad = ctx.createLinearGradient(0, this.spawnY - 2, 0, this.spawnY + 120);
+      edgeGrad.addColorStop(0,   'rgba(7, 7, 10, 0.95)');
+      edgeGrad.addColorStop(0.5, 'rgba(7, 7, 10, 0.4)');
+      edgeGrad.addColorStop(1,   'rgba(7, 7, 10, 0)');
+      ctx.fillStyle = edgeGrad;
+      ctx.fillRect(0, this.spawnY - 2, w, 122);
+      ctx.restore();
 
       // Intro countdown overlay - 在第一顆音符出現前顯示提示
       const elapsed = this.visualTime();
@@ -4270,7 +4314,21 @@
       const gradeEl = document.getElementById('grade');
       gradeEl.textContent = r.grade;
       gradeEl.className = 'results-grade ' + r.grade.toLowerCase();
-      document.getElementById('final-score').textContent = String(r.score).padStart(6, '0');
+      // 重新觸發進場動畫: 先拿掉 class, 強制 reflow, 再加回去
+      void gradeEl.offsetWidth;
+      gradeEl.classList.add('slam');
+      // 分數從 0 跑到最終值 (0.9 秒, ease-out)
+      const scoreEl = document.getElementById('final-score');
+      const target = r.score, t0 = performance.now();
+      cancelAnimationFrame(this._scoreAnim);
+      const tick = (now) => {
+        const k = Math.min(1, (now - t0) / 900), e = 1 - Math.pow(1 - k, 3);
+        scoreEl.textContent = String(Math.round(target * e)).padStart(6, '0');
+        if (k < 1) this._scoreAnim = requestAnimationFrame(tick);
+      };
+      this._scoreAnim = requestAnimationFrame(tick);
+      // 背景播這首歌: 從中段開始, 2 秒淡入
+      if (r.song) this.bgMusic.play(`songs/${r.song.id}/${r.song.audio}`, { fromMiddle: true, fadeIn: 2 }).catch(() => {});
       document.getElementById('new-record').classList.toggle('hidden', !r.isNewRecord);
       document.getElementById('max-combo-value').textContent = r.maxCombo || 0;
       document.getElementById('results-accuracy').textContent =
