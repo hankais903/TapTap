@@ -1886,7 +1886,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.19.3';   // 改版時更新
+  const VERSION = 'v0.19.4';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -1908,7 +1908,9 @@
     // 音符沿軌道的運動要不要照透視 (1 = 世界座標等速, 畫面上越近越快; 0 = 畫面上等速)
     perspMotion: 1,
     // 首頁背景音樂: 哪首歌、從第幾秒開始、淡入幾秒 (播完會循環)
-    homeMusic: { id: 'geurimja', offset: 20, fadeIn: 0.4 },   // fadeIn 只是避免爆音, 要一碰就出聲
+    // 首頁背景音樂: 這首 20.2s~21.7s 是整段靜音, 副歌在 21.94s (第 35 拍) 進來,
+    // 所以從 21.65s 起播、0.25s 淡入剛好在那一拍前完成 → 一碰螢幕就是副歌, 不會先聽到一段空白
+    homeMusic: { id: 'geurimja', offset: 21.65, fadeIn: 0.25 },
   };
 
   // 預設值 (會在 init 時被 settings.json 覆蓋, 再被 localStorage 個人設定覆蓋)
@@ -2285,6 +2287,8 @@
                         : opts.fromMiddle ? buffer.duration / 2
                         : Math.min(30, buffer.duration / 3);
 
+      // 指定 offset 的 (首頁音樂) 循環時也回到同一點, 不要繞回前奏
+      if (opts.offset != null) source.loopStart = startOffset;
       source.start(now, startOffset);
       this.activeSource = source;
       this.activeGain = gain;
