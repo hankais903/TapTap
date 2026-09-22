@@ -406,6 +406,18 @@
       outline: 2px solid var(--p5-white);
       pointer-events: none;
     }
+    /* 臨時的「更新」鈕: 手機瀏覽器常拿到舊版快取, 按一下強制重抓最新版 (版本號旁邊) */
+    .home-update-btn {
+      position: absolute; left: 92px; bottom: max(14px, env(safe-area-inset-bottom));
+      z-index: 3;
+      font-family: var(--p5-font);
+      font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--p5-black); background: var(--p5-white);
+      border: 2px solid var(--p5-black); cursor: pointer;
+      padding: 4px 10px 3px;
+      transform: rotate(-4deg);
+    }
+    .home-update-btn:active { transform: rotate(-4deg) scale(0.94); }
     /* 右下角的「!」感嘆星, P5 選單的招牌符號 */
     .p5-mark {
       position: absolute; right: 6%; bottom: 12%;
@@ -1691,6 +1703,7 @@
 
     <div class="p5-mark">!</div>
     <div class="home-version" id="home-version">v0.0.0</div>
+    <button class="home-update-btn" id="home-update-btn" title="強制重新載入最新版">↻ 更新</button>
   </div>
 
   <!-- 1. SONG LIST -->
@@ -1897,7 +1910,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.19.5';   // 改版時更新
+  const VERSION = 'v0.19.6';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -3582,6 +3595,18 @@
       // 顯示版本號
       const versionEl = document.getElementById('home-version');
       if (versionEl) versionEl.textContent = VERSION;
+      // 臨時更新鈕: 清掉 Cache API / service worker (若有), 再帶時間戳重新載入, 繞過瀏覽器快取
+      const updateBtn = document.getElementById('home-update-btn');
+      if (updateBtn) updateBtn.addEventListener('click', async () => {
+        updateBtn.textContent = '↻ 更新中…';
+        try {
+          if (window.caches) for (const k of await caches.keys()) await caches.delete(k);
+          if (navigator.serviceWorker) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
+        } catch (e) {}
+        const url = new URL(location.href);
+        url.searchParams.set('v', Date.now());
+        location.replace(url.toString());
+      });
 
       // 加上 cache-busting 字串，避免 iOS WKWebView 給舊版 JSON
       const bust = `?v=${Date.now()}`;
