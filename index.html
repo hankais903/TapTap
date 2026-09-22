@@ -1886,7 +1886,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.18.1';   // 改版時更新
+  const VERSION = 'v0.18.2';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -1905,6 +1905,8 @@
     // 軌道形狀: trackCurve 是 S 型彎度 (px), 0 = 直線; perspTopRatio 是頂端寬度比 (1 = 無透視)
     trackCurve: 0,
     perspTopRatio: 0.18,
+    // 音符沿軌道的運動要不要照透視 (1 = 世界座標等速, 畫面上越近越快; 0 = 畫面上等速)
+    perspMotion: 1,
   };
 
   // 預設值 (會在 init 時被 settings.json 覆蓋, 再被 localStorage 個人設定覆蓋)
@@ -2388,6 +2390,29 @@
       // 透視參數：軌道在頂端 (spawnY/0) 處比較窄、底部 (hitY) 處 100% 寬
       this.perspTopRatio = CONFIG.perspTopRatio;    // 頂端寬度 = 底部寬度 × 這個比例
       this.vanishX = w / 2;          // 消失點 X (中央)
+    }
+
+    /** 音符「時間進度 tau」(0 = 剛出現, 1 = 到判定線) → 畫面進度 (0 = spawnY, 1 = hitY)
+     * 軌道寬度比例 scale 隨 y 線性 (perspScaleAtY), 透視下 scale ∝ 1/深度,
+     * 所以世界座標等速 = 深度線性遞減 → 畫面上 scale 是 1/(zFar − (zFar−1)·tau),
+     * 反推回 y 就是「遠處慢、近處快」的透視運動。過線後 (tau > 1) 用切線外推, 斜率封頂 2。 */
+    perspProgress(tau) {
+      const k = CONFIG.perspMotion;
+      if (k <= 0) return tau;
+      const r = this.perspTopRatio, zFar = 1 / r;
+      let tp;
+      if (tau <= 1) {
+        const z = zFar - (zFar - 1) * tau;
+        tp = (1 / z - r) / (1 - r);
+      } else {
+        tp = 1 + (tau - 1) * Math.min(2, (zFar - 1) / (1 - r));
+      }
+      return tau + (tp - tau) * k;
+    }
+    /** 距離判定還有 tu 秒的音符, 現在該畫在哪個 y */
+    noteY(tu) {
+      const tau = 1 - tu / CONFIG.fallTime;
+      return this.spawnY + (this.hitY - this.spawnY) * this.perspProgress(tau);
     }
 
     // 給定 y 座標, 算出該 y 處的「寬度比例」(0=spawnY 是 0.7, hitY 是 1.0)
@@ -2893,10 +2918,8 @@
           if (tuTail < -0.05) continue;
         }
 
-        let headProg = 1 - (tuHead / CONFIG.fallTime);
-        let tailProg = 1 - (tuTail / CONFIG.fallTime);
-        let headY = this.spawnY + (this.hitY - this.spawnY) * headProg;
-        let tailY = this.spawnY + (this.hitY - this.spawnY) * tailProg;
+        let headY = this.noteY(tuHead);
+        let tailY = this.noteY(tuTail);
 
         // 限制 head 跟 tail 不超過 spawnY (軌道盡頭, 不能在更遠處畫)
         if (headY < this.spawnY) headY = this.spawnY;
@@ -2987,30 +3010,41 @@
         // 舊版 tu < 0 就直接不畫, 晚按等於盲打
         if (tu < -CONFIG.windowOkay) continue;
 
-        let progress = 1 - (tu / CONFIG.fallTime);
-        let y = this.spawnY + (this.hitY - this.spawnY) * progress;
+        let y = this.noteY(tu);
         if (note.hit && note.holding) y = this.hitY;
         // 過線之後邊往下走邊淡出
         const pastAlpha = tu < 0 ? Math.max(0, 1 + tu / CONFIG.windowOkay) : 1;
 
-        const { xL, xR, scale } = this.perspLaneXAt(note.lane, y);
+        const { scale } = this.perspLaneXAt(note.lane, y);
         const color = (note.lane === 0 || note.lane === 2) ? '#ffd60a' : '#f6f2ea';
-        const padding = 10 * scale;
-        const noteX = xL + padding;
-        const noteW = (xR - xL) - padding * 2;
         const noteH = CONFIG.noteHeight * scale;
+        const yTop = y - noteH / 2, yBot = y + noteH / 2;
+        // 上下邊各自取該 y 的軌道邊, 音符就是一塊貼在軌道上的梯形 (上窄下寬)
+        const top = this.perspLaneXAt(note.lane, yTop), bot = this.perspLaneXAt(note.lane, yBot);
+        const padT = 10 * top.scale, padB = 10 * bot.scale;
+        const rad = 3 * scale;
 
         ctx.save();
         ctx.globalAlpha = pastAlpha;
         ctx.shadowBlur = (note.holding ? 28 : 18) * scale;
         ctx.shadowColor = color;
         ctx.fillStyle = color;
-        this.roundRect(ctx, noteX, y - noteH / 2, noteW, noteH, 4 * scale);
+        ctx.beginPath();
+        ctx.moveTo(top.xL + padT + rad, yTop);
+        ctx.lineTo(top.xR - padT - rad, yTop);
+        ctx.quadraticCurveTo(top.xR - padT, yTop, top.xR - padT + (bot.xR - top.xR) * (rad / noteH), yTop + rad);
+        ctx.lineTo(bot.xR - padB - (bot.xR - top.xR) * (rad / noteH), yBot - rad);
+        ctx.quadraticCurveTo(bot.xR - padB, yBot, bot.xR - padB - rad, yBot);
+        ctx.lineTo(bot.xL + padB + rad, yBot);
+        ctx.quadraticCurveTo(bot.xL + padB, yBot, bot.xL + padB + (top.xL - bot.xL) * (rad / noteH), yBot - rad);
+        ctx.lineTo(top.xL + padT - (top.xL - bot.xL) * (rad / noteH), yTop + rad);
+        ctx.quadraticCurveTo(top.xL + padT, yTop, top.xL + padT + rad, yTop);
+        ctx.closePath();
         ctx.fill();
         ctx.shadowBlur = 0;
-        // 上緣高光
+        // 上緣高光 (也跟著上邊寬度)
         ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-        ctx.fillRect(noteX + 3 * scale, y - noteH / 2 + 3 * scale, noteW - 6 * scale, 2 * scale);
+        ctx.fillRect(top.xL + padT + 3 * scale, yTop + 3 * scale, (top.xR - top.xL) - padT * 2 - 6 * scale, 2 * scale);
         ctx.restore();
       }
       for (const p of this.particles) p.draw(ctx);
