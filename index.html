@@ -1886,7 +1886,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.19.2';   // 改版時更新
+  const VERSION = 'v0.19.3';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -1908,7 +1908,7 @@
     // 音符沿軌道的運動要不要照透視 (1 = 世界座標等速, 畫面上越近越快; 0 = 畫面上等速)
     perspMotion: 1,
     // 首頁背景音樂: 哪首歌、從第幾秒開始、淡入幾秒 (播完會循環)
-    homeMusic: { id: 'geurimja', offset: 20, fadeIn: 2.5 },
+    homeMusic: { id: 'geurimja', offset: 20, fadeIn: 0.4 },   // fadeIn 只是避免爆音, 要一碰就出聲
   };
 
   // 預設值 (會在 init 時被 settings.json 覆蓋, 再被 localStorage 個人設定覆蓋)
@@ -2004,8 +2004,13 @@
       this.source = null;
       this.scheduledStart = 0;
     }
-    async init() {
+    /** 只建立 AudioContext 不 resume: 手勢前就能拿來 decodeAudioData (瀏覽器允許), 出聲才需要手勢 */
+    ensureCtx() {
       if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      return this.ctx;
+    }
+    async init() {
+      this.ensureCtx();
       if (this.ctx.state === 'suspended') await this.ctx.resume();
       // 一次建立 analyser, 給整個播放週期用
       if (!this.analyser) {
@@ -2108,6 +2113,7 @@
       this.bufferCache = new Map();    // url -> AudioBuffer (已解碼, 可直接播)
       this.bytesCache = new Map();     // url -> ArrayBuffer (原始位元, 還沒解碼)
       this.fetchPromises = new Map();  // url -> Promise (進行中的 fetch, 避免重複)
+      this.decodePromises = new Map(); // url -> Promise<AudioBuffer> (進行中的 fetch+decode, 避免重複)
       this.maxDecoded = 3;             // 最多保留幾首解碼結果
       this.maxBytes = 6;               // 最多保留幾首原始位元
       this.activeSource = null;
@@ -2172,31 +2178,17 @@
     /** 已在播或正在準備播這首 */
     isActive(url) { return this.isPlaying(url) || this.pendingUrl === url; }
 
-    async _play(url, opts = {}) {
-      await this.engine.init();
-      const ctx = this.engine.ctx;
-      if (ctx.state === 'suspended') await ctx.resume();
-
-      // 同首再點 → 視為停止
-      if (this.activeUrl === url && this.activeSource) {
-        this.stop();
-        return false;
-      }
-
-      // 先停止舊歌 (直接切換，不淡出)
-      if (this.activeSource) {
-        this._stopImmediate();
-      }
-
-      // Generation token: 每次 play 都遞增, 用來偵測在 await 期間有沒有更新的 play 請求
-      this._gen = (this._gen || 0) + 1;
-      const myGen = this._gen;
-      this.activeUrl = url;  // 立刻記下來, 讓後續 play(同 url) 能識別
-
-      // 載入 buffer (三層 cache)
-      let buffer = this._touch(this.bufferCache, url);
-      if (!buffer) {
-        // 看看 bytes 有沒有預載過
+    /**
+     * 取得解碼好的 AudioBuffer (三層 cache: 已解碼 → 原始 bytes → 現場下載)。
+     * 不需要手勢: decodeAudioData 在 suspended 的 AudioContext 上也能跑,
+     * 所以首頁可以在使用者碰螢幕前就把音樂解好, 一碰就直接出聲。
+     */
+    async _loadBuffer(url) {
+      const cached = this._touch(this.bufferCache, url);
+      if (cached) return cached;
+      if (this.decodePromises.has(url)) return this.decodePromises.get(url);
+      const ctx = this.engine.ensureCtx();
+      const promise = (async () => {
         let arrayBuffer = this._touch(this.bytesCache, url);
         if (!arrayBuffer) {
           // 看看正在 fetch 的 promise (預載中)
@@ -2215,10 +2207,50 @@
           this._evict(this.bytesCache, this.maxBytes, url);
         }
         // decodeAudioData 會消耗 ArrayBuffer, 所以先 slice 一份備份
-        buffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+        const buffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
         this.bufferCache.set(url, buffer);
-        this._evict(this.bufferCache, this.maxDecoded, url);
+        this._evict(this.bufferCache, this.maxDecoded, this.activeUrl || url);
+        return buffer;
+      })();
+      this.decodePromises.set(url, promise);
+      try {
+        return await promise;
+      } finally {
+        this.decodePromises.delete(url);
       }
+    }
+
+    /** 預先下載 + 解碼 (手勢前就能做), 之後 play() 這首可以零等待起播 */
+    async predecode(url) {
+      if (!url) return;
+      try { await this._loadBuffer(url); } catch (e) { /* 失敗不影響, play 時會再試 */ }
+    }
+
+    async _play(url, opts = {}) {
+      const ctx = this.engine.ensureCtx();
+
+      // 同首再點 → 視為停止
+      if (this.activeUrl === url && this.activeSource) {
+        this.stop();
+        return false;
+      }
+
+      // 先停止舊歌 (直接切換，不淡出)
+      if (this.activeSource) {
+        this._stopImmediate();
+      }
+
+      // Generation token: 每次 play 都遞增, 用來偵測在 await 期間有沒有更新的 play 請求
+      this._gen = (this._gen || 0) + 1;
+      const myGen = this._gen;
+      this.activeUrl = url;  // 立刻記下來, 讓後續 play(同 url) 能識別
+
+      // resume (可能要等使用者手勢) 跟 fetch+decode 同時進行:
+      // 以前是先等 resume 再解碼, 所以手機上碰了螢幕還要再等 1~3 秒解碼才出聲
+      const ready = this.engine.init();
+      ready.catch(() => {});
+      const buffer = await this._loadBuffer(url);
+      await ready;
 
       // 在 await 期間如果有更新的 play 請求, 則放棄這次播放 (避免兩個 source 同時播)
       if (myGen !== this._gen) {
@@ -3586,10 +3618,10 @@
         this.songs = [];
       }
       this.renderSongList();
-      // 首頁背景音樂: 先預載 bytes; 真正出聲要等使用者第一次觸碰 (瀏覽器 autoplay 政策),
+      // 首頁背景音樂: 手勢前就先下載+解碼; 真正出聲要等使用者第一次觸碰 (瀏覽器 autoplay 政策),
       // 所以首頁任何 pointerdown / touchstart / keydown 都在手勢內再呼叫一次 playHomeMusic
       const homeUrl = this.homeMusicUrl();
-      if (homeUrl) this.bgMusic.prefetch(homeUrl);
+      if (homeUrl) this.bgMusic.predecode(homeUrl);   // 手勢前就下載+解碼好, 一碰螢幕立刻出聲
       this.playHomeMusic();
       const homeEl = document.getElementById('home-screen');
       const kick = () => {
