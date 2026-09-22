@@ -1609,7 +1609,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.15.0';   // 改版時更新
+  const VERSION = 'v0.15.1';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -1625,6 +1625,9 @@
     okayScore:    30,
     // 音樂開始播放後等多少秒才出現第一顆音符 (給玩家先感受節奏)
     introDelay: 4.0,
+    // 軌道形狀: trackCurve 是 S 型彎度 (px), 0 = 直線; perspTopRatio 是頂端寬度比 (1 = 無透視)
+    trackCurve: 0,
+    perspTopRatio: 0.18,
   };
 
   // 預設值 (會在 init 時被 settings.json 覆蓋, 再被 localStorage 個人設定覆蓋)
@@ -2118,7 +2121,7 @@
       this.spawnY = h * 0.33;
 
       // 透視參數：軌道在頂端 (spawnY/0) 處比較窄、底部 (hitY) 處 100% 寬
-      this.perspTopRatio = 0.18;    // 頂端寬度 = 底部寬度 × 0.18 (極強透視)
+      this.perspTopRatio = CONFIG.perspTopRatio;    // 頂端寬度 = 底部寬度 × 這個比例
       this.vanishX = w / 2;          // 消失點 X (中央)
     }
 
@@ -2132,7 +2135,8 @@
     // 軌道整體曲線 (S 型): 上半往右、下半往左
     // curveStrength: 偏移峰值 (px). 正值 = 上半往右
     curveOffsetAtY(y) {
-      const curveStrength = 35;  // S 型彎度. 鐘形時用 18, S 型放大到 35
+      const curveStrength = CONFIG.trackCurve;  // 0 = 直線軌道
+      if (!curveStrength) return 0;
       const t = (y - this.spawnY) / (this.hitY - this.spawnY);
       const clamped = Math.max(0, Math.min(1, t));
       // sin(2πt) 給 S 型: t=0.25 最右、t=0.75 最左、兩端 0
@@ -2240,7 +2244,10 @@
       // 過濾掉太早的音符 (introDelay 秒前的)，讓玩家先聽幾秒音樂
       // 執行期的 note.time 已含譜面平移 (meta.offset + audioOffset)
       const shift = this.chartShift();
+      // 超過音檔長度的音符直接丟掉 — 音樂停了還在掉音符很怪
+      const songEnd = this.audio.duration - 0.05;
       this.notes = Game.playableNotes(this.allCharts[diff], shift)
+        .filter(n => n.time + shift <= songEnd)
         .map((n, i) => ({
           id: i,
           time: n.time + shift,
@@ -2270,7 +2277,11 @@
       const audioStart = this.audio.audioTime + leadIn;
       this.audio.start(audioStart);
 
-      this.endTime = this.audio.duration + 1.2;
+      // 結束時刻: 音樂播完, 且最後一顆音符的判定窗也過了 (取較晚者), 再留 0.6s 給特效
+      const lastNote = this.notes.length
+        ? Math.max(...this.notes.map(n => n.time + n.duration)) + CONFIG.windowOkay
+        : 0;
+      this.endTime = Math.max(this.audio.duration, lastNote) + 0.6;
       this.running = true;
       this.lastFrameTime = performance.now();
       requestAnimationFrame(t => this.loop(t));
