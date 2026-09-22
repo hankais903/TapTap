@@ -1597,6 +1597,25 @@
     body.game-active #combo-display .hud-value { color: #f6f2ea; text-shadow: 3px 3px 0 #ffd60a; }
     body.game-active #accuracy-display .hud-value, body.game-active .hud-label { color: #f6f2ea; }
     #game-bg { background: #07070a; }
+    /* 遊戲中 HUD: Combo 是最大的數字, 斜體白字疊黃影; Score / Acc 縮到兩角 */
+    body.game-active #hud { align-items: flex-start; }
+    body.game-active #score-display .hud-value, body.game-active #accuracy-display .hud-value { font-size: 22px; }
+    body.game-active #combo-display { margin-top: -6px; }
+    body.game-active #combo-display .hud-label { display: none; }
+    body.game-active #combo-display .hud-value {
+      font-size: 78px; font-style: italic; line-height: 1;
+      transform: skewX(-8deg) rotate(-4deg);
+      -webkit-text-stroke: 2px #07070a;
+      text-shadow: 6px 5px 0 #ffd60a, 11px 9px 0 #07070a;
+      transition: transform 0.06s;
+    }
+    body.game-active #combo-display.pop .hud-value { transform: skewX(-8deg) rotate(-4deg) scale(1.14); }
+    body.game-active #combo-display::after {
+      content: 'COMBO'; display: block; margin: 2px auto 0; width: max-content;
+      font-family: var(--display); font-size: 10px; letter-spacing: 0.3em;
+      background: #ffd60a; color: #07070a; padding: 2px 8px 1px; transform: rotate(-4deg);
+    }
+    body.game-active #combo-display.zero::after { opacity: 0; }
     .picker-fade-top { background: linear-gradient(180deg, var(--bg), transparent) !important; }
     .picker-fade-bottom { background: linear-gradient(0deg, var(--bg), transparent) !important; }
   </style>
@@ -1851,7 +1870,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.17.2';   // 改版時更新
+  const VERSION = 'v0.18.0';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2238,84 +2257,67 @@
   // PARTICLE & JUDGMENT
   // ============================================================
   // Cytus 風: 同心圓波紋 + 小點上飄
-  class RingParticle {
-    constructor(x, y, color, maxRadius = 60, lineWidth = 2) {
-      this.x = x; this.y = y;
-      this.radius = 4;
-      this.maxRadius = maxRadius;
-      this.color = color;
-      this.lineWidth = lineWidth;
-      this.life = 1;
-      this.decay = 2.8; // 約 0.36 秒
+  // 命中特效: 幾片黃/白碎紙彈出去, 硬邊、會轉、有重力
+  class ShardParticle {
+    constructor(x, y, color) {
+      this.x = x + (Math.random() - 0.5) * 20; this.y = y;
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.6, sp = 180 + Math.random() * 220;
+      this.vx = Math.cos(a) * sp; this.vy = Math.sin(a) * sp;
+      this.rot = Math.random() * Math.PI; this.vr = (Math.random() - 0.5) * 14;
+      this.w = 4 + Math.random() * 6; this.h = 4 + Math.random() * 9;
+      this.color = color; this.life = 1; this.decay = 1.9;
     }
     update(dt) {
-      // 緩動: 越近 maxRadius 速度越慢
-      this.radius += (this.maxRadius - this.radius) * 0.12;
-      this.life -= dt * this.decay;
+      this.x += this.vx * dt; this.y += this.vy * dt; this.vy += 900 * dt;
+      this.rot += this.vr * dt; this.life -= dt * this.decay;
     }
     draw(ctx) {
       if (this.life <= 0) return;
-      ctx.save();
-      ctx.globalAlpha = this.life * 0.7;
-      ctx.strokeStyle = this.color;
-      ctx.lineWidth = this.lineWidth;
-      ctx.shadowBlur = 6;
-      ctx.shadowColor = this.color;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-      ctx.stroke();
+      ctx.save(); ctx.globalAlpha = Math.min(1, this.life * 1.4);
+      ctx.translate(this.x, this.y); ctx.rotate(this.rot);
+      ctx.fillStyle = '#07070a'; ctx.fillRect(-this.w / 2 + 2, -this.h / 2 + 2, this.w, this.h);
+      ctx.fillStyle = this.color; ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
       ctx.restore();
     }
   }
-  class DotParticle {
-    constructor(x, y, color) {
-      this.x = x + (Math.random() - 0.5) * 14;
-      this.y = y;
-      this.vx = (Math.random() - 0.5) * 1.2;
-      this.vy = -1.0 - Math.random() * 1.8;
-      this.color = color;
-      this.size = 1.2 + Math.random() * 1.3;  // 很小, 1.2~2.5
-      this.life = 1;
-      this.decay = 2.0;
-    }
-    update(dt) {
-      this.x += this.vx;
-      this.y += this.vy;
-      this.vy += 0.04;     // 微弱重力
-      this.life -= dt * this.decay;
-    }
+  // 命中瞬間的一圈白光 (音符保留發光語言, 這是它的收尾)
+  class FlashParticle {
+    constructor(x, y) { this.x = x; this.y = y; this.life = 1; }
+    update(dt) { this.life -= dt * 6; }
     draw(ctx) {
       if (this.life <= 0) return;
-      ctx.save();
-      ctx.globalAlpha = this.life;
-      ctx.fillStyle = this.color;
-      ctx.shadowBlur = 4;
-      ctx.shadowColor = this.color;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      ctx.save(); ctx.globalAlpha = this.life * 0.6; ctx.fillStyle = '#f6f2ea';
+      ctx.shadowBlur = 30; ctx.shadowColor = '#f6f2ea';
+      ctx.beginPath(); ctx.arc(this.x, this.y, 10 + (1 - this.life) * 26, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     }
   }
-  // 保留舊類別名以相容, 但實作改成「噴一組 Cytus 特效」的 helper
-  class Particle {
-    constructor(x, y, color) {
-      // 不再單顆生粒子, 而是組合一個 ring + 幾個 dot
-      // 但因為呼叫端用 for loop 產 N 顆, 我們只在 i===0 時生 ring (避免重疊太多)
-      // 這裡的 hack: 第一次 new 就把 ring 跟 dot 推到同一個 array, 透過全域 helper
-      // 實際做法: 改用 spawnHitEffect 來呼叫
-      throw new Error('Use spawnHitEffect instead of new Particle');
-    }
-  }
+  // 判定文字 = 一張斜貼的紙條: color 當底色, 字用黑 (淺底) 或白 (深底); 出現時「拍」上去
   class Judgment {
-    constructor(x, y, text, color, size = 20) { this.x = x; this.y = y; this.text = text; this.color = color; this.size = size; this.life = 1; this.maxLife = 0.7; }
-    update(dt) { this.life -= dt / this.maxLife; this.y -= 32 * dt; }
+    constructor(x, y, text, color, size = 20) {
+      this.x = x; this.y = y; this.text = text; this.color = color; this.size = size;
+      this.life = 1; this.maxLife = 0.7; this.age = 0;
+      this.rot = (Math.random() - 0.5) * 0.16;
+    }
+    update(dt) { this.life -= dt / this.maxLife; this.age += dt; this.y -= 22 * dt; }
     draw(ctx) {
       if (this.life <= 0) return;
-      ctx.save(); ctx.globalAlpha = Math.min(1, this.life * 1.5);
-      ctx.fillStyle = this.color; ctx.shadowBlur = 18; ctx.shadowColor = this.color;
-      ctx.font = `bold ${this.size}px Quicksand, sans-serif`; ctx.textAlign = 'center';
-      ctx.fillText(this.text, this.x, this.y); ctx.restore();
+      const dark = ['#07070a', '#b8960a', '#8a8781'].includes(this.color);
+      const slam = this.age < 0.12 ? 1.6 - (this.age / 0.12) * 0.6 : 1;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, this.life * 1.6);
+      ctx.font = `${this.size}px Anton, Impact, 'Arial Narrow Bold', sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const pw = ctx.measureText(this.text).width + this.size * 0.9, ph = this.size * 1.45;
+      // 最外側兩軌的字條會超出畫布, 夾回來
+      const cw = ctx.canvas.clientWidth || ctx.canvas.width;
+      const cx = Math.max(pw / 2 + 8, Math.min(cw - pw / 2 - 8, this.x));
+      ctx.translate(cx, this.y); ctx.rotate(this.rot); ctx.scale(slam, slam);
+      ctx.fillStyle = '#07070a'; ctx.fillRect(-pw / 2 + 4, -ph / 2 + 4, pw, ph);
+      ctx.fillStyle = this.color; ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+      if (dark) { ctx.strokeStyle = '#f6f2ea'; ctx.lineWidth = 1.5; ctx.strokeRect(-pw / 2, -ph / 2, pw, ph); }
+      ctx.fillStyle = dark ? '#f6f2ea' : '#07070a';
+      ctx.fillText(this.text, 0, 1);
+      ctx.restore();
     }
   }
 
@@ -2635,36 +2637,58 @@
       ctx.fillStyle = 'rgba(0, 0, 0, 0.30)';
       ctx.fillRect(0, 0, w, h);
 
+      // 1d. 右上一片斜切半調網點, 點的大小跟低音一起脹縮 (首頁同語彙)
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(w * 0.46, 0); ctx.lineTo(w, 0); ctx.lineTo(w, h * 0.30); ctx.lineTo(w * 0.70, h * 0.38); ctx.closePath();
+      ctx.clip();
+      const dotStep = 10, dotR = 1.4 + pulse * 1.6;
+      ctx.fillStyle = 'rgba(246, 242, 234, 0.32)';
+      for (let dy = 5; dy < h * 0.4; dy += dotStep) {
+        for (let dx = w * 0.46; dx < w; dx += dotStep) {
+          ctx.beginPath(); ctx.arc(dx, dy, dotR, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      ctx.restore();
+
+      // 1e. 軌道消失點的黃色光暈, 強度跟音量走
+      const glow = ctx.createRadialGradient(this.vanishX, this.spawnY, 0, this.vanishX, this.spawnY, w * 0.42);
+      glow.addColorStop(0, `rgba(255, 214, 10, ${0.18 + pulse * 0.42})`);
+      glow.addColorStop(0.5, `rgba(255, 214, 10, ${0.05 + pulse * 0.12})`);
+      glow.addColorStop(1, 'rgba(255, 214, 10, 0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, w, this.hitY);
+
       // 2. 畫整個梯形軌道區的背景
       const topL = this.perspLaneXAt(0, this.spawnY).xL;
       const topR = this.perspLaneXAt(CONFIG.lanes - 1, this.spawnY).xR;
       const botL = this.perspLaneXAt(0, this.hitY).xL;
       const botR = this.perspLaneXAt(CONFIG.lanes - 1, this.hitY).xR;
-      // 軌道區背景 (用多段沿曲線勾勒)
+      // 軌道底板 = 一張貼在黑紙上的深灰紙片: 先畫黃色硬影 (偏移 6px), 再畫紙片 + 白邊
       const TRACK_SEG = 20;
-      ctx.fillStyle = 'rgba(255, 214, 10, 0.05)';
-      ctx.beginPath();
-      // 上邊
-      ctx.moveTo(topL, this.spawnY);
-      ctx.lineTo(topR, this.spawnY);
-      // 右邊曲線 (從上往下)
-      for (let s = 1; s <= TRACK_SEG; s++) {
-        const t = s / TRACK_SEG;
-        const y = this.spawnY + (this.hitY - this.spawnY) * t;
-        const x = this.perspLaneXAt(CONFIG.lanes - 1, y).xR;
-        ctx.lineTo(x, y);
-      }
-      // 下邊
-      ctx.lineTo(botL, this.hitY);
-      // 左邊曲線 (從下往上)
-      for (let s = TRACK_SEG - 1; s >= 0; s--) {
-        const t = s / TRACK_SEG;
-        const y = this.spawnY + (this.hitY - this.spawnY) * t;
-        const x = this.perspLaneXAt(0, y).xL;
-        ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.fill();
+      const trackPath = (ox, oy) => {
+        ctx.beginPath();
+        ctx.moveTo(topL + ox, this.spawnY + oy);
+        ctx.lineTo(topR + ox, this.spawnY + oy);
+        for (let s = 1; s <= TRACK_SEG; s++) {
+          const t = s / TRACK_SEG, y = this.spawnY + (this.hitY - this.spawnY) * t;
+          ctx.lineTo(this.perspLaneXAt(CONFIG.lanes - 1, y).xR + ox, y + oy);
+        }
+        ctx.lineTo(botL + ox, this.hitY + oy);
+        for (let s = TRACK_SEG - 1; s >= 0; s--) {
+          const t = s / TRACK_SEG, y = this.spawnY + (this.hitY - this.spawnY) * t;
+          ctx.lineTo(this.perspLaneXAt(0, y).xL + ox, y + oy);
+        }
+        ctx.closePath();
+      };
+      trackPath(6, 6); ctx.fillStyle = '#ffd60a'; ctx.fill();
+      trackPath(0, 0); ctx.fillStyle = '#0f0f14'; ctx.fill();
+      ctx.strokeStyle = '#f6f2ea'; ctx.lineWidth = 3; ctx.stroke();
+
+      // 左緣進度條: 歌曲播到哪, 黃線就長到哪
+      const prog = Math.max(0, Math.min(1, this.audio.heardTime() / Math.max(1, this.audio.duration)));
+      ctx.fillStyle = '#1c1c22'; ctx.fillRect(0, this.spawnY, 4, this.hitY - this.spawnY);
+      ctx.fillStyle = '#ffd60a'; ctx.fillRect(0, this.hitY - (this.hitY - this.spawnY) * prog, 4, (this.hitY - this.spawnY) * prog);
 
       // 2b. 軌道左右外緣發光光暈 (沿曲線)
       ctx.save();
@@ -2754,33 +2778,20 @@
       const hitFlash = Math.max(this.laneFlash[0] || 0, this.laneFlash[1] || 0,
                                  this.laneFlash[2] || 0, this.laneFlash[3] || 0);
       ctx.save();
-      // 外層: 粗黃光暈
-      ctx.shadowBlur = 40 + hitFlash * 40;
-      ctx.shadowColor = '#ffd60a';
-      ctx.strokeStyle = '#ffd60a';
-      ctx.lineWidth = 6 + hitFlash * 5;
-      ctx.beginPath();
-      ctx.moveTo(botL - 10, this.hitY);
-      ctx.lineTo(botR + 10, this.hitY);
-      ctx.stroke();
-      // 中層: 黃白色發光
-      ctx.shadowBlur = 16 + hitFlash * 22;
-      ctx.shadowColor = '#ffffff';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
-      ctx.lineWidth = 3 + hitFlash * 2;
-      ctx.beginPath();
-      ctx.moveTo(botL - 5, this.hitY);
-      ctx.lineTo(botR + 5, this.hitY);
-      ctx.stroke();
-      // 內芯: 純白細線 (光柱中軸)
-      ctx.shadowBlur = hitFlash > 0.3 ? 28 : 6;
-      ctx.shadowColor = '#ffffff';
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.95 + hitFlash * 0.05})`;
-      ctx.lineWidth = 1.5 + hitFlash * 2;
-      ctx.beginPath();
-      ctx.moveTo(botL, this.hitY);
-      ctx.lineTo(botR, this.hitY);
-      ctx.stroke();
+      // 警示帶: 黃黑斜紋, 高 10px, 蓋在判定線上方
+      const tapeH = 10, tapeY = this.hitY - tapeH;
+      ctx.beginPath(); ctx.rect(botL - 12, tapeY, (botR - botL) + 24, tapeH); ctx.clip();
+      ctx.fillStyle = '#ffd60a'; ctx.fillRect(botL - 12, tapeY, (botR - botL) + 24, tapeH);
+      ctx.fillStyle = '#07070a';
+      for (let x = botL - 30; x < botR + 30; x += 18) {
+        ctx.beginPath(); ctx.moveTo(x, tapeY); ctx.lineTo(x + 8, tapeY); ctx.lineTo(x + 8 + tapeH, tapeY + tapeH); ctx.lineTo(x + tapeH, tapeY + tapeH); ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+      // 白色發光核心 (打到時變亮變粗)
+      ctx.save();
+      ctx.shadowBlur = 10 + hitFlash * 28; ctx.shadowColor = '#ffffff';
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.92 + hitFlash * 0.08})`;
+      ctx.fillRect(botL - 12, this.hitY, (botR - botL) + 24, 3 + hitFlash * 2);
       ctx.restore();
 
       // 6. 按鍵框 + 字母 (按透視繼續往下擴大: 梯形, 下寬上窄相對於判定線)
@@ -2806,24 +2817,29 @@
         const xRBot = clampX(this.vanishX + (lineXR * fullW - this.vanishX) * scaleBot);
 
         const pressed = this.pressedLanes[i];
-        ctx.strokeStyle = pressed ? '#f6f2ea' : 'rgba(246, 242, 234, 0.35)';
-        ctx.lineWidth = pressed ? 2 : 1;
-
-        // 梯形按鍵框
-        ctx.beginPath();
-        ctx.moveTo(xLTop + 4, keyTop);
-        ctx.lineTo(xRTop - 4, keyTop);
-        ctx.lineTo(xRBot - 4, keyBot);
-        ctx.lineTo(xLBot + 4, keyBot);
-        ctx.closePath();
-        ctx.stroke();
-
-        // 字母 (字級也跟著放大)
-        ctx.fillStyle = pressed ? '#f6f2ea' : 'rgba(246, 242, 234, 0.75)';
-        ctx.font = `bold ${Math.round(28 * scaleBot)}px Quicksand, sans-serif`;
-        ctx.textAlign = 'center';
+        // 紙片: 用按鍵格的中線寬度畫一張直立的卡, 交錯傾斜 ±1.5°; 按下 → 黃底黑字 + 壓扁下沉
+        const cardW = Math.min(xRBot - xLBot, xRTop - xLTop) - 14;
+        const cardH = keyBot - keyTop - 6;
+        const cx = ((xLTop + xRTop) / 2 + (xLBot + xRBot) / 2) / 2;
         const cy = (keyTop + keyBot) / 2;
-        ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), (xLBot + xRBot) / 2, cy + 10);
+        ctx.save();
+        ctx.translate(cx, cy + (pressed ? 5 : 0));
+        ctx.rotate((i % 2 === 0 ? -1.5 : 1.5) * Math.PI / 180);
+        if (pressed) ctx.scale(1, 0.93);
+        // 硬影
+        ctx.fillStyle = pressed ? '#07070a' : '#ffd60a';
+        ctx.fillRect(-cardW / 2 + 6, -cardH / 2 + 6, cardW, cardH);
+        // 卡片
+        ctx.fillStyle = pressed ? '#ffd60a' : '#1c1c22';
+        ctx.fillRect(-cardW / 2, -cardH / 2, cardW, cardH);
+        ctx.strokeStyle = pressed ? '#07070a' : '#f6f2ea'; ctx.lineWidth = 2;
+        ctx.strokeRect(-cardW / 2, -cardH / 2, cardW, cardH);
+        // 字母
+        ctx.fillStyle = pressed ? '#07070a' : '#f6f2ea';
+        ctx.font = `${Math.round(30 * scaleBot)}px Anton, Impact, 'Arial Narrow Bold', sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), 0, 4);
+        ctx.restore();
       }
       const t = this.visualTime();
 
@@ -2987,21 +3003,31 @@
         ctx.save();
         ctx.textAlign = 'center';
 
+        // 歌名紙片: 從左滑進 (0~0.35s), 停住, 最後 0.5s 滑出右邊
+        {
+          const slideIn = Math.min(1, elapsed / 0.35), slideOut = Math.max(0, (0.5 - remaining) / 0.5);
+          const ease = (v) => 1 - Math.pow(1 - v, 3);
+          const ox = (-1 + ease(slideIn)) * w * 1.2 + ease(slideOut) * w * 1.2;
+          const label = `${this.currentSong ? this.currentSong.title : ''} · ${this.currentDifficulty.toUpperCase()}`;
+          ctx.save();
+          ctx.translate(w / 2 + ox, h * 0.17); ctx.rotate(-3 * Math.PI / 180);
+          ctx.font = `15px Anton, Impact, 'Arial Narrow Bold', sans-serif`; ctx.textBaseline = 'middle';
+          const pw = Math.min(w - 40, ctx.measureText(label).width + 36), ph = 32;
+          ctx.fillStyle = '#07070a'; ctx.fillRect(-pw / 2 + 6, -ph / 2 + 6, pw, ph);
+          ctx.fillStyle = '#f6f2ea'; ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+          ctx.fillStyle = '#07070a'; ctx.fillText(label, 0, 1, pw - 20);
+          ctx.restore();
+        }
         if (remaining > 3) {
-          // 早期：GET READY 訊息
+          // GET READY: 黃色紙條
           const opacity = Math.min(1, (CONFIG.introDelay - remaining) / 0.6);
           ctx.globalAlpha = opacity;
-          ctx.fillStyle = '#f6f2ea';
-          ctx.shadowBlur = 24;
-          ctx.shadowColor = '#f6f2ea';
-          ctx.font = 'bold 32px Quicksand, sans-serif';
-          ctx.fillText('GET READY', w / 2, h * 0.42);
-
-          ctx.font = '11px JetBrains Mono, monospace';
-          ctx.globalAlpha = opacity * 0.7;
-          ctx.shadowBlur = 0;
-          ctx.fillStyle = '#8a8781';
-          ctx.fillText('感受節奏', w / 2, h * 0.46);
+          ctx.translate(w / 2, h * 0.44); ctx.rotate(-2 * Math.PI / 180);
+          ctx.font = `30px Anton, Impact, 'Arial Narrow Bold', sans-serif`; ctx.textBaseline = 'middle';
+          const pw = ctx.measureText('GET READY').width + 40, ph = 46;
+          ctx.fillStyle = '#07070a'; ctx.fillRect(-pw / 2 + 6, -ph / 2 + 6, pw, ph);
+          ctx.fillStyle = '#ffd60a'; ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+          ctx.fillStyle = '#07070a'; ctx.fillText('GET READY', 0, 2);
         } else if (remaining > 0) {
           // 倒數 3-2-1：每秒一個大數字，會放大淡出
           const num = Math.max(1, Math.ceil(remaining));
@@ -3010,11 +3036,12 @@
           const alpha = 1 - fracInSec * 0.85;
 
           ctx.globalAlpha = alpha;
-          ctx.fillStyle = num === 1 ? '#ffd60a' : '#f6f2ea';
-          ctx.shadowBlur = 40;
-          ctx.shadowColor = ctx.fillStyle;
-          ctx.font = `bold ${Math.floor(110 * scale)}px Quicksand, sans-serif`;
-          ctx.fillText(String(num), w / 2, h * 0.5);
+          ctx.font = `${Math.floor(120 * scale)}px Anton, Impact, 'Arial Narrow Bold', sans-serif`;
+          ctx.textBaseline = 'middle';
+          // 套色沒對準的疊印: 黃影 → 白字 (黑描邊)
+          ctx.fillStyle = '#ffd60a'; ctx.fillText(String(num), w / 2 + 7 * scale, h * 0.48 + 6 * scale);
+          ctx.lineWidth = 4; ctx.strokeStyle = '#07070a'; ctx.strokeText(String(num), w / 2, h * 0.48);
+          ctx.fillStyle = '#f6f2ea'; ctx.fillText(String(num), w / 2, h * 0.48);
         }
         ctx.restore();
       }
@@ -3142,13 +3169,9 @@
     }
     /** Cytus 風命中特效: 1 個內圈 + 1 個外圈 + 6 個小點 */
     spawnHitEffect(x, y, color) {
-      // 內圈 (亮色, 較窄): 快擴散
-      this.particles.push(new RingParticle(x, y, '#ffffff', 38, 1.5));
-      // 外圈 (主題色, 較粗): 慢擴散
-      this.particles.push(new RingParticle(x, y, color, 64, 2));
-      // 6 個小點往上飄
-      for (let i = 0; i < 6; i++) {
-        this.particles.push(new DotParticle(x, y, color));
+      this.particles.push(new FlashParticle(x, y));
+      for (let i = 0; i < 9; i++) {
+        this.particles.push(new ShardParticle(x, y, i % 3 === 0 ? '#f6f2ea' : color));
       }
     }
 
@@ -3194,6 +3217,10 @@
       document.querySelector('#score-display .hud-value').textContent =
         String(Math.floor(this.score)).padStart(6, '0');
       const c = document.getElementById('combo-display');
+      if (this._lastCombo !== this.combo) {
+        if (this.combo > (this._lastCombo || 0)) { c.classList.add('pop'); clearTimeout(this._popT); this._popT = setTimeout(() => c.classList.remove('pop'), 70); }
+        this._lastCombo = this.combo;
+      }
       c.querySelector('.hud-value').textContent = this.combo;
       c.classList.toggle('zero', this.combo === 0);
       document.querySelector('#accuracy-display .hud-value').textContent =
