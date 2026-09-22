@@ -167,6 +167,7 @@ def generate_charts(beat_times, onset_times, str_norm, cent_norm,
 # 所以改成: 對高解析 (hop 128 ≈ 5.8ms) 的 onset 包絡做 0.01 BPM 解析度的等距格子擬合,
 # 同時搜尋相位; 擬合結果離整數 BPM 很近時 (DAW 做的歌幾乎都是整數) 就吸附到整數。
 FIT_HOP = 128
+LIBROSA_ONSET_LAG = 0.031   # 秒
 
 
 def _norm_env(env, sr, hop):
@@ -243,10 +244,15 @@ def analyze_audio(path, fixed_bpm=None, first_beat=None):
     beat_dur = 60.0 / tempo
     beat_times = phase + np.arange(0, int((duration - phase) / beat_dur) + 1) * beat_dur
     beat_times = beat_times[beat_times < duration]
+    # librosa.onset.onset_strength (center=True) 的包絡峰值比真正的 transient 系統性晚約 30ms
+    # (用瀏覽器解碼的 PCM 做互相關實測: 新歌 +31ms, 舊譜 +35~45ms), 整格提前補償
+    beat_times = beat_times - LIBROSA_ONSET_LAG
+    beat_times = beat_times[beat_times >= 0]
     print(f"  beats: {len(beat_times)}")
 
     onset_frames = librosa.onset.onset_detect(y=y, sr=sr, units='frames', backtrack=True)
     onset_times = librosa.frames_to_time(onset_frames, sr=sr)
+    # backtrack 已經把 onset 往前推到能量谷, 不再另外減 lag (實測兩者相抵後 onset 音符略早 ~10ms, 可接受)
     onset_env = librosa.onset.onset_strength(y=y, sr=sr)
     onset_strengths = np.array([onset_env[f] for f in onset_frames])
 
