@@ -1886,7 +1886,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.19.0';   // 改版時更新
+  const VERSION = 'v0.19.1';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2162,6 +2162,17 @@
     }
 
     async play(url, opts = {}) {
+      this.pendingUrl = url;   // 從呼叫到真的出聲之間 (resume / fetch / decode) 都算「準備中」
+      try {
+        return await this._play(url, opts);
+      } finally {
+        if (this.pendingUrl === url) this.pendingUrl = null;
+      }
+    }
+    /** 已在播或正在準備播這首 */
+    isActive(url) { return this.isPlaying(url) || this.pendingUrl === url; }
+
+    async _play(url, opts = {}) {
       await this.engine.init();
       const ctx = this.engine.ctx;
       if (ctx.state === 'suspended') await ctx.resume();
@@ -3575,8 +3586,16 @@
         this.songs = [];
       }
       this.renderSongList();
-      // 首頁背景音樂 (瀏覽器可能要等第一次互動才准播, play() 內的 ctx.resume 會等到那時)
+      // 首頁背景音樂: 先預載 bytes; 真正出聲要等使用者第一次觸碰 (瀏覽器 autoplay 政策),
+      // 所以首頁任何 pointerdown / touchstart / keydown 都在手勢內再呼叫一次 playHomeMusic
+      const homeUrl = this.homeMusicUrl();
+      if (homeUrl) this.bgMusic.prefetch(homeUrl);
       this.playHomeMusic();
+      const homeEl = document.getElementById('home-screen');
+      const kick = () => { if (!homeEl.classList.contains('hidden')) this.playHomeMusic(); };
+      homeEl.addEventListener('pointerdown', kick, { capture: true });
+      homeEl.addEventListener('touchstart', kick, { capture: true, passive: true });
+      document.addEventListener('keydown', kick);
     }
 
     /** 首頁背景音樂: CONFIG.homeMusic 指定的歌, 從 offset 秒淡入, 循環 */
@@ -3586,9 +3605,13 @@
       const song = this.songs.find(s => s.id === cfg.id);
       if (!song) return;
       const url = `songs/${song.id}/${song.audio}`;
-      if (this.bgMusic.isPlaying(url)) return;           // play() 對同一首是 toggle, 別把它關掉
+      if (this.bgMusic.isActive(url)) return;            // 在播或準備中 → 別重複 (play 對同一首是 toggle)
       this.lastPlayedSong = null;
       this.bgMusic.play(url, { offset: cfg.offset, fadeIn: cfg.fadeIn }).catch(() => {});
+    }
+    homeMusicUrl() {
+      const cfg = CONFIG.homeMusic; const song = cfg && this.songs.find(s => s.id === cfg.id);
+      return song ? `songs/${song.id}/${song.audio}` : null;
     }
 
     applyUserSettings() {
@@ -4081,7 +4104,10 @@
           // 一段時間後才解鎖 (給滾動 + snap 完成)
           setTimeout(() => { this._suppressPickerAutoPlay = false; }, 600);
         });
-        this.toggleBgMusic(defaultSong);
+        // 手機上第一個觸控通常就是 START: 首頁音樂才剛因為這個手勢起播,
+        // 這時若馬上換成歌單的歌就永遠聽不到它 → 讓它繼續播, 直到使用者滑動選歌
+        const homeUrl = this.homeMusicUrl();
+        if (!(homeUrl && this.bgMusic.isActive(homeUrl))) this.toggleBgMusic(defaultSong);
 
         // 背景慢速預載全部歌曲 (5 秒後開始, 不影響當下播放)
         if (!this._bgPrefetchStarted) {
