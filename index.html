@@ -12,10 +12,10 @@
   <!-- iOS 桌面 app 設定 -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="NEON BEAT" />
-  <meta name="theme-color" content="#050810" />
+  <meta name="apple-mobile-web-app-title" content="DOWN BEAT" />
+  <meta name="theme-color" content="#07070a" />
 
-  <title>NEON BEAT</title>
+  <title>DOWN BEAT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Anton&display=swap" rel="stylesheet" />
@@ -26,67 +26,78 @@
        馬卡龍主題 - 設計系統 (深淺切換)
        ============================================ */
     :root {
-      /* 預設淺色主題 (奶油杏黃) */
-      --bg:           #f5f5e8;     /* 主背景 (奶油黃) */
-      --surface:      #ffffff;     /* 卡片背景 */
-      --surface-2:    #fef0d4;     /* 較深的卡片 */
+      /* DOWN BEAT 設計系統: 黃 / 黑 / 白 三色, 硬陰影, 零圓角
+         預設「黑」主題: 黑底 + 黃強調; 「黃」主題 (data-theme=light) 反過來 */
+      --ink:          #07070a;     /* 黑 */
+      --paper:        #f6f2ea;     /* 白 (帶一點紙感) */
+      --hi:           #ffd60a;     /* 黃 */
+      --hi-dark:      #b8960a;     /* 深黃 (黃底上的次要文字 / 陰影) */
 
-      --text:         #5a3818;     /* 主文字 (深咖啡) */
-      --text-soft:    #8a5a30;     /* 輔助文字 */
-      --text-dim:     #c4a37c;     /* 暗淡文字 */
+      --bg:           var(--ink);
+      --surface:      #111116;
+      --surface-2:    #1c1c22;
 
-      --primary:      #fff260;     /* 主色 (桃粉) */
-      --primary-dark: #1a2a00;     /* 桃粉文字色 */
-      --secondary:    #ffea00;     /* 副色 (杏黃) */
-      --secondary-dark:#8a4a1a;    /* 杏黃文字色 */
+      --text:         var(--paper);
+      --text-soft:    #cfc9bb;
+      --text-dim:     #77746c;
 
-      --accent-pink:  #ffc8dd;     /* 粉 */
-      --accent-blue:  #9eff5a;     /* 藍 */
-      --accent-green: #d8f3dc;     /* 綠 */
-      --accent-coral: #ffadad;     /* 珊瑚 */
+      --primary:      var(--hi);       /* 主按鈕底色 */
+      --primary-dark: var(--ink);      /* 主按鈕文字 */
+      --secondary:    var(--paper);
+      --secondary-dark: var(--hi);     /* 標題色 */
 
-      --pink-text:    #8a3a5b;
-      --blue-text:    #2c5d8a;
-      --green-text:   #2d6a4f;
-      --coral-text:   #8a2828;
+      --accent-pink:  var(--hi);
+      --accent-blue:  var(--paper);
+      --accent-green: var(--hi-dark);
+      --accent-coral: var(--paper);
 
-      --shadow:       0 4px 16px rgba(140, 100, 60, 0.08);
-      --shadow-soft:  0 2px 8px rgba(140, 100, 60, 0.06);
+      --pink-text:    var(--ink);
+      --blue-text:    var(--ink);
+      --green-text:   var(--ink);
+      --coral-text:   var(--ink);
 
-      --radius-sm:    8px;
-      --radius-md:    14px;
-      --radius-lg:    18px;
-      --radius-xl:    24px;
-      --radius-pill:  999px;
+      --hard:         var(--hi);       /* 硬陰影顏色: 黑底用黃 */
+      --line:         var(--paper);    /* 描邊 */
+      --shadow:       5px 5px 0 var(--hard);
+      --shadow-soft:  3px 3px 0 var(--hard);
+
+      --radius-sm:    0;
+      --radius-md:    0;
+      --radius-lg:    0;
+      --radius-xl:    0;
+      --radius-pill:  0;
+      --display:      'Anton', 'Impact', 'Arial Narrow Bold', 'Noto Sans TC', sans-serif;
     }
 
-    [data-theme="dark"] {
-      --bg:           #0d1100;     /* 主背景 (深紫) */
-      --surface:      #1a2200;     /* 卡片背景 */
-      --surface-2:    #4a3f5e;
+    [data-theme="light"] {
+      /* 黃主題: 黃底黑字, 陰影用黑 */
+      --bg:           var(--hi);
+      --surface:      var(--paper);
+      --surface-2:    #ffe766;
 
-      --text:         #ffe4d6;     /* 主文字 (奶油色) */
-      --text-soft:    #d4b8e0;
-      --text-dim:     #a797c1;
+      --text:         var(--ink);
+      --text-soft:    #2a2a2a;
+      --text-dim:     #6b6210;
 
-      --primary:      #d4729b;
-      --primary-dark: #0d1100;
-      --secondary:    #6b5a4a;
-      --secondary-dark:#ffea00;
+      --primary:      var(--ink);
+      --primary-dark: var(--hi);
+      --secondary:    var(--paper);
+      --secondary-dark: var(--ink);
 
-      --accent-pink:  #d4729b;
-      --accent-blue:  #7eb6e0;
-      --accent-green: #95c4a3;
-      --accent-coral: #e08aa3;
+      --accent-pink:  var(--ink);
+      --accent-blue:  var(--ink);
+      --accent-green: var(--hi-dark);
+      --accent-coral: var(--ink);
 
-      --pink-text:    #0d1100;
-      --blue-text:    #0d1100;
-      --green-text:   #0d1100;
-      --coral-text:   #0d1100;
+      --pink-text:    var(--hi);
+      --blue-text:    var(--hi);
+      --green-text:   var(--hi);
+      --coral-text:   var(--hi);
 
-      --shadow:       0 4px 20px rgba(0, 0, 0, 0.35);
-      --shadow-soft:  0 2px 10px rgba(0, 0, 0, 0.25);
+      --hard:         var(--ink);
+      --line:         var(--ink);
     }
+    [data-theme="dark"] { /* 保留這個 selector 給舊規則用, 值跟 :root 相同 */ }
 
     html, body {
       width: 100%; height: 100%;
@@ -167,7 +178,7 @@
     #score-display .hud-value {
       color: var(--primary-dark);
     }
-    [data-theme="dark"] #score-display .hud-value {
+    [data-theme="legacy-dark"] #score-display .hud-value {
       color: var(--accent-pink);
     }
     #combo-display { text-align: center; flex: 1; transition: transform 0.08s; }
@@ -177,7 +188,7 @@
       color: var(--primary);
       line-height: 1;
     }
-    [data-theme="dark"] #combo-display .hud-value {
+    [data-theme="legacy-dark"] #combo-display .hud-value {
       color: var(--accent-pink);
     }
     #combo-display.zero .hud-value { opacity: 0; }
@@ -434,7 +445,7 @@
       color: var(--secondary-dark);
       letter-spacing: 0.5px;
     }
-    [data-theme="dark"] .menu-title { color: var(--secondary-dark); }
+    [data-theme="legacy-dark"] .menu-title { color: var(--secondary-dark); }
     .menu-tagline {
       font-size: 11px;
       color: var(--text-dim);
@@ -565,7 +576,7 @@
       padding-left: 100px;
       min-height: 88px;
     }
-    [data-theme="dark"] .song-card.centered {
+    [data-theme="legacy-dark"] .song-card.centered {
       background: linear-gradient(135deg, var(--surface) 0%, color-mix(in srgb, var(--accent-pink) 22%, var(--surface)) 100%);
       box-shadow:
         0 0 0 2px var(--accent-pink),
@@ -584,7 +595,7 @@
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2), 0 0 0 4px var(--surface);
       z-index: 4;
     }
-    [data-theme="dark"] .song-card.centered .cover {
+    [data-theme="legacy-dark"] .song-card.centered .cover {
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 0 4px var(--surface);
     }
     /* 中央 CD 探出時, 中央洞要相應放大 */
@@ -730,7 +741,7 @@
       font-family: inherit;
       white-space: nowrap;
     }
-    [data-theme="dark"] .play-btn {
+    [data-theme="legacy-dark"] .play-btn {
       color: var(--primary-dark);
     }
     .play-btn:active { transform: scale(0.94); filter: brightness(0.95); }
@@ -776,7 +787,7 @@
       opacity: 0.8;
       transform: scale(1.15);
     }
-    [data-theme="dark"] #detail-screen.has-bg-image::before {
+    [data-theme="legacy-dark"] #detail-screen.has-bg-image::before {
       opacity: 0.7;
     }
     /* 沒縮圖時用馬卡龍色漸層當背景 */
@@ -784,10 +795,10 @@
     #detail-screen.bg-color-blue::before  { background: radial-gradient(ellipse at center, var(--accent-blue) 0%, transparent 60%); opacity: 0.8; }
     #detail-screen.bg-color-green::before { background: radial-gradient(ellipse at center, var(--accent-green) 0%, transparent 60%); opacity: 0.8; }
     #detail-screen.bg-color-coral::before { background: radial-gradient(ellipse at center, var(--accent-coral) 0%, transparent 60%); opacity: 0.8; }
-    [data-theme="dark"] #detail-screen.bg-color-pink::before  { opacity: 0.65; }
-    [data-theme="dark"] #detail-screen.bg-color-blue::before  { opacity: 0.65; }
-    [data-theme="dark"] #detail-screen.bg-color-green::before { opacity: 0.65; }
-    [data-theme="dark"] #detail-screen.bg-color-coral::before { opacity: 0.65; }
+    [data-theme="legacy-dark"] #detail-screen.bg-color-pink::before  { opacity: 0.65; }
+    [data-theme="legacy-dark"] #detail-screen.bg-color-blue::before  { opacity: 0.65; }
+    [data-theme="legacy-dark"] #detail-screen.bg-color-green::before { opacity: 0.65; }
+    [data-theme="legacy-dark"] #detail-screen.bg-color-coral::before { opacity: 0.65; }
 
     .detail-cover {
       width: 200px; height: 200px;
@@ -900,10 +911,10 @@
     .diff-btn[data-diff="normal"] .diff-name { color: var(--blue-text); }
     .diff-btn[data-diff="hard"]   .diff-name { color: var(--pink-text); }
     .diff-btn[data-diff="insane"] .diff-name { color: var(--coral-text); }
-    [data-theme="dark"] .diff-btn[data-diff="easy"]   .diff-name { color: var(--accent-green); }
-    [data-theme="dark"] .diff-btn[data-diff="normal"] .diff-name { color: var(--accent-blue); }
-    [data-theme="dark"] .diff-btn[data-diff="hard"]   .diff-name { color: var(--accent-pink); }
-    [data-theme="dark"] .diff-btn[data-diff="insane"] .diff-name { color: var(--accent-coral); }
+    [data-theme="legacy-dark"] .diff-btn[data-diff="easy"]   .diff-name { color: var(--accent-green); }
+    [data-theme="legacy-dark"] .diff-btn[data-diff="normal"] .diff-name { color: var(--accent-blue); }
+    [data-theme="legacy-dark"] .diff-btn[data-diff="hard"]   .diff-name { color: var(--accent-pink); }
+    [data-theme="legacy-dark"] .diff-btn[data-diff="insane"] .diff-name { color: var(--accent-coral); }
     .diff-btn.selected[data-diff="easy"]   { border-color: var(--accent-green); }
     .diff-btn.selected[data-diff="normal"] { border-color: var(--accent-blue); }
     .diff-btn.selected[data-diff="hard"]   { border-color: var(--accent-pink); }
@@ -976,9 +987,9 @@
       line-height: 1;
       margin-bottom: 4px;
     }
-    [data-theme="dark"] .results-grade { color: var(--accent-pink); }
+    [data-theme="legacy-dark"] .results-grade { color: var(--accent-pink); }
     .results-grade.s, .results-grade.S { color: var(--secondary-dark); }
-    [data-theme="dark"] .results-grade.s, [data-theme="dark"] .results-grade.S {
+    [data-theme="legacy-dark"] .results-grade.s, [data-theme="legacy-dark"] .results-grade.S {
       color: #ffea00;
     }
     .results-perfect-badge {
@@ -1009,7 +1020,7 @@
       border-radius: var(--radius-pill);
       margin-bottom: 14px;
     }
-    [data-theme="dark"] .new-record { color: var(--primary-dark); }
+    [data-theme="legacy-dark"] .new-record { color: var(--primary-dark); }
     .new-record.hidden { display: none; }
     .results-max-combo {
       display: flex; align-items: baseline; justify-content: center;
@@ -1040,7 +1051,7 @@
       font-weight: 700;
       color: var(--primary);
     }
-    [data-theme="dark"] .mc-value { color: var(--accent-pink); }
+    [data-theme="legacy-dark"] .mc-value { color: var(--accent-pink); }
     .results-stats {
       display: grid; grid-template-columns: repeat(4, 1fr);
       gap: 8px;
@@ -1068,10 +1079,10 @@
     .stat.good    .stat-value { color: var(--green-text); }
     .stat.okay    .stat-value { color: var(--blue-text); }
     .stat.miss    .stat-value { color: var(--coral-text); }
-    [data-theme="dark"] .stat.perfect .stat-value { color: #ffea00; }
-    [data-theme="dark"] .stat.good    .stat-value { color: var(--accent-green); }
-    [data-theme="dark"] .stat.okay    .stat-value { color: var(--accent-blue); }
-    [data-theme="dark"] .stat.miss    .stat-value { color: var(--accent-coral); }
+    [data-theme="legacy-dark"] .stat.perfect .stat-value { color: #ffea00; }
+    [data-theme="legacy-dark"] .stat.good    .stat-value { color: var(--accent-green); }
+    [data-theme="legacy-dark"] .stat.okay    .stat-value { color: var(--accent-blue); }
+    [data-theme="legacy-dark"] .stat.miss    .stat-value { color: var(--accent-coral); }
 
     /* YouTube CTA 卡片 - 結算頁的轉化點 */
     .results-cta {
@@ -1245,7 +1256,7 @@
       background: var(--accent-coral);
       color: var(--coral-text);
     }
-    [data-theme="dark"] .confirm-btn.confirm { color: var(--primary-dark); }
+    [data-theme="legacy-dark"] .confirm-btn.confirm { color: var(--primary-dark); }
 
     /* ============================================
        空狀態
@@ -1324,7 +1335,7 @@
       background: var(--primary);
       color: var(--primary-dark);
     }
-    [data-theme="dark"] .settings-tab.selected { color: var(--primary-dark); }
+    [data-theme="legacy-dark"] .settings-tab.selected { color: var(--primary-dark); }
 
     .setting-row {
       margin-bottom: 14px;
@@ -1371,7 +1382,7 @@
       font-weight: 700;
       color: var(--secondary-dark);
     }
-    [data-theme="dark"] .setting-value { color: var(--accent-pink); }
+    [data-theme="legacy-dark"] .setting-value { color: var(--accent-pink); }
 
     /* 校正畫面要壓在設定頁 (同為 .overlay, z-index 100) 之上 */
     .calib-screen { z-index: 120; align-items: center; justify-content: center; text-align: center; user-select: none; -webkit-user-select: none; }
@@ -1379,7 +1390,7 @@
     .calib-title { font-size: 22px; font-weight: 700; color: var(--secondary-dark); letter-spacing: 1px; }
     .calib-desc { font-size: 13px; color: var(--text-soft); line-height: 1.6; }
     .calib-count { font-size: 64px; font-weight: 700; color: var(--primary-dark); line-height: 1; min-height: 70px; font-variant-numeric: tabular-nums; }
-    [data-theme="dark"] .calib-count { color: var(--accent-pink); }
+    [data-theme="legacy-dark"] .calib-count { color: var(--accent-pink); }
     .calib-count.flash { transform: scale(1.12); }
     .calib-hint { font-size: 12px; color: var(--text-dim); min-height: 18px; }
     .calib-result { font-size: 14px; color: var(--text); line-height: 1.7; background: var(--surface); border-radius: var(--radius-md); padding: 12px 16px; }
@@ -1417,8 +1428,190 @@
       font-family: inherit;
       transition: transform 0.12s;
     }
-    [data-theme="dark"] .settings-reset-btn { color: var(--accent-coral); }
+    [data-theme="legacy-dark"] .settings-reset-btn { color: var(--accent-coral); }
     .settings-reset-btn:active { transform: scale(0.97); }
+
+    /* ============================================
+       DOWN BEAT 剪紙風 — 統一覆寫所有畫面
+       ============================================ */
+    .overlay { background: var(--bg); }
+    /* 每個 overlay 角落一片半調網點 + 一條斜線, 跟首頁同語彙但更收斂 */
+    .overlay:not(.home-screen)::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+      background-image: radial-gradient(circle, color-mix(in srgb, var(--text) 40%, transparent) 1.2px, transparent 1.5px);
+      background-size: 9px 9px;
+      clip-path: polygon(62% 0, 100% 0, 100% 30%, 78% 100%, 44% 100%);
+      opacity: 0.16;
+    }
+    .overlay:not(.home-screen)::after {
+      content: ''; position: absolute; left: -10%; width: 120%; height: 5px; top: 6%;
+      background: var(--hi); transform: rotate(-5deg); pointer-events: none; z-index: 0; opacity: 0.9;
+    }
+    [data-theme="light"] .overlay:not(.home-screen)::after { background: var(--ink); }
+    .overlay > * { position: relative; z-index: 1; }
+
+    /* 標題類全部換濃縮重黑體 + 大寫 */
+    .menu-title, .settings-title, .calib-title, .confirm-title, .detail-name,
+    .results-grade, .results-score, .difficulty-label, .results-title, .stat-label, .mc-label,
+    .diff-btn, .start-button, .play-btn, .btn-primary, .btn-secondary, .confirm-btn,
+    .settings-tab, .settings-calib-btn, .settings-reset-btn, .results-timing-btn, .detail-back,
+    .new-record, .results-perfect-badge, .menu-tagline, .hud-label, .game-exit-btn, .calib-actions button {
+      font-family: var(--display);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 400;
+    }
+    .menu-title { font-size: 30px; transform: rotate(-2deg); display: inline-block;
+      background: var(--hi); color: var(--ink); padding: 2px 14px 0; box-shadow: 4px 4px 0 var(--line); }
+    [data-theme="light"] .menu-title { background: var(--ink); color: var(--hi); }
+    .menu-tagline { letter-spacing: 0.3em; margin-top: 8px; font-size: 10px; }
+    .settings-title, .calib-title { font-size: 26px; letter-spacing: 0.15em; }
+
+    /* 圓形 icon 鈕 → 斜切方塊 */
+    .menu-icon-btn, .theme-toggle, .game-exit-btn {
+      border-radius: 0 !important;
+      background: var(--paper); color: var(--ink);
+      box-shadow: 3px 3px 0 var(--hard);
+      transform: rotate(-4deg);
+    }
+    .menu-icon-btn:active, .theme-toggle:active { transform: rotate(-4deg) scale(0.92); }
+    .game-exit-btn { transform: rotate(6deg); }
+
+    /* 歌曲卡: 白紙片, 交錯傾斜; 置中那張變黃 */
+    .song-card {
+      border-radius: 0 !important;
+      background: var(--surface);
+      border: 2px solid var(--line);
+      box-shadow: 4px 4px 0 var(--hard);
+      transform: rotate(-1deg) scale(0.96);
+    }
+    .song-card:nth-child(even) { transform: rotate(1deg) scale(0.96); }
+    .song-card.centered {
+      background: var(--hi); color: var(--ink);
+      border-color: var(--ink);
+      box-shadow: 6px 6px 0 var(--paper);
+      transform: rotate(-1.5deg) scale(1.02);
+    }
+    [data-theme="light"] .song-card.centered { box-shadow: 6px 6px 0 var(--ink); background: var(--ink); color: var(--hi); border-color: var(--hi); }
+    .song-card.centered .song-name, .song-card.centered .song-meta { color: inherit; }
+    .song-card .song-name { font-family: var(--display); letter-spacing: 0.04em; font-weight: 400; font-size: 18px; }
+    .song-card .play-btn {
+      border-radius: 0 !important;
+      background: var(--ink); color: var(--hi);
+      clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+      padding-left: 16px; padding-right: 16px;
+    }
+    .song-card.centered .play-btn { background: var(--ink); color: var(--hi); }
+    /* 黃主題: 一般卡片是米色, 按鈕用黑底黃字; 置中卡片是黑色, 按鈕反過來 */
+    [data-theme="light"] .song-card .play-btn { background: var(--ink); color: var(--hi); }
+    [data-theme="light"] .song-card.centered .play-btn { background: var(--hi); color: var(--ink); }
+    .song-card .cover { border-radius: 0 !important; border: 2px solid var(--line); transform: rotate(-4deg); }
+    .song-card .cover.has-thumb { border-radius: 0 !important; }
+
+    /* 難度頁 */
+    .detail-cover { border-radius: 0 !important; border: 3px solid var(--line); box-shadow: 8px 8px 0 var(--hard); transform: rotate(-3deg); }
+    .detail-name { font-size: 34px; letter-spacing: 0.04em; transform: rotate(-1deg); display: inline-block;
+      background: var(--paper); color: var(--ink); padding: 2px 16px 0; box-shadow: 5px 5px 0 var(--hard); }
+    .diff-btn {
+      border-radius: 0 !important; border: 2px solid var(--line);
+      background: var(--surface); color: var(--text);
+      box-shadow: 3px 3px 0 var(--hard);
+      font-size: 18px;
+    }
+    .diff-btn:nth-child(odd) { transform: rotate(-1.5deg); }
+    .diff-btn:nth-child(even) { transform: rotate(1.5deg); }
+    .diff-btn.selected { background: var(--hi); color: var(--ink); border-color: var(--ink); box-shadow: 4px 4px 0 var(--paper); }
+    [data-theme="light"] .diff-btn.selected { background: var(--ink); color: var(--hi); border-color: var(--hi); box-shadow: 4px 4px 0 var(--ink); }
+    .diff-btn .diff-meta { font-family: 'Quicksand', sans-serif; text-transform: none; letter-spacing: 0; }
+    /* 舊規則給每個難度不同色, 對到黃黑白系統後未選中的字會消失 → 統一 */
+    .diff-btn[data-diff] .diff-name { color: var(--text); font-family: var(--display); font-weight: 400; letter-spacing: 0.1em; }
+    .diff-btn.selected[data-diff] .diff-name { color: var(--ink); }
+    [data-theme="light"] .diff-btn.selected[data-diff] .diff-name { color: var(--hi); }
+    .diff-btn.selected[data-diff] { border-color: var(--ink); }
+    [data-theme="light"] .diff-btn.selected[data-diff] { border-color: var(--hi); }
+    .start-button {
+      border-radius: 0 !important; font-size: 30px; letter-spacing: 0.14em;
+      background: var(--hi); color: var(--ink);
+      clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%);
+      transform: rotate(-2deg);
+      box-shadow: none;
+      filter: drop-shadow(6px 6px 0 var(--paper));
+    }
+    [data-theme="light"] .start-button { filter: drop-shadow(6px 6px 0 var(--ink)); }
+    .start-button:disabled { filter: none; opacity: 0.4; }
+    .detail-calib-hint { border-radius: 0 !important; border-style: dashed; }
+    .key { border-radius: 0 !important; border: 2px solid var(--line); font-family: var(--display); box-shadow: 2px 2px 0 var(--hard); }
+
+    /* 結算頁: 大評級用套色未對準的疊印 */
+    .results-grade {
+      font-size: 150px; letter-spacing: 0;
+      color: var(--paper);
+      text-shadow: 6px 5px 0 var(--hi), 12px 10px 0 var(--ink);
+      -webkit-text-stroke: 2px var(--ink);
+      transform: rotate(-4deg);
+      font-style: italic;
+    }
+    .results-grade.s, .results-grade.S { color: var(--hi); text-shadow: 6px 5px 0 var(--paper), 12px 10px 0 var(--ink); }
+    [data-theme="light"] .results-grade { -webkit-text-stroke: 2px var(--ink); text-shadow: 6px 5px 0 var(--ink); color: var(--paper); }
+    .results-score { font-size: 46px; letter-spacing: 0.06em; }
+    .results-title { background: var(--surface); border: 2px solid var(--line); padding: 4px 12px; transform: rotate(-1deg); }
+    .new-record, .results-perfect-badge { border-radius: 0 !important; transform: rotate(-2deg); box-shadow: 3px 3px 0 var(--hard);
+      background: var(--hi); color: var(--ink); }
+    .results-perfect-badge.full-combo { background: var(--paper); color: var(--ink); }
+    .stat { border-radius: 0 !important; background: var(--surface); border: 2px solid var(--line); box-shadow: 3px 3px 0 var(--hard); }
+    .stat:nth-child(odd) { transform: rotate(-1.5deg); } .stat:nth-child(even) { transform: rotate(1.5deg); }
+    .stat-value { font-family: var(--display); font-size: 26px; }
+    .stat.perfect .stat-value { color: var(--hi); } .stat.good .stat-value, .stat.okay .stat-value { color: var(--paper); } .stat.miss .stat-value { color: var(--text-dim); }
+    [data-theme="light"] .stat.perfect .stat-value { color: var(--ink); } [data-theme="light"] .stat.good .stat-value, [data-theme="light"] .stat.okay .stat-value { color: var(--ink); }
+    .results-cta { border-radius: 0 !important; background: var(--paper) !important; color: var(--ink) !important; border: 2px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--hard); transform: rotate(-1deg); }
+    .results-cta .cta-icon { background: var(--ink); color: var(--hi); border-radius: 0; }
+    .results-cta .cta-text, .results-cta .cta-text * { color: var(--ink) !important; }
+    .btn-primary, .btn-secondary, .confirm-btn, .settings-calib-btn, .settings-reset-btn, .results-timing-btn, .calib-actions button {
+      border-radius: 0 !important; font-size: 18px; white-space: nowrap; min-width: 120px;
+      border: 2px solid var(--line);
+      box-shadow: 4px 4px 0 var(--hard);
+      clip-path: none;
+    }
+    .btn-primary, .confirm-btn.confirm, .settings-calib-btn, .results-timing-btn, #calib-start, #calib-apply { background: var(--hi); color: var(--ink); border-color: var(--ink); transform: rotate(-1.5deg); }
+    .btn-secondary, .confirm-btn.cancel, .settings-reset-btn, #calib-cancel { background: var(--surface); color: var(--text); transform: rotate(1.5deg); }
+    [data-theme="light"] .btn-primary, [data-theme="light"] .confirm-btn.confirm, [data-theme="light"] .settings-calib-btn, [data-theme="light"] .results-timing-btn, [data-theme="light"] #calib-start, [data-theme="light"] #calib-apply { background: var(--ink); color: var(--hi); border-color: var(--hi); }
+
+    /* 設定頁 */
+    .settings-section { border-radius: 0 !important; border: 2px solid var(--line); box-shadow: 5px 5px 0 var(--hard); }
+    .settings-section:nth-child(odd) { transform: rotate(-0.6deg); } .settings-section:nth-child(even) { transform: rotate(0.6deg); }
+    .settings-section-title { font-family: var(--display); text-transform: uppercase; letter-spacing: 0.1em; font-size: 18px; font-weight: 400; }
+    .settings-tab { border-radius: 0 !important; border: 2px solid var(--line); background: var(--surface); color: var(--text); font-size: 14px; }
+    .settings-tab.selected { background: var(--hi); color: var(--ink); border-color: var(--ink); box-shadow: 3px 3px 0 var(--paper); }
+    [data-theme="light"] .settings-tab.selected { background: var(--ink); color: var(--hi); box-shadow: 3px 3px 0 var(--ink); }
+    .setting-control input[type=range] { border-radius: 0; background: var(--surface-2); border: 1px solid var(--line); height: 6px; }
+    .setting-control input[type=range]::-webkit-slider-thumb { border-radius: 0; background: var(--hi); border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--paper); width: 20px; height: 20px; transform: rotate(45deg); }
+    .setting-control input[type=range]::-moz-range-thumb { border-radius: 0; background: var(--hi); border: 2px solid var(--ink); width: 18px; height: 18px; }
+    .setting-value { color: var(--hi); font-family: var(--display); letter-spacing: 0.05em; font-size: 15px; }
+    [data-theme="light"] .setting-value { color: var(--ink); }
+    .timing-status.ok { color: var(--hi); } [data-theme="light"] .timing-status.ok { color: var(--ink); }
+
+    /* 校正頁 / 退出確認 */
+    .calib-count { font-family: var(--display); font-size: 84px; color: var(--hi); text-shadow: 5px 5px 0 var(--paper); transform: rotate(-3deg); }
+    [data-theme="light"] .calib-count { color: var(--ink); text-shadow: 5px 5px 0 var(--paper); }
+    .calib-result { border-radius: 0 !important; border: 2px solid var(--line); box-shadow: 4px 4px 0 var(--hard); }
+    .confirm-box { border-radius: 0 !important; border: 3px solid var(--line); box-shadow: 8px 8px 0 var(--hard); transform: rotate(-1.5deg); }
+    .confirm-title { font-size: 24px; }
+
+    /* HUD */
+    .hud-label { letter-spacing: 0.25em; font-size: 11px; color: var(--paper); opacity: 0.7; }
+    .hud-value, #score-display .hud-value, #combo-display .hud-value { font-family: var(--display); font-weight: 400; letter-spacing: 0.04em; }
+    #score-display .hud-value { color: var(--hi); }
+    #combo-display .hud-value { color: var(--paper); text-shadow: 3px 3px 0 var(--hi); }
+    #accuracy-display .hud-value { color: var(--paper); }
+    /* 遊戲中 HUD 永遠是黑底白字黃強調, 不跟主題走 */
+    body.game-active #hud { color: #f6f2ea; }
+    body.game-active #score-display .hud-value { color: #ffd60a; }
+    body.game-active #combo-display .hud-value { color: #f6f2ea; text-shadow: 3px 3px 0 #ffd60a; }
+    body.game-active #accuracy-display .hud-value, body.game-active .hud-label { color: #f6f2ea; }
+    #game-bg { background: #07070a; }
+    .picker-fade-top { background: linear-gradient(180deg, var(--bg), transparent) !important; }
+    .picker-fade-bottom { background: linear-gradient(0deg, var(--bg), transparent) !important; }
   </style>
 </head>
 <body>
@@ -1454,7 +1647,7 @@
 
     <div class="home-content">
       <div class="home-title-block">
-        <div class="home-title" aria-label="NEON BEAT"><span class="rl w" style="--r:-6deg;--y:0px;--d:0.0s">N</span><span class="rl b" style="--r:4deg;--y:6px;--d:0.06s">E</span><span class="rl r" style="--r:-3deg;--y:-4px;--d:0.12s">O</span><span class="rl w" style="--r:5deg;--y:3px;--d:0.18s">N</span><span class="sp"></span><span class="rl r" style="--r:-5deg;--y:2px;--d:0.26s">B</span><span class="rl w" style="--r:3deg;--y:-5px;--d:0.32s">E</span><span class="rl b" style="--r:-4deg;--y:4px;--d:0.38s">A</span><span class="rl r" style="--r:6deg;--y:-2px;--d:0.44s">T</span></div>
+        <div class="home-title" aria-label="DOWN BEAT"><span class="rl w" style="--r:-6deg;--y:0px;--d:0.0s">D</span><span class="rl b" style="--r:4deg;--y:6px;--d:0.06s">O</span><span class="rl r" style="--r:-3deg;--y:-4px;--d:0.12s">W</span><span class="rl w" style="--r:5deg;--y:3px;--d:0.18s">N</span><span class="sp"></span><span class="rl r" style="--r:-5deg;--y:2px;--d:0.26s">B</span><span class="rl w" style="--r:3deg;--y:-5px;--d:0.32s">E</span><span class="rl b" style="--r:-4deg;--y:4px;--d:0.38s">A</span><span class="rl r" style="--r:6deg;--y:-2px;--d:0.44s">T</span></div>
         <div class="home-subtitle">Rhythm Game</div>
       </div>
 
@@ -1473,8 +1666,8 @@
     <div class="menu-header">
       <button class="menu-icon-btn" id="menu-home-btn" title="回首頁">⌂</button>
       <div class="menu-title-block">
-        <div class="menu-title">♡ neon beat</div>
-        <div class="menu-tagline">tap a song to play</div>
+        <div class="menu-title">Down Beat</div>
+        <div class="menu-tagline">PICK A TRACK</div>
       </div>
       <button class="menu-icon-btn" id="menu-settings-btn" title="設定">⚙</button>
       <button class="menu-icon-btn" id="theme-toggle" title="切換深淺色">☾</button>
@@ -1672,7 +1865,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.16.2';   // 改版時更新
+  const VERSION = 'v0.17.0';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2422,8 +2615,8 @@
           this.combo++;
           this.maxCombo = Math.max(this.maxCombo, this.combo);
           const x = lane * this.laneWidth + this.laneWidth / 2;
-          this.spawnHitEffect(x, this.hitY, '#ffea00');
-          this.judgments.push(new Judgment(x, this.hitY - 56, 'HOLD!', '#ffea00'));
+          this.spawnHitEffect(x, this.hitY, '#ffd60a');
+          this.judgments.push(new Judgment(x, this.hitY - 56, 'HOLD!', '#ffd60a'));
         }
       }
       for (const p of this.particles) p.update(dt);
@@ -2463,7 +2656,7 @@
       const botR = this.perspLaneXAt(CONFIG.lanes - 1, this.hitY).xR;
       // 軌道區背景 (用多段沿曲線勾勒)
       const TRACK_SEG = 20;
-      ctx.fillStyle = 'rgba(26, 34, 0, 0.45)';
+      ctx.fillStyle = 'rgba(255, 214, 10, 0.05)';
       ctx.beginPath();
       // 上邊
       ctx.moveTo(topL, this.spawnY);
@@ -2490,8 +2683,8 @@
       // 2b. 軌道左右外緣發光光暈 (沿曲線)
       ctx.save();
       ctx.shadowBlur = 16;
-      ctx.shadowColor = '#9eff5a';
-      ctx.strokeStyle = 'rgba(158, 255, 90, 0.55)';
+      ctx.shadowColor = '#f6f2ea';
+      ctx.strokeStyle = 'rgba(246, 242, 234, 0.6)';
       ctx.lineWidth = 2.5;
       // 左邊緣
       ctx.beginPath();
@@ -2518,7 +2711,7 @@
       for (let i = 0; i < CONFIG.lanes; i++) {
         if (this.laneFlash[i] > 0 || this.pressedLanes[i]) {
           const intensity = this.pressedLanes[i] ? 1 : this.laneFlash[i];
-          const color = (i === 0 || i === 2) ? '255, 242, 96' : '158, 255, 90';
+          const color = (i === 0 || i === 2) ? '255, 214, 10' : '246, 242, 234';
           const startY = this.hitY - 240;
 
           const grad = ctx.createLinearGradient(0, startY, 0, this.hitY);
@@ -2553,7 +2746,7 @@
       const SEGMENTS = 20;  // 多段折線模擬曲線
       for (let i = 0; i <= CONFIG.lanes; i++) {
         const isEdge = (i === 0 || i === CONFIG.lanes);
-        const color = isEdge ? '#fff260' : '#9eff5a';
+        const color = isEdge ? '#ffd60a' : '#f6f2ea';
         ctx.shadowColor = color;
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
@@ -2577,8 +2770,8 @@
       ctx.save();
       // 外層: 粗黃光暈
       ctx.shadowBlur = 40 + hitFlash * 40;
-      ctx.shadowColor = '#fff260';
-      ctx.strokeStyle = '#fff260';
+      ctx.shadowColor = '#ffd60a';
+      ctx.strokeStyle = '#ffd60a';
       ctx.lineWidth = 6 + hitFlash * 5;
       ctx.beginPath();
       ctx.moveTo(botL - 10, this.hitY);
@@ -2627,7 +2820,7 @@
         const xRBot = clampX(this.vanishX + (lineXR * fullW - this.vanishX) * scaleBot);
 
         const pressed = this.pressedLanes[i];
-        ctx.strokeStyle = pressed ? '#9eff5a' : 'rgba(122, 138, 58, 0.4)';
+        ctx.strokeStyle = pressed ? '#f6f2ea' : 'rgba(246, 242, 234, 0.35)';
         ctx.lineWidth = pressed ? 2 : 1;
 
         // 梯形按鍵框
@@ -2640,7 +2833,7 @@
         ctx.stroke();
 
         // 字母 (字級也跟著放大)
-        ctx.fillStyle = pressed ? '#9eff5a' : 'rgba(122, 138, 58, 0.7)';
+        ctx.fillStyle = pressed ? '#f6f2ea' : 'rgba(246, 242, 234, 0.75)';
         ctx.font = `bold ${Math.round(28 * scaleBot)}px Quicksand, sans-serif`;
         ctx.textAlign = 'center';
         const cy = (keyTop + keyBot) / 2;
@@ -2677,7 +2870,7 @@
         // 如果 hold 已被按住, 頭釘在判定線, 尾巴繼續往下流
         if (isActiveHold) headY = this.hitY;
 
-        const color = (note.lane === 0 || note.lane === 2) ? '#fff260' : '#9eff5a';
+        const color = (note.lane === 0 || note.lane === 2) ? '#ffd60a' : '#f6f2ea';
 
         // 拖尾上下端 y (top 是較小的 y = 較上面 = 較遠 = 較窄)
         const top = Math.min(tailY, headY);
@@ -2766,7 +2959,7 @@
         const pastAlpha = tu < 0 ? Math.max(0, 1 + tu / CONFIG.windowOkay) : 1;
 
         const { xL, xR, scale } = this.perspLaneXAt(note.lane, y);
-        const color = (note.lane === 0 || note.lane === 2) ? '#fff260' : '#9eff5a';
+        const color = (note.lane === 0 || note.lane === 2) ? '#ffd60a' : '#f6f2ea';
         const padding = 10 * scale;
         const noteX = xL + padding;
         const noteW = (xR - xL) - padding * 2;
@@ -2812,16 +3005,16 @@
           // 早期：GET READY 訊息
           const opacity = Math.min(1, (CONFIG.introDelay - remaining) / 0.6);
           ctx.globalAlpha = opacity;
-          ctx.fillStyle = '#9eff5a';
+          ctx.fillStyle = '#f6f2ea';
           ctx.shadowBlur = 24;
-          ctx.shadowColor = '#9eff5a';
+          ctx.shadowColor = '#f6f2ea';
           ctx.font = 'bold 32px Quicksand, sans-serif';
           ctx.fillText('GET READY', w / 2, h * 0.42);
 
           ctx.font = '11px JetBrains Mono, monospace';
           ctx.globalAlpha = opacity * 0.7;
           ctx.shadowBlur = 0;
-          ctx.fillStyle = '#6b7a90';
+          ctx.fillStyle = '#8a8781';
           ctx.fillText('感受節奏', w / 2, h * 0.46);
         } else if (remaining > 0) {
           // 倒數 3-2-1：每秒一個大數字，會放大淡出
@@ -2831,7 +3024,7 @@
           const alpha = 1 - fracInSec * 0.85;
 
           ctx.globalAlpha = alpha;
-          ctx.fillStyle = num === 1 ? '#fff260' : '#9eff5a';
+          ctx.fillStyle = num === 1 ? '#ffd60a' : '#f6f2ea';
           ctx.shadowBlur = 40;
           ctx.shadowColor = ctx.fillStyle;
           ctx.font = `bold ${Math.floor(110 * scale)}px Quicksand, sans-serif`;
@@ -2953,11 +3146,11 @@
         // 接近完整 → HOLD! 大字 + combo +1 + 金色特效
         this.combo++;
         this.maxCombo = Math.max(this.maxCombo, this.combo);
-        this.spawnHitEffect(x, this.hitY, '#ffea00');
-        this.judgments.push(new Judgment(x, this.hitY - 56, 'HOLD!', '#ffea00'));
+        this.spawnHitEffect(x, this.hitY, '#ffd60a');
+        this.judgments.push(new Judgment(x, this.hitY - 56, 'HOLD!', '#ffd60a'));
       } else if (ratio >= 0.4) {
         // 中段放開 → 綠色特效, 無大字提示, 不斷 combo
-        this.spawnHitEffect(x, this.hitY, '#b0ff4a');
+        this.spawnHitEffect(x, this.hitY, '#f6f2ea');
       }
       // 立刻放開 (<40%): 沒有任何 miss 或斷 combo，純粹少拿分而已
     }
@@ -2975,7 +3168,7 @@
 
     recordJudgment(type, lane, deltaMs) {
       this.stats[type]++;
-      const colors = { perfect: '#ffea00', good: '#b0ff4a', okay: '#9eff5a', miss: '#ffadad' };
+      const colors = { perfect: '#ffd60a', good: '#f6f2ea', okay: '#b8960a', miss: '#8a8781' };
       const labels = { perfect: 'PERFECT', good: 'GOOD', okay: 'OKAY', miss: 'MISS' };
       if (type === 'miss') { this.combo = 0; }
       else {
@@ -3211,7 +3404,7 @@
     }
 
     initTheme() {
-      const saved = localStorage.getItem('neonbeat:theme') || 'light';
+      const saved = localStorage.getItem('neonbeat:theme') || 'dark';   // 黃黑白系統以深色為主
       document.documentElement.setAttribute('data-theme', saved);
       this.updateThemeToggleIcon(saved);
     }

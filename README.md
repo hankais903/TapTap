@@ -1,4 +1,4 @@
-# NEON BEAT — 多歌節奏遊戲
+# DOWN BEAT — 多歌節奏遊戲
 
 落下式 4 軌節奏遊戲。每首歌會產生四個難度的譜面（Easy / Normal / Hard / Insane），
 含分數、判定、Combo、長按音符、最高分紀錄。
@@ -6,7 +6,7 @@
 ## 目錄結構
 
 ```
-neon-beat/
+down-beat/
 ├── index.html              # 遊戲主程式（單一檔案，純 HTML/CSS/JS）
 ├── editor.html             # 手動編譜器 + 校拍工具
 ├── settings.json           # 各難度的落速與判定窗
@@ -28,7 +28,7 @@ neon-beat/
 瀏覽器的安全策略不允許 HTML 用 file:// 協定載入其他檔案，所以要起一個本地伺服器：
 
 ```bash
-cd neon-beat
+cd down-beat
 python3 -m http.server 8000
 ```
 
