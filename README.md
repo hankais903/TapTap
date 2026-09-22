@@ -8,7 +8,6 @@
 ```
 down-beat/
 ├── index.html              # 遊戲主程式（單一檔案，純 HTML/CSS/JS）
-├── editor.html             # 手動編譜器 + 校拍工具
 ├── settings.json           # 各難度的落速與判定窗
 ├── songs/
 │   ├── index.json          # 歌曲清單（add_song.py 自動維護）
@@ -147,14 +146,6 @@ mp3 → librosa
 | Hard | 0.9s（要快速讀譜） | ±60 / ±110 / ±160ms |
 | Insane | 0.75s | ±60 / ±110 / ±160ms |
 
-## 手動編譜 (editor.html)
-
-自動生成的譜面可以再用編譜器手工修。一樣要透過本地伺服器開：`http://localhost:8000/editor.html`
-
-- **編譜模式**：點軌道空白處新增音符、點音符選取、可微調時間 (±5/±10ms)、切換 Hold 並調長度、刪除
-- **校拍模式**：邊聽邊按 TAP 記錄拍點（至少 30 拍），會做線性回歸平滑掉手抖，算出 BPM 與 `firstBeat`。記拍時用事件時間戳並扣掉瀏覽器回報的輸出延遲（舊版沒扣，五首手拍歌因此整體晚了 12–48ms）
-- 兩種模式都是**下載檔案**（`<id>_charts.json` / `<id>_meta.json`），要自己覆蓋回 `songs/<id>/`
-
 ## 想自己改
 
 - **譜面演算法**：`tools/add_song.py` 的 `generate_charts()`
@@ -168,5 +159,4 @@ mp3 → librosa
 - librosa 對某些電子樂的 BPM 偵測會半速 / 倍速 → 用 `--bpm` 手動修正
 - 校正精靈只量「輸入偏移」；視覺偏移與音訊偏移要自己在設定頁調
 - 自動譜面少了人工編譜的「設計感」，但骨幹節奏準確
-- 自動生成只產普通音符 (tap)；長按 (hold) 要用 `editor.html` 手動加
-- 沒有滑鍵 / 雙線；編譜器沒有 undo
+- 自動生成只產普通音符 (tap)，沒有長按 / 滑鍵 / 雙線 (charts.json 的 `duration` 欄位仍支援 hold，需手動編輯)

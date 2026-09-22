@@ -355,7 +355,7 @@
       position: relative;
       font-family: var(--p5-font);
       font-size: 34px; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--p5-black); background: var(--p5-yellow);
+      color: var(--p5-yellow); background: var(--p5-black);
       border: none; cursor: pointer;
       padding: 12px 54px 12px 46px;
       clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%);
@@ -366,7 +366,8 @@
     /* 白色描邊靠外層偽元素: clip-path 之後畫不出 outline, 用大一點的白底墊在下面 */
     .home-start-wrap {
       position: relative; display: inline-block;
-      filter: drop-shadow(7px 7px 0 var(--p5-black)) drop-shadow(-2px -2px 0 var(--p5-white)) drop-shadow(2px 2px 0 var(--p5-white));
+      /* 白色描邊 + 白色硬影: 在黃色與黑色底上都看得到 */
+      filter: drop-shadow(-3px -3px 0 var(--p5-white)) drop-shadow(3px 3px 0 var(--p5-white)) drop-shadow(7px 7px 0 var(--p5-white));
     }
     .home-start-btn:active { transform: rotate(-2deg) scale(0.95); animation: none; }
     .home-start-btn:focus-visible { outline: 3px dashed var(--p5-white); outline-offset: 4px; }
@@ -382,19 +383,6 @@
       padding: 4px 12px 3px 14px;
       transform: rotate(-2deg);
     }
-
-    .home-editor-btn {
-      font-family: var(--p5-font);
-      font-size: 14px; letter-spacing: 0.15em; text-transform: uppercase;
-      text-decoration: none;
-      color: var(--p5-black); background: var(--p5-white);
-      padding: 8px 18px 7px;
-      clip-path: polygon(0 0, 97% 0, 100% 100%, 4% 100%);
-      transform: rotate(2deg);
-      box-shadow: 3px 3px 0 var(--p5-yellow);
-      transition: transform 0.12s;
-    }
-    .home-editor-btn:active { transform: rotate(2deg) scale(0.95); }
 
     .home-version {
       position: absolute; left: 14px; bottom: max(14px, env(safe-area-inset-bottom));
@@ -1653,7 +1641,6 @@
       <span class="home-start-wrap"><button class="home-start-btn" id="home-start-btn">Start</button></span>
       <div class="home-hint">Take your beat</div>
 
-      <a class="home-editor-btn" href="editor.html">編譜器 ›</a>
     </div>
 
     <div class="p5-mark">!</div>
@@ -1864,7 +1851,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.17.1';   // 改版時更新
+  const VERSION = 'v0.17.2';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -3590,7 +3577,7 @@
             <div class="song-name">${song.title}</div>
             <div class="song-meta">${song.artist || 'Unknown'} · ${bpm} BPM · ${dur}</div>
           </div>
-          <button class="play-btn" data-action="play" title="開始遊戲">TAP TO PLAY</button>
+          <button class="play-btn" data-action="play" title="開始遊戲">PLAY</button>
         `;
 
         // 點封面 → 切換背景音樂試聽
