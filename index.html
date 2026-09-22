@@ -352,24 +352,35 @@
 
     /* ---- START: 紅色斜切按鈕, 白邊硬陰影 ---- */
     .home-start-btn {
-      position: relative;
+      position: relative; z-index: 1;
       font-family: var(--p5-font);
       font-size: 34px; letter-spacing: 0.12em; text-transform: uppercase;
       color: var(--p5-yellow); background: var(--p5-black);
       border: none; cursor: pointer;
       padding: 12px 54px 12px 46px;
       clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%);
-      transform: rotate(-2deg);
       transition: transform 0.08s;
-      animation: p5pulse 1.6s ease-in-out infinite;
     }
-    /* 白色描邊靠外層偽元素: clip-path 之後畫不出 outline, 用大一點的白底墊在下面 */
+    /*
+     * 白色描邊 + 白色硬影: 用兩個偽元素畫同樣的斜切形狀墊在按鈕下面。
+     * 以前用 filter: drop-shadow 做, 但 iOS Safari 遇到「clip-path + transform 動畫」的子元素
+     * 會整個不畫陰影 → 手機上看不到白底; 真的元素就沒這問題。
+     * 旋轉 / 脈動動畫放在外層 wrap, 讓白底跟按鈕一起動。
+     */
     .home-start-wrap {
       position: relative; display: inline-block;
-      /* 白色描邊 + 白色硬影: 在黃色與黑色底上都看得到 */
-      filter: drop-shadow(-3px -3px 0 var(--p5-white)) drop-shadow(3px 3px 0 var(--p5-white)) drop-shadow(7px 7px 0 var(--p5-white));
+      transform: rotate(-2deg);
+      animation: p5pulse 1.6s ease-in-out infinite;
     }
-    .home-start-btn:active { transform: rotate(-2deg) scale(0.95); animation: none; }
+    .home-start-wrap::before, .home-start-wrap::after {
+      content: ''; position: absolute; z-index: 0;
+      background: var(--p5-white);
+      clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%);
+      pointer-events: none;
+    }
+    .home-start-wrap::before { inset: 0; transform: translate(7px, 7px); }   /* 硬影 */
+    .home-start-wrap::after  { inset: -3px; }                                /* 描邊 */
+    .home-start-btn:active { transform: scale(0.95); }
     .home-start-btn:focus-visible { outline: 3px dashed var(--p5-white); outline-offset: 4px; }
     @keyframes p5pulse {
       0%, 100% { transform: rotate(-2deg) scale(1); }
@@ -412,7 +423,7 @@
       50%      { transform: rotate(18deg) scale(1.08); }
     }
     @media (prefers-reduced-motion: reduce) {
-      .p5-burst, .home-start-btn, .p5-mark, .home-title .rl { animation: none; }
+      .p5-burst, .home-start-wrap, .p5-mark, .home-title .rl { animation: none; }
     }
 
     /* ============================================
@@ -1886,7 +1897,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.19.4';   // 改版時更新
+  const VERSION = 'v0.19.5';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
