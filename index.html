@@ -1886,7 +1886,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.19.1';   // 改版時更新
+  const VERSION = 'v0.19.2';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -3592,10 +3592,43 @@
       if (homeUrl) this.bgMusic.prefetch(homeUrl);
       this.playHomeMusic();
       const homeEl = document.getElementById('home-screen');
-      const kick = () => { if (!homeEl.classList.contains('hidden')) this.playHomeMusic(); };
+      const kick = () => {
+        if (homeEl.classList.contains('hidden')) return;
+        // 在手勢內直接把 AudioContext 叫醒: 頁面載入時那次 play() 正在等 resume(),
+        // 不能只靠瀏覽器「順便」解開它 (實測會偶發不解), 自己再 resume 一次最穩
+        const eng = this.game.audio;
+        if (!eng.ctx) eng.init().catch(() => {});
+        else if (eng.ctx.state !== 'running') eng.ctx.resume().catch(() => {});
+        this.playHomeMusic();
+      };
       homeEl.addEventListener('pointerdown', kick, { capture: true });
       homeEl.addEventListener('touchstart', kick, { capture: true, passive: true });
       document.addEventListener('keydown', kick);
+      this.initWakeLock();
+    }
+
+    /**
+     * 螢幕常亮: app 開著的期間不讓手機自動熄屏 (Screen Wake Lock API)。
+     * 切到背景時瀏覽器會自動放掉鎖, 回到前景 (visibilitychange) 再拿一次;
+     * 部分瀏覽器 / 省電模式會拒絕, 所以每次觸碰、按鍵也順手補請求 (已持有時是 no-op)。
+     * 沒這個 API 的舊瀏覽器就略過, 遊戲照常運作。
+     */
+    initWakeLock() {
+      if (!('wakeLock' in navigator)) return;
+      const request = async () => {
+        if (document.visibilityState !== 'visible') return;
+        if (this._wakeLock && !this._wakeLock.released) return;
+        try {
+          const lock = await navigator.wakeLock.request('screen');
+          this._wakeLock = lock;
+          lock.addEventListener('release', () => { if (this._wakeLock === lock) this._wakeLock = null; });
+        } catch (e) { /* 被拒 (低電量模式等) → 之後手勢再試 */ }
+      };
+      request();
+      document.addEventListener('visibilitychange', request);
+      document.addEventListener('pointerdown', request, { capture: true });
+      document.addEventListener('touchstart', request, { capture: true, passive: true });
+      document.addEventListener('keydown', request);
     }
 
     /** 首頁背景音樂: CONFIG.homeMusic 指定的歌, 從 offset 秒淡入, 循環 */
@@ -4095,8 +4128,10 @@
 
       // 自動播放第一首歌 + 將其捲到中央
       if (this.songs.length > 0) {
-        // 預設聚焦在《臨界點》(critical_point)，找不到的話 fall back 到第一首
-        const defaultSong = this.songs.find(s => s.id === 'critical_point') || this.songs[0];
+        // 預設聚焦在首頁音樂那首 (CONFIG.homeMusic), 這樣進歌單時音樂不用換、直接接續;
+        // 找不到的話 fall back 到第一首
+        const homeId = CONFIG.homeMusic && CONFIG.homeMusic.id;
+        const defaultSong = this.songs.find(s => s.id === homeId) || this.songs[0];
         // 暫停 picker 自動切歌邏輯 (避免捲動過程經過其他歌時觸發播放)
         this._suppressPickerAutoPlay = true;
         requestAnimationFrame(() => {
@@ -4104,10 +4139,15 @@
           // 一段時間後才解鎖 (給滾動 + snap 完成)
           setTimeout(() => { this._suppressPickerAutoPlay = false; }, 600);
         });
-        // 手機上第一個觸控通常就是 START: 首頁音樂才剛因為這個手勢起播,
-        // 這時若馬上換成歌單的歌就永遠聽不到它 → 讓它繼續播, 直到使用者滑動選歌
+        // 首頁音樂在播 (或正因為這個手勢準備起播) → 不重新起播, 直接接續;
+        // 沒在播 (例如被瀏覽器擋掉) 才從頭啟動預設歌
         const homeUrl = this.homeMusicUrl();
-        if (!(homeUrl && this.bgMusic.isActive(homeUrl))) this.toggleBgMusic(defaultSong);
+        if (homeUrl && this.bgMusic.isActive(homeUrl)) {
+          this.lastPlayedSong = defaultSong;
+          this.prefetchNeighbors(defaultSong);
+        } else {
+          this.toggleBgMusic(defaultSong);
+        }
 
         // 背景慢速預載全部歌曲 (5 秒後開始, 不影響當下播放)
         if (!this._bgPrefetchStarted) {
