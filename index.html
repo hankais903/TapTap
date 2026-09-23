@@ -1655,6 +1655,17 @@
       background: #ffd60a; color: #07070a; padding: 2px 8px 1px; transform: rotate(-4deg);
     }
     body.game-active #combo-display.zero::after { opacity: 0; }
+    /* Score / Accuracy: 黃色小標籤 + 白字黃硬影, 跟 Combo 同一套語彙 */
+    body.game-active .hud-label {
+      display: inline-block; opacity: 1; margin-bottom: 6px;
+      font-family: var(--display); font-size: 10px; letter-spacing: 0.3em;
+      background: #ffd60a; color: #07070a; padding: 2px 8px 1px; transform: rotate(-2deg);
+    }
+    body.game-active #accuracy-display .hud-label { transform: rotate(2deg); }
+    body.game-active #score-display .hud-value, body.game-active #accuracy-display .hud-value {
+      font-size: 26px; color: #f6f2ea; line-height: 1;
+      -webkit-text-stroke: 1px #07070a; text-shadow: 3px 3px 0 #ffd60a;
+    }
     .picker-fade-top { background: linear-gradient(180deg, var(--bg), transparent) !important; }
     .picker-fade-bottom { background: linear-gradient(0deg, var(--bg), transparent) !important; }
   </style>
@@ -1910,7 +1921,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.19.6';   // 改版時更新
+  const VERSION = 'v0.20.0';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -2460,7 +2471,7 @@
       this.hitY = h * CONFIG.hitLineY;
       // 軌道盡頭 (音符出現位置) = 螢幕往下 1/3 處
       // 上方 1/3 整片留空, 軌道感覺從「遠方」延伸過來
-      this.spawnY = h * 0.33;
+      this.spawnY = h * 0.30;
 
       // 透視參數：軌道在頂端 (spawnY/0) 處比較窄、底部 (hitY) 處 100% 寬
       this.perspTopRatio = CONFIG.perspTopRatio;    // 頂端寬度 = 底部寬度 × 這個比例
@@ -2757,6 +2768,10 @@
       // 1c. 半透明黑色暗化層 (蓋在歌曲背景上, 但讓背景仍清楚可見)
       ctx.fillStyle = 'rgba(0, 0, 0, 0.30)';
       ctx.fillRect(0, 0, w, h);
+      // 1c'. 暗角: 四角壓暗, 視線集中在軌道
+      const vig = ctx.createRadialGradient(w / 2, h * 0.55, w * 0.25, w / 2, h * 0.55, w * 0.95);
+      vig.addColorStop(0, 'rgba(0, 0, 0, 0)'); vig.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
+      ctx.fillStyle = vig; ctx.fillRect(0, 0, w, h);
 
       // 1d. 右上一片斜切半調網點, 點的大小跟低音一起脹縮 (首頁同語彙)
       ctx.save();
@@ -2803,7 +2818,18 @@
         ctx.closePath();
       };
       // 半透明, 讓底下的唱片封面透出來; 側邊發光邊由 2b 畫, 頂邊不描 (要淡出)
-      trackPath(0, 0); ctx.fillStyle = 'rgba(12, 12, 18, 0.62)'; ctx.fill();
+      trackPath(0, 0);
+      const floorGrad = ctx.createLinearGradient(0, this.spawnY, 0, this.hitY);
+      floorGrad.addColorStop(0, 'rgba(10, 10, 14, 0.92)');   // 遠處深
+      floorGrad.addColorStop(1, 'rgba(18, 18, 26, 0.55)');   // 近處讓封面透出來
+      ctx.fillStyle = floorGrad; ctx.fill();
+      // 2a. 隔軌淡淡換色 (第 2、4 軌亮一點點), 四軌一眼分得開
+      for (const li of [1, 3]) {
+        ctx.beginPath();
+        for (let s = 0; s <= TRACK_SEG; s++) { const y = this.spawnY + (this.hitY - this.spawnY) * s / TRACK_SEG; const x = this.perspLaneXAt(li, y).xL; if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+        for (let s = TRACK_SEG; s >= 0; s--) { const y = this.spawnY + (this.hitY - this.spawnY) * s / TRACK_SEG; ctx.lineTo(this.perspLaneXAt(li, y).xR, y); }
+        ctx.closePath(); ctx.fillStyle = 'rgba(246, 242, 234, 0.035)'; ctx.fill();
+      }
       // 黃色硬影只畫在紙片沒蓋到的那條邊 (even-odd: 影子多邊形 − 紙片多邊形), 不然會把整條軌道染黃
       ctx.beginPath();
       const addPath = (ox, oy) => {
@@ -2816,36 +2842,31 @@
       addPath(6, 6); addPath(0, 0);
       ctx.fillStyle = '#ffd60a'; ctx.fill('evenodd');
 
-      // 左緣進度條: 歌曲播到哪, 黃線就長到哪
+      // 頂端進度條: 歌曲播到哪, 黃色就長到哪 (斜切尾端)
       const prog = Math.max(0, Math.min(1, this.audio.heardTime() / Math.max(1, this.audio.duration)));
-      ctx.fillStyle = '#1c1c22'; ctx.fillRect(0, this.spawnY, 4, this.hitY - this.spawnY);
-      ctx.fillStyle = '#ffd60a'; ctx.fillRect(0, this.hitY - (this.hitY - this.spawnY) * prog, 4, (this.hitY - this.spawnY) * prog);
+      ctx.fillStyle = 'rgba(246, 242, 234, 0.12)'; ctx.fillRect(0, 0, w, 4);
+      const progW = w * prog;
+      ctx.fillStyle = '#ffd60a';
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(progW + 4, 0); ctx.lineTo(progW, 4); ctx.lineTo(0, 4); ctx.closePath(); ctx.fill();
 
-      // 2b. 軌道左右外緣發光光暈 (沿曲線)
-      ctx.save();
-      ctx.shadowBlur = 16;
-      ctx.shadowColor = '#f6f2ea';
-      ctx.strokeStyle = 'rgba(246, 242, 234, 0.6)';
-      ctx.lineWidth = 2.5;
-      // 左邊緣
-      ctx.beginPath();
-      for (let s = 0; s <= TRACK_SEG; s++) {
-        const t = s / TRACK_SEG;
-        const y = this.spawnY + (this.hitY - this.spawnY) * t;
-        const x = this.perspLaneXAt(0, y).xL;
-        if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      // 2b. 節拍格線: 每一拍一條淡線跟音符一起流下來, 小節線亮一點 → 有速度感、也看得到節奏
+      const song = this.currentSong;
+      if (song && song.bpm > 0) {
+        const beatLen = 60 / song.bpm;
+        const tNow = this.visualTime();
+        const phase = (song.firstBeat || 0) + this.chartShift();
+        const kFirst = Math.ceil((tNow - phase - 0.02) / beatLen);
+        const kLast = Math.floor((tNow + CONFIG.fallTime - phase) / beatLen);
+        for (let k = kFirst; k <= kLast; k++) {
+          const y = this.noteY(phase + k * beatLen - tNow);
+          if (y < this.spawnY || y > this.hitY) continue;
+          const { scale: sc } = this.perspLaneXAt(0, y);
+          const bar = ((k % 4) + 4) % 4 === 0;
+          const a = (bar ? 0.14 : 0.07) + (bar ? 0.34 : 0.20) * sc;
+          ctx.strokeStyle = `rgba(246, 242, 234, ${a})`; ctx.lineWidth = bar ? 1.6 : 1.1;
+          ctx.beginPath(); ctx.moveTo(this.perspLaneXAt(0, y).xL, y); ctx.lineTo(this.perspLaneXAt(CONFIG.lanes - 1, y).xR, y); ctx.stroke();
+        }
       }
-      ctx.stroke();
-      // 右邊緣
-      ctx.beginPath();
-      for (let s = 0; s <= TRACK_SEG; s++) {
-        const t = s / TRACK_SEG;
-        const y = this.spawnY + (this.hitY - this.spawnY) * t;
-        const x = this.perspLaneXAt(CONFIG.lanes - 1, y).xR;
-        if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-      ctx.restore();
 
       // 3. 各 lane 按下時的高亮 (沿曲線, 跟軌道一致)
       const PRESS_SEG = 14;
@@ -2881,16 +2902,20 @@
         }
       }
 
-      // 4. 畫 lane 分隔線 (粗 + 強發光 + 鐘形曲線)
+      // 4. lane 分隔線: 外側黃、內側白, 遠處淡、近處亮 (漸層描邊), 保留發光
       ctx.save();
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = 12;
       const SEGMENTS = 20;  // 多段折線模擬曲線
       for (let i = 0; i <= CONFIG.lanes; i++) {
         const isEdge = (i === 0 || i === CONFIG.lanes);
-        const color = isEdge ? '#ffd60a' : '#f6f2ea';
-        ctx.shadowColor = color;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
+        const rgb = isEdge ? '255, 214, 10' : '246, 242, 234';
+        const lineGrad = ctx.createLinearGradient(0, this.spawnY, 0, this.hitY);
+        lineGrad.addColorStop(0, `rgba(${rgb}, 0.05)`);
+        lineGrad.addColorStop(0.35, `rgba(${rgb}, 0.45)`);
+        lineGrad.addColorStop(1, `rgba(${rgb}, 1)`);
+        ctx.shadowColor = isEdge ? '#ffd60a' : '#f6f2ea';
+        ctx.strokeStyle = lineGrad;
+        ctx.lineWidth = isEdge ? 2.5 : 2;
         ctx.beginPath();
         for (let s = 0; s <= SEGMENTS; s++) {
           const t = s / SEGMENTS;
@@ -2908,9 +2933,21 @@
       // 5. 判定線 (TAPSONIC 風格: 純白光柱 + 黃光暈)
       const hitFlash = Math.max(this.laneFlash[0] || 0, this.laneFlash[1] || 0,
                                  this.laneFlash[2] || 0, this.laneFlash[3] || 0);
+      // 5a. 每軌一個「接收框」: 音符落點一目瞭然, 按下時整塊亮起
+      for (let i = 0; i < CONFIG.lanes; i++) {
+        const yT = this.hitY - 18, yB = this.hitY - 2;
+        const ra = this.perspLaneXAt(i, yT), rb = this.perspLaneXAt(i, yB);
+        const inset = 7;
+        const pressed = this.pressedLanes[i], flash = this.laneFlash[i] || 0;
+        const rgb = (i === 0 || i === 2) ? '255, 214, 10' : '246, 242, 234';
+        ctx.beginPath();
+        ctx.moveTo(ra.xL + inset, yT); ctx.lineTo(ra.xR - inset, yT); ctx.lineTo(rb.xR - inset, yB); ctx.lineTo(rb.xL + inset, yB); ctx.closePath();
+        if (pressed || flash > 0) { ctx.fillStyle = `rgba(${rgb}, ${pressed ? 0.9 : 0.6 * flash})`; ctx.fill(); }
+        ctx.strokeStyle = `rgba(${rgb}, ${pressed ? 1 : 0.45})`; ctx.lineWidth = 1.5; ctx.stroke();
+      }
       ctx.save();
-      // 警示帶: 黃黑斜紋, 高 10px, 蓋在判定線上方
-      const tapeH = 10, tapeY = this.hitY - tapeH;
+      // 警示帶: 黃黑斜紋, 高 8px, 蓋在判定線上方
+      const tapeH = 8, tapeY = this.hitY - tapeH;
       ctx.beginPath(); ctx.rect(botL - 12, tapeY, (botR - botL) + 24, tapeH); ctx.clip();
       ctx.fillStyle = '#ffd60a'; ctx.fillRect(botL - 12, tapeY, (botR - botL) + 24, tapeH);
       ctx.fillStyle = '#07070a';
@@ -2926,8 +2963,8 @@
       ctx.restore();
 
       // 6. 按鍵框 + 字母 (按透視繼續往下擴大: 梯形, 下寬上窄相對於判定線)
-      const keyTop = this.hitY + 12;
-      const keyBot = this.hitY + 130;
+      const keyTop = this.hitY + 18;
+      const keyBot = this.hitY + 100;
       for (let i = 0; i < CONFIG.lanes; i++) {
         // 透視延伸:把整個透視函數的範圍從[spawnY,hitY]延伸到[spawnY,keyBot]
         // 這樣 keyTop/keyBot 都會繼續變寬
@@ -2951,7 +2988,7 @@
         // 紙片: 用按鍵格的中線寬度畫一張直立的卡, 交錯傾斜 ±1.5°; 按下 → 黃底黑字 + 壓扁下沉
         // 四張卡等寬等距: 直接把畫布寬度四等分, 不跟透視走 (透視會讓外側兩張被夾窄)
         const slot = fullW / CONFIG.lanes;
-        const cardW = slot - 14;
+        const cardW = slot - 16;
         const cardH = keyBot - keyTop - 6;
         const cx = slot * (i + 0.5);
         const cy = (keyTop + keyBot) / 2;
@@ -2969,9 +3006,9 @@
         ctx.strokeRect(-cardW / 2, -cardH / 2, cardW, cardH);
         // 字母
         ctx.fillStyle = pressed ? '#07070a' : '#f6f2ea';
-        ctx.font = `${Math.round(30 * scaleBot)}px Anton, Impact, 'Arial Narrow Bold', sans-serif`;
+        ctx.font = `${Math.round(24 * scaleBot)}px Anton, Impact, 'Arial Narrow Bold', sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), 0, 4);
+        ctx.fillText(CONFIG.laneKeys[i].toUpperCase(), 0, 3);
         ctx.restore();
       }
       const t = this.visualTime();
@@ -3087,8 +3124,10 @@
 
         let y = this.noteY(tu);
         if (note.hit && note.holding) y = this.hitY;
-        // 過線之後邊往下走邊淡出
-        const pastAlpha = tu < 0 ? Math.max(0, 1 + tu / CONFIG.windowOkay) : 1;
+        // 過線之後邊往下走邊淡出, 但只走 26px 就消失 (以前會一路滑到按鍵卡上, 變成一條灰影)
+        const over = y - this.hitY;
+        const pastAlpha = over > 0 ? Math.max(0, 1 - over / 26) : 1;
+        if (pastAlpha <= 0) continue;
 
         const { scale } = this.perspLaneXAt(note.lane, y);
         const color = (note.lane === 0 || note.lane === 2) ? '#ffd60a' : '#f6f2ea';
@@ -3117,6 +3156,13 @@
         ctx.closePath();
         ctx.fill();
         ctx.shadowBlur = 0;
+        // 黑色描邊: 發光之外還有一圈硬邊, 音符才夠「實」
+        ctx.strokeStyle = 'rgba(7, 7, 10, 0.9)'; ctx.lineWidth = Math.max(1, 1.6 * scale); ctx.stroke();
+        // 下緣厚度帶: 底部 1/3 壓暗, 像一塊有厚度的積木
+        ctx.save(); ctx.clip();
+        ctx.fillStyle = 'rgba(7, 7, 10, 0.28)';
+        ctx.fillRect(bot.xL, yBot - noteH * 0.34, bot.xR - bot.xL, noteH * 0.34);
+        ctx.restore();
         // 上緣高光 (也跟著上邊寬度)
         ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
         ctx.fillRect(top.xL + padT + 3 * scale, yTop + 3 * scale, (top.xR - top.xL) - padT * 2 - 6 * scale, 2 * scale);
