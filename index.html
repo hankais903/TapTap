@@ -2101,6 +2101,7 @@
     #detail-screen.bg-color-green::before,
     #detail-screen.bg-color-coral::before { content: none !important; display: none !important; }
     #detail-screen > * { position: relative; z-index: 2; }
+    body:has(#detail-screen:not(.hidden)) #hud { display: none !important; }
 
     #detail-screen .detail-topbar {
       width: min(100%, 720px);
@@ -2734,7 +2735,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.22.0';   // 改版時更新
+  const VERSION = 'v0.23.0';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
