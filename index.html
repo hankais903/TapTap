@@ -2496,16 +2496,24 @@
       #detail-screen .detail-topbar { min-height: 70px; padding-top: max(17px, env(safe-area-inset-top)); }
       #detail-screen .detail-brand { min-width: 47vw; padding: 8px 10px 7px 34px; transform: rotate(-3deg) translateX(15px); }
       #detail-screen .detail-content { padding-top: 4px; }
-      #detail-screen .detail-cover-wrapper { width: clamp(238px, 62vw, 300px); height: clamp(238px, 62vw, 300px); }
-      #detail-screen .detail-slogan { left: 4px; top: 160px; width: 76px; }
-      #detail-screen .detail-note { right: 2px; top: 235px; width: 72px; padding: 8px 4px; }
-      #detail-screen .detail-title-card { width: calc(100% - 18px); padding-inline: 18px; }
-      #detail-screen .difficulty-options { gap: 10px; }
+      #detail-screen .detail-cover-wrapper {
+        width: clamp(220px, 56vw, 270px);
+        height: clamp(220px, 56vw, 270px);
+        margin-bottom: 12px;
+      }
+      #detail-screen .detail-slogan { left: 4px; top: 150px; width: 76px; }
+      #detail-screen .detail-note { right: 2px; top: 215px; width: 72px; padding: 8px 4px; }
+      #detail-screen .detail-title-card { width: calc(100% - 18px); margin-bottom: 14px; padding-inline: 18px; }
+      #detail-screen .difficulty-options { gap: 10px; margin-bottom: 18px; }
       #detail-screen .diff-btn,
       #detail-screen .diff-btn:nth-child(odd),
-      #detail-screen .diff-btn:nth-child(even) { min-height: 96px; padding-inline: 6px; box-shadow: 5px 5px 0 var(--detail-yellow); }
+      #detail-screen .diff-btn:nth-child(even) { min-height: 88px; padding-inline: 6px; box-shadow: 5px 5px 0 var(--detail-yellow); }
       #detail-screen .diff-btn.selected { box-shadow: 5px 5px 0 var(--detail-paper); }
-      #detail-screen .start-button { min-height: 91px; box-shadow: 7px 7px 0 var(--detail-paper), 12px 12px 0 var(--detail-yellow); }
+      #detail-screen .start-button {
+        min-height: 88px;
+        margin-bottom: 14px;
+        box-shadow: 7px 7px 0 var(--detail-paper), 12px 12px 0 var(--detail-yellow);
+      }
     }
     @media (max-width: 370px) {
       #detail-screen .detail-brand span { letter-spacing: .18em; }
