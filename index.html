@@ -2421,18 +2421,21 @@
       filter: none;
     }
     #detail-screen .detail-calib-hint {
+      order: 3;
       width: calc(100% - 30px);
-      margin: -8px auto 15px;
+      margin: 8px auto 0;
       border: 2px dashed var(--detail-yellow);
       border-radius: 0;
       background: rgba(7,8,11,.88);
       color: var(--detail-paper);
     }
     #detail-screen .key-hints {
+      order: 1;
       margin: 0 0 10px;
       display: flex;
       gap: 14px;
     }
+    #detail-screen .loading-text { order: 2; }
     #detail-screen .key {
       width: clamp(52px, 13vw, 76px);
       height: clamp(58px, 14vw, 82px);
