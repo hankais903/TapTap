@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 320">
+<g fill="none" stroke="#ffe100" stroke-width="7" stroke-linecap="square" stroke-linejoin="miter" transform="rotate(-7 105 160)">
+<path d="M52 57 70 18 91 54 114 12 128 59 50 70 136 54"/>
+<path d="M34 276 108 305 165 249"/>
+</g>
+<g fill="#ffe100" font-family="Impact,Arial Black,sans-serif" font-style="italic" text-anchor="middle" transform="rotate(-7 105 160) skewX(-7)">
+<text x="103" y="116" font-size="42">MUSIC</text>
+<text x="103" y="164" font-size="40">CONNECTS</text>
+<text x="103" y="214" font-size="54">US</text>
+</g></svg>

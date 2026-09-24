@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 290">
+<path d="M19 27 200 4 211 248 170 256 152 277 16 263 5 49Z" fill="#f7f4eb"/>
+<g fill="#08090b" font-family="Impact,Arial Black,sans-serif" font-style="italic" text-anchor="middle" transform="rotate(-7 110 145) skewX(-5)">
+<text x="110" y="80" font-size="43">GOOD</text>
+<text x="110" y="127" font-size="43">MUSIC</text>
+<text x="110" y="174" font-size="43">BETTER</text>
+<text x="110" y="221" font-size="43">YOU</text>
+</g>
+<path d="M127 244 209 216M135 259 218 231" stroke="#ffe100" stroke-width="8" fill="none"/>
+</svg>

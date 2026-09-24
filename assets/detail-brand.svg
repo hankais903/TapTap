@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 170">
+<defs><filter id="s"><feDropShadow dx="9" dy="9" stdDeviation="0" flood-color="#000" flood-opacity=".8"/></filter></defs>
+<g filter="url(#s)" transform="rotate(-5 230 85)">
+<path d="M42 37 445 0 460 113 95 166 0 80Z" fill="#ffe100"/>
+<g transform="skewX(-4)">
+<text x="120" y="82" font-family="Impact,Arial Black,sans-serif" font-size="53" letter-spacing="2" fill="#050608">DOWN BEAT</text>
+<text x="171" y="116" font-family="Impact,Arial Black,sans-serif" font-size="16" letter-spacing="6" fill="#050608">TAKE YOUR BEAT</text>
+</g></g></svg>
