@@ -4219,6 +4219,11 @@
     }
 
 
+    formatSongTitle(title) {
+      const value = String(title || '');
+      return value.startsWith('《') && value.endsWith('》') ? value : '《' + value + '》';
+    }
+
     getVisibleSongs() {
       const songs = [...this.songs];
       if (this.menuFilter === 'favorites') {
@@ -4326,7 +4331,7 @@
         card.innerHTML = `
           ${coverHtml}
           <div class="song-info" data-action="info">
-            <div class="song-name">《${song.title}》</div>
+            <div class="song-name">${this.formatSongTitle(song.title)}</div>
             <div class="song-meta">${song.artist || 'Unknown'} · ${bpm} BPM · ${dur}</div>
           </div>
           <button class="favorite-btn ${this.favoriteSongIds.has(song.id) ? 'is-favorite' : ''}" data-action="favorite"
