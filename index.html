@@ -4425,11 +4425,15 @@
         const cards = container.querySelectorAll('.song-card');
         const totalCards = cards.length;
         const songCount = this.visibleSongs.length;
-        if (totalCards < songCount * 3) return; // 還沒準備好
+        if (songCount === 0 || totalCards < songCount * 3) return; // 空清單或還沒準備好
+
+        const middleStartCard = cards[songCount];
+        const middleEndCard = cards[songCount * 2];
+        if (!middleStartCard || !middleEndCard) return; // 分類切換途中避免使用已卸載的卡片
 
         const containerH = container.clientHeight;
-        const middleStart = cards[songCount].offsetTop;
-        const middleEnd = cards[songCount * 2].offsetTop;
+        const middleStart = middleStartCard.offsetTop;
+        const middleEnd = middleEndCard.offsetTop;
         const sectionH = middleEnd - middleStart;
         const scrollTop = container.scrollTop;
 
