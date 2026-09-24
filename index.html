@@ -1668,6 +1668,400 @@
     }
     .picker-fade-top { background: linear-gradient(180deg, var(--bg), transparent) !important; }
     .picker-fade-bottom { background: linear-gradient(0deg, var(--bg), transparent) !important; }
+
+    /* ============================================
+       SONG PICKER — 參考圖黑黃街機風
+       保留既有 .cover / spin-cd 唱片造型與動畫
+       ============================================ */
+    #menu-screen {
+      --picker-yellow: #ffd800;
+      --picker-black: #050608;
+      --picker-white: #f7f7f2;
+      --picker-gray: #8f9094;
+      isolation: isolate;
+      color: var(--picker-white);
+      background:
+        linear-gradient(164deg, transparent 0 7%, rgba(255,216,0,.12) 7.2% 7.8%, transparent 8% 76%, rgba(255,216,0,.10) 76.2% 81%, transparent 81.2%),
+        radial-gradient(circle at 78% 13%, rgba(255,255,255,.24) 0 2px, transparent 2.6px) 0 0 / 18px 18px,
+        linear-gradient(135deg, #08090c 0%, #020305 54%, #0d0e12 100%);
+    }
+    #menu-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      clip-path: none;
+      opacity: .34;
+      background:
+        radial-gradient(circle at 2px 2px, rgba(255,255,255,.55) 0 2px, transparent 2.8px) 0 62% / 18px 18px,
+        linear-gradient(150deg, transparent 0 17%, rgba(255,216,0,.44) 17.2% 18%, transparent 18.2% 83%, rgba(255,216,0,.35) 83.2% 87%, transparent 87.2%);
+      mask-image: linear-gradient(to right, #000 0 18%, transparent 38% 58%, #000 78% 100%);
+    }
+    #menu-screen::after {
+      content: '';
+      position: absolute;
+      z-index: 0;
+      pointer-events: none;
+      left: -7%;
+      right: -7%;
+      top: 22px;
+      height: 15px;
+      background: var(--picker-yellow);
+      border-top: 5px solid var(--picker-black);
+      border-bottom: 4px solid var(--picker-black);
+      transform: rotate(-11deg);
+      opacity: 1;
+    }
+    #menu-screen > * { z-index: 2; }
+
+    .menu-deco {
+      position: absolute !important;
+      z-index: 1 !important;
+      pointer-events: none;
+    }
+    .menu-deco-star {
+      width: 260px;
+      height: 190px;
+      left: 50%;
+      top: 26px;
+      transform: translateX(-50%) rotate(-7deg);
+      opacity: .22;
+      background: var(--picker-yellow);
+      clip-path: polygon(50% 0, 57% 35%, 83% 15%, 69% 42%, 100% 48%, 68% 56%, 88% 82%, 58% 68%, 48% 100%, 41% 67%, 10% 88%, 31% 56%, 0 47%, 33% 41%, 17% 12%, 42% 34%);
+    }
+    .menu-deco-slash {
+      right: -9%;
+      bottom: 78px;
+      width: 58%;
+      height: 46px;
+      background: var(--picker-yellow);
+      transform: rotate(-13deg);
+      box-shadow: 0 7px 0 var(--picker-black);
+    }
+
+    #menu-screen .menu-header {
+      position: absolute;
+      top: calc(env(safe-area-inset-top) + 18px);
+      left: 50%;
+      right: auto;
+      width: min(100%, 900px);
+      height: 146px;
+      transform: translateX(-50%);
+      padding: 18px clamp(20px, 5vw, 48px);
+      background: transparent;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      overflow: visible;
+    }
+    #menu-screen .menu-title-block {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: min(58vw, 470px);
+      transform: translateX(-50%) rotate(-2deg);
+      text-align: center;
+      z-index: 3;
+    }
+    #menu-screen .menu-title {
+      display: block;
+      width: 100%;
+      padding: 3px 14px 7px;
+      margin: 0;
+      color: var(--picker-black);
+      background: var(--picker-yellow);
+      border: 2px solid var(--picker-yellow);
+      box-shadow: -10px 10px 0 rgba(247,247,242,.9), 10px 13px 0 rgba(255,216,0,.45);
+      font-size: clamp(42px, 8vw, 68px);
+      line-height: 1;
+      letter-spacing: .03em;
+      white-space: nowrap;
+      transform: none;
+    }
+    #menu-screen .menu-tagline {
+      display: inline-block;
+      position: relative;
+      margin-top: -1px;
+      padding: 7px 34px 6px;
+      color: var(--picker-black);
+      background: var(--picker-white);
+      box-shadow: 7px 7px 0 rgba(0,0,0,.65);
+      font-size: clamp(11px, 2.2vw, 18px);
+      line-height: 1;
+      letter-spacing: .42em;
+      white-space: nowrap;
+      transform: rotate(1deg);
+    }
+    #menu-screen .menu-actions {
+      display: flex;
+      gap: 14px;
+      margin-left: auto;
+    }
+    #menu-screen .menu-icon-btn,
+    #menu-screen .theme-toggle {
+      width: clamp(52px, 9vw, 72px);
+      height: clamp(52px, 9vw, 72px);
+      flex: 0 0 auto;
+      border: 3px solid var(--picker-white);
+      background: var(--picker-white);
+      color: var(--picker-black);
+      box-shadow: 8px 8px 0 var(--picker-yellow);
+      font-size: clamp(24px, 4.4vw, 34px);
+      transform: rotate(-4deg);
+    }
+    #menu-screen .menu-actions .theme-toggle { transform: rotate(4deg); }
+    #menu-screen .menu-icon-btn:active,
+    #menu-screen .theme-toggle:active { transform: rotate(-4deg) translate(4px,4px); box-shadow: 3px 3px 0 var(--picker-yellow); }
+    #menu-screen .menu-actions .theme-toggle:active { transform: rotate(4deg) translate(4px,4px); }
+    #menu-home-btn { font-size: clamp(28px, 5vw, 40px) !important; }
+
+    .menu-filter-bar {
+      position: absolute !important;
+      top: calc(env(safe-area-inset-top) + 164px);
+      left: 50%;
+      width: min(calc(100% - 28px), 860px);
+      min-height: 46px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 3px solid var(--picker-white);
+      padding: 0 3px 8px;
+    }
+    .menu-tabs {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 7px;
+    }
+    .menu-filter-btn {
+      min-width: 0;
+      padding: 10px 7px 8px;
+      border: 0;
+      color: #85868a;
+      background: rgba(22,23,28,.92);
+      clip-path: polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%);
+      font-family: var(--display);
+      font-size: clamp(10px, 2.1vw, 16px);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .menu-filter-btn.active {
+      color: var(--picker-black);
+      background: var(--picker-yellow);
+      box-shadow: 0 4px 0 var(--picker-white);
+    }
+    .menu-song-count {
+      flex: 0 0 auto;
+      min-width: 76px;
+      color: var(--picker-white);
+      font-family: var(--display);
+      font-size: clamp(11px, 2.1vw, 16px);
+      letter-spacing: .08em;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    #menu-screen .song-list-wrapper {
+      position: absolute;
+      top: calc(env(safe-area-inset-top) + 218px);
+      bottom: calc(env(safe-area-inset-bottom) + 66px);
+      left: 50%;
+      right: auto;
+      width: min(calc(100% - 24px), 860px);
+      max-width: none;
+      transform: translateX(-50%);
+      margin: 0;
+      overflow: hidden;
+    }
+    #menu-screen .picker-fade { display: none; }
+    #menu-screen #song-list {
+      inset: 0;
+      padding: 8px 12px 104px;
+      scroll-padding-block: 22px;
+    }
+    #menu-screen .song-card,
+    #menu-screen .song-card:nth-child(even),
+    #menu-screen .song-card.adjacent {
+      min-height: 88px;
+      margin: 12px 5px;
+      padding: 10px 14px 10px 12px;
+      gap: 14px;
+      border: 3px solid var(--picker-white);
+      background: linear-gradient(105deg, rgba(18,19,23,.98), rgba(5,6,8,.98));
+      color: var(--picker-white);
+      box-shadow: 7px 7px 0 var(--picker-yellow);
+      opacity: 1;
+      transform: none;
+      transition: transform .16s, background .16s, color .16s, box-shadow .16s;
+    }
+    #menu-screen .song-card.centered {
+      min-height: 104px;
+      padding: 13px 16px 13px 112px;
+      border-color: var(--picker-white);
+      background: var(--picker-yellow);
+      color: var(--picker-black);
+      box-shadow: 8px 8px 0 var(--picker-white);
+      opacity: 1;
+      transform: none;
+    }
+    #menu-screen .song-card:active,
+    #menu-screen .song-card.centered:active { transform: translate(3px,3px); }
+    #menu-screen .song-card .song-name {
+      color: inherit;
+      font-size: clamp(18px, 3.2vw, 27px);
+      line-height: 1.08;
+      letter-spacing: .015em;
+    }
+    #menu-screen .song-card .song-meta {
+      margin-top: 8px;
+      color: var(--picker-gray);
+      font-size: clamp(12px, 2.3vw, 18px);
+      letter-spacing: .03em;
+    }
+    #menu-screen .song-card.centered .song-meta { color: rgba(5,6,8,.84); }
+    #menu-screen .song-card .cover { border-color: var(--picker-white); }
+    #menu-screen .song-card.centered .cover {
+      box-shadow: 0 0 0 4px var(--picker-white), 7px 7px 0 rgba(5,6,8,.28);
+    }
+    #menu-screen .favorite-btn {
+      flex: 0 0 auto;
+      width: 42px;
+      height: 42px;
+      border: 0;
+      background: transparent;
+      color: #b7b8bb;
+      font-family: Arial, sans-serif;
+      font-size: 38px;
+      line-height: 1;
+      cursor: pointer;
+      transform: translateY(-2px);
+    }
+    #menu-screen .favorite-btn.is-favorite { color: var(--picker-yellow); }
+    #menu-screen .song-card.centered .favorite-btn { color: var(--picker-black); }
+    #menu-screen .song-card .play-btn,
+    #menu-screen .song-card.centered .play-btn {
+      min-width: clamp(82px, 14vw, 132px);
+      padding: 14px 18px 12px;
+      border: 3px solid var(--picker-white);
+      background: var(--picker-black);
+      color: var(--picker-yellow);
+      box-shadow: 6px 6px 0 var(--picker-yellow);
+      clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+      font-size: clamp(17px, 3.4vw, 26px);
+      line-height: 1;
+    }
+    #menu-screen .song-card.centered .play-btn {
+      border-color: var(--picker-black);
+      box-shadow: 7px 7px 0 rgba(247,247,242,.85);
+    }
+    #menu-screen .empty-state {
+      margin: 28px 5px;
+      padding: 36px 20px;
+      border: 3px solid var(--picker-white);
+      background: rgba(5,6,8,.94);
+      box-shadow: 7px 7px 0 var(--picker-yellow);
+      color: var(--picker-white);
+      font-family: var(--display);
+      font-size: 20px;
+      letter-spacing: .08em;
+      text-align: center;
+    }
+    .menu-version {
+      position: absolute !important;
+      left: max(20px, calc((100vw - 860px) / 2));
+      bottom: calc(env(safe-area-inset-bottom) + 17px);
+      padding: 7px 13px 5px;
+      border: 3px solid var(--picker-white);
+      color: var(--picker-white);
+      background: var(--picker-black);
+      box-shadow: 4px 4px 0 rgba(0,0,0,.75);
+      font-family: var(--display);
+      font-size: 14px;
+      letter-spacing: .12em;
+      transform: rotate(-3deg);
+    }
+    .menu-footer-ribbon {
+      position: absolute !important;
+      right: -28px;
+      bottom: calc(env(safe-area-inset-bottom) + 5px);
+      min-width: min(54vw, 420px);
+      padding: 13px 50px 10px 34px;
+      color: var(--picker-black);
+      background: var(--picker-yellow);
+      font-family: var(--display);
+      font-size: clamp(12px, 2.5vw, 19px);
+      letter-spacing: .28em;
+      text-align: center;
+      transform: rotate(-8deg);
+      box-shadow: 0 5px 0 rgba(0,0,0,.72);
+    }
+
+    @media (max-width: 620px) {
+      #menu-screen .menu-header {
+        top: calc(env(safe-area-inset-top) + 14px);
+        height: 130px;
+        padding: 16px 13px;
+      }
+      #menu-screen .menu-title-block { width: min(57vw, 300px); top: 4px; }
+      #menu-screen .menu-title { font-size: clamp(36px, 10vw, 52px); padding-inline: 8px; }
+      #menu-screen .menu-tagline { padding: 6px 18px 5px; letter-spacing: .32em; }
+      #menu-screen .menu-actions { gap: 8px; }
+      #menu-screen .menu-icon-btn,
+      #menu-screen .theme-toggle { width: 48px; height: 48px; font-size: 24px; box-shadow: 5px 5px 0 var(--picker-yellow); }
+      .menu-filter-bar { top: calc(env(safe-area-inset-top) + 145px); width: calc(100% - 18px); gap: 5px; }
+      .menu-tabs { gap: 3px; }
+      .menu-filter-btn { padding-inline: 3px; letter-spacing: .03em; }
+      .menu-song-count { min-width: 60px; font-size: 10px; }
+      #menu-screen .song-list-wrapper {
+        top: calc(env(safe-area-inset-top) + 199px);
+        bottom: calc(env(safe-area-inset-bottom) + 56px);
+        width: calc(100% - 12px);
+      }
+      #menu-screen #song-list { padding-inline: 8px; }
+      #menu-screen .song-card,
+      #menu-screen .song-card:nth-child(even),
+      #menu-screen .song-card.adjacent {
+        min-height: 78px;
+        margin: 10px 4px;
+        padding: 8px 8px;
+        gap: 8px;
+        box-shadow: 5px 5px 0 var(--picker-yellow);
+      }
+      #menu-screen .song-card.centered {
+        min-height: 96px;
+        padding: 10px 8px 10px 98px;
+        box-shadow: 6px 6px 0 var(--picker-white);
+      }
+      #menu-screen .song-card.centered .cover { width: 92px; height: 92px; left: -4px; }
+      #menu-screen .favorite-btn { width: 32px; height: 36px; font-size: 31px; }
+      #menu-screen .song-card .play-btn,
+      #menu-screen .song-card.centered .play-btn {
+        min-width: 70px;
+        padding: 12px 11px 10px;
+        border-width: 2px;
+        box-shadow: 4px 4px 0 var(--picker-yellow);
+      }
+      #menu-screen .song-card .song-meta { margin-top: 5px; }
+      .menu-version { left: 14px; bottom: calc(env(safe-area-inset-bottom) + 12px); font-size: 11px; padding: 5px 9px 4px; }
+      .menu-footer-ribbon { right: -42px; bottom: calc(env(safe-area-inset-bottom) + 2px); min-width: 58vw; padding-block: 10px 8px; }
+    }
+
+    @media (max-width: 390px) {
+      #menu-screen .menu-title-block { width: 55vw; }
+      #menu-screen .menu-title { font-size: 34px; }
+      #menu-screen .menu-tagline { font-size: 8px; }
+      #menu-screen .menu-icon-btn,
+      #menu-screen .theme-toggle { width: 43px; height: 43px; }
+      #menu-screen .song-card .song-name { font-size: 16px; }
+      #menu-screen .song-card .song-meta { font-size: 10px; }
+      #menu-screen .favorite-btn { display: none; }
+      #menu-screen .song-card .play-btn,
+      #menu-screen .song-card.centered .play-btn { min-width: 62px; padding-inline: 8px; font-size: 15px; }
+    }
   </style>
 </head>
 <body>
@@ -1719,20 +2113,35 @@
 
   <!-- 1. SONG LIST -->
   <div class="overlay hidden" id="menu-screen">
+    <div class="menu-deco menu-deco-star"></div>
+    <div class="menu-deco menu-deco-slash"></div>
     <div class="menu-header">
-      <button class="menu-icon-btn" id="menu-home-btn" title="回首頁">⌂</button>
+      <button class="menu-icon-btn" id="menu-home-btn" title="回首頁" aria-label="回首頁">⌂</button>
       <div class="menu-title-block">
-        <div class="menu-title">Down Beat</div>
+        <div class="menu-title">DOWN BEAT</div>
         <div class="menu-tagline">PICK A TRACK</div>
       </div>
-      <button class="menu-icon-btn" id="menu-settings-btn" title="設定">⚙</button>
-      <button class="menu-icon-btn" id="theme-toggle" title="切換深淺色">☾</button>
+      <div class="menu-actions">
+        <button class="menu-icon-btn" id="menu-settings-btn" title="設定" aria-label="設定">⚙</button>
+        <button class="menu-icon-btn theme-toggle" id="theme-toggle" title="切換深淺色" aria-label="切換深淺色">☀</button>
+      </div>
+    </div>
+    <div class="menu-filter-bar">
+      <div class="menu-tabs" role="tablist" aria-label="歌曲分類">
+        <button class="menu-filter-btn active" data-filter="all" role="tab" aria-selected="true">ALL</button>
+        <button class="menu-filter-btn" data-filter="favorites" role="tab" aria-selected="false">FAVORITES</button>
+        <button class="menu-filter-btn" data-filter="recent" role="tab" aria-selected="false">RECENT</button>
+        <button class="menu-filter-btn" data-filter="artist" role="tab" aria-selected="false">ARTIST</button>
+      </div>
+      <div class="menu-song-count" id="menu-song-count">0 SONGS</div>
     </div>
     <div class="song-list-wrapper">
       <div class="picker-fade picker-fade-top"></div>
       <div class="picker-fade picker-fade-bottom"></div>
       <div id="song-list"></div>
     </div>
+    <div class="menu-version" id="menu-version">v0.0.0</div>
+    <div class="menu-footer-ribbon">TAKE YOUR BEAT</div>
   </div>
 
   <!-- 2. SONG DETAIL -->
@@ -1921,7 +2330,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.20.0';   // 改版時更新
+  const VERSION = 'v0.21.0';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -3549,6 +3958,10 @@
   class App {
     constructor() {
       this.songs = [];
+      this.visibleSongs = [];
+      this.menuFilter = 'all';
+      try { this.favoriteSongIds = new Set(JSON.parse(localStorage.getItem('downbeat:favorites')) || []); } catch (e) { this.favoriteSongIds = new Set(); }
+      try { this.recentSongIds = JSON.parse(localStorage.getItem('downbeat:recent')) || []; } catch (e) { this.recentSongIds = []; }
       this.currentSong = null;
       this.selectedDifficulty = 'normal';
       this.game = new Game();
@@ -3641,6 +4054,8 @@
       // 顯示版本號
       const versionEl = document.getElementById('home-version');
       if (versionEl) versionEl.textContent = VERSION;
+      const menuVersionEl = document.getElementById('menu-version');
+      if (menuVersionEl) menuVersionEl.textContent = VERSION;
       // 臨時更新鈕: 清掉 Cache API / service worker (若有), 再帶時間戳重新載入, 繞過瀏覽器快取
       const updateBtn = document.getElementById('home-update-btn');
       if (updateBtn) updateBtn.addEventListener('click', async () => {
@@ -3803,16 +4218,56 @@
       location.reload();
     }
 
+
+    getVisibleSongs() {
+      const songs = [...this.songs];
+      if (this.menuFilter === 'favorites') {
+        return songs.filter(song => this.favoriteSongIds.has(song.id));
+      }
+      if (this.menuFilter === 'recent') {
+        const byId = new Map(songs.map(song => [song.id, song]));
+        return this.recentSongIds.map(id => byId.get(id)).filter(Boolean);
+      }
+      if (this.menuFilter === 'artist') {
+        return songs.sort((a, b) => {
+          const artistCompare = (a.artist || 'Unknown').localeCompare(b.artist || 'Unknown');
+          return artistCompare || (a.title || '').localeCompare(b.title || '');
+        });
+      }
+      return songs;
+    }
+
+    updateMenuMeta() {
+      const countEl = document.getElementById('menu-song-count');
+      if (countEl) countEl.textContent = this.visibleSongs.length + (this.visibleSongs.length === 1 ? ' SONG' : ' SONGS');
+      document.querySelectorAll('.menu-filter-btn').forEach(btn => {
+        const active = btn.dataset.filter === this.menuFilter;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+    }
+
+    toggleFavoriteSong(songId) {
+      if (this.favoriteSongIds.has(songId)) this.favoriteSongIds.delete(songId);
+      else this.favoriteSongIds.add(songId);
+      try { localStorage.setItem('downbeat:favorites', JSON.stringify([...this.favoriteSongIds])); } catch (e) {}
+    }
+
+    rememberRecentSong(songId) {
+      this.recentSongIds = [songId, ...this.recentSongIds.filter(id => id !== songId)].slice(0, 24);
+      try { localStorage.setItem('downbeat:recent', JSON.stringify(this.recentSongIds)); } catch (e) {}
+    }
+
     renderSongList() {
       const container = document.getElementById('song-list');
       container.innerHTML = '';
+      this.visibleSongs = this.getVisibleSongs();
+      this.updateMenuMeta();
 
-      if (this.songs.length === 0) {
+      if (this.visibleSongs.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
-            No songs found.<br><br>
-            Add one with:<br>
-            <code>python3 tools/add_song.py path/to/song.mp3</code>
+            ${this.menuFilter === 'favorites' ? 'NO FAVORITES YET' : this.menuFilter === 'recent' ? 'NO RECENT TRACKS' : 'NO SONGS FOUND'}
           </div>
         `;
         return;
@@ -3825,7 +4280,7 @@
       // 真實的歌只在「中段」, 前後是 clones, 邊界時瞬間跳回中段
       const NUM_COPIES = 3;
       for (let copy = 0; copy < NUM_COPIES; copy++) {
-        for (const song of this.songs) {
+        for (const song of this.visibleSongs) {
           const card = document.createElement('div');
           card.className = 'song-card';
           card.dataset.songId = song.id;
@@ -3871,9 +4326,13 @@
         card.innerHTML = `
           ${coverHtml}
           <div class="song-info" data-action="info">
-            <div class="song-name">${song.title}</div>
+            <div class="song-name">《${song.title}》</div>
             <div class="song-meta">${song.artist || 'Unknown'} · ${bpm} BPM · ${dur}</div>
           </div>
+          <button class="favorite-btn ${this.favoriteSongIds.has(song.id) ? 'is-favorite' : ''}" data-action="favorite"
+                  title="${this.favoriteSongIds.has(song.id) ? '取消收藏' : '加入收藏'}"
+                  aria-label="${this.favoriteSongIds.has(song.id) ? '取消收藏' : '加入收藏'}"
+                  aria-pressed="${this.favoriteSongIds.has(song.id) ? 'true' : 'false'}">${this.favoriteSongIds.has(song.id) ? '♥' : '♡'}</button>
           <button class="play-btn" data-action="play" title="開始遊戲">PLAY</button>
         `;
 
@@ -3882,6 +4341,15 @@
           if (e.target.closest('.yt-link')) return;
           e.stopPropagation();
           this.toggleBgMusic(song);
+        });
+
+        // 收藏按鈕
+        card.querySelector('[data-action="favorite"]').addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleFavoriteSong(song.id);
+          const keepSong = song;
+          this.renderSongList();
+          requestAnimationFrame(() => this.scrollToSong(keepSong, false));
         });
 
         // 點 PLAY 按鈕 → 進入難度頁 (進遊戲的唯一入口)
@@ -3951,7 +4419,7 @@
       const checkLoop = () => {
         const cards = container.querySelectorAll('.song-card');
         const totalCards = cards.length;
-        const songCount = this.songs.length;
+        const songCount = this.visibleSongs.length;
         if (totalCards < songCount * 3) return; // 還沒準備好
 
         const containerH = container.clientHeight;
@@ -4000,7 +4468,7 @@
     scrollToSong(song, smooth = true) {
       // 滾動到「中段」的目標歌曲(因為前後是 clones)
       const container = document.getElementById('song-list');
-      const songCount = this.songs.length;
+      const songCount = this.visibleSongs.length;
       // 找中段的目標卡 (data-copy="1")
       const card = container.querySelector(`[data-song-id="${song.id}"][data-copy="1"]`);
       if (!card) return;
@@ -4089,6 +4557,18 @@
       document.getElementById('home-start-btn').addEventListener('click', () => this.enterSongList());
       document.getElementById('menu-home-btn').addEventListener('click', () => this.showHome());
       document.getElementById('menu-settings-btn').addEventListener('click', () => this.showSettings());
+      document.querySelectorAll('.menu-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.menuFilter = btn.dataset.filter;
+          this._suppressPickerAutoPlay = true;
+          this.renderSongList();
+          requestAnimationFrame(() => {
+            const target = this.visibleSongs.includes(this.lastPlayedSong) ? this.lastPlayedSong : this.visibleSongs[0];
+            if (target) this.scrollToSong(target, false);
+            setTimeout(() => { this._suppressPickerAutoPlay = false; }, 350);
+          });
+        });
+      });
       document.getElementById('settings-back-btn').addEventListener('click', () => this.hideSettings());
       document.getElementById('settings-reset-btn').addEventListener('click', () => {
         if (confirm('確定要重置所有判定設定為預設值？')) this.resetUserSettings();
@@ -4155,6 +4635,7 @@
     }
 
     async selectSong(song) {
+      this.rememberRecentSong(song.id);
       this.currentSong = song;
       document.getElementById('menu-screen').classList.add('hidden');
       document.getElementById('detail-screen').classList.remove('hidden');
