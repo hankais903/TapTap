@@ -2074,6 +2074,444 @@
       #menu-screen .song-card .play-btn,
       #menu-screen .song-card.centered .play-btn { min-width: 62px; padding-inline: 8px; font-size: 15px; }
     }
+
+    /* ============================================
+       SONG DETAIL — 黑黃漫畫難度選擇頁
+       ============================================ */
+    #detail-screen {
+      --detail-ink: #07080b;
+      --detail-paper: #f7f4eb;
+      --detail-yellow: #ffd900;
+      --detail-gray: #a8a8aa;
+      display: block;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0 14px max(78px, env(safe-area-inset-bottom));
+      background: var(--detail-ink);
+      color: var(--detail-paper);
+      isolation: isolate;
+    }
+    #detail-screen::before,
+    #detail-screen.has-bg-image::before,
+    #detail-screen.bg-color-pink::before,
+    #detail-screen.bg-color-blue::before,
+    #detail-screen.bg-color-green::before,
+    #detail-screen.bg-color-coral::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      opacity: 1;
+      filter: none;
+      transform: none;
+      background-image:
+        radial-gradient(circle at 1px 1px, rgba(247,244,235,.24) 1.2px, transparent 1.7px),
+        linear-gradient(158deg, transparent 0 72%, rgba(255,217,0,.22) 72% 75%, transparent 75%),
+        linear-gradient(18deg, transparent 0 86%, var(--detail-yellow) 86% 87%, transparent 87%);
+      background-size: 9px 9px, 100% 100%, 100% 100%;
+      background-color: var(--detail-ink);
+      clip-path: none;
+    }
+    #detail-screen::after {
+      content: '';
+      position: fixed;
+      left: -7%;
+      top: 20px;
+      width: 114%;
+      height: 8px;
+      z-index: -1;
+      background: var(--detail-yellow);
+      border-top: 3px solid var(--detail-ink);
+      border-bottom: 2px solid var(--detail-paper);
+      transform: rotate(-8deg);
+      opacity: 1;
+      pointer-events: none;
+    }
+    #detail-screen > * { position: relative; z-index: 2; }
+
+    #detail-screen .detail-topbar {
+      width: min(100%, 900px);
+      min-height: 76px;
+      margin: 0 auto;
+      padding: max(22px, env(safe-area-inset-top)) 0 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    #detail-screen .detail-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 48px;
+      padding: 8px 4px;
+      border: 0;
+      background: transparent;
+      color: var(--detail-paper);
+      font-family: var(--display);
+      font-size: clamp(20px, 5vw, 32px);
+      letter-spacing: .06em;
+      line-height: 1;
+      cursor: pointer;
+    }
+    #detail-screen .detail-back svg {
+      width: 18px;
+      height: 30px;
+      fill: currentColor;
+    }
+    #detail-screen .detail-brand {
+      min-width: min(47vw, 260px);
+      padding: 9px 16px 8px 42px;
+      color: var(--detail-ink);
+      background: var(--detail-yellow);
+      box-shadow: 7px 7px 0 rgba(0,0,0,.78);
+      clip-path: polygon(18% 0, 100% 0, 100% 100%, 10% 100%);
+      text-align: right;
+      transform: rotate(-3deg) translateX(18px);
+    }
+    #detail-screen .detail-brand strong {
+      display: block;
+      font-family: var(--display);
+      font-size: clamp(23px, 5.8vw, 40px);
+      line-height: .92;
+      letter-spacing: .035em;
+      white-space: nowrap;
+    }
+    #detail-screen .detail-brand span {
+      display: block;
+      margin-top: 5px;
+      font-family: var(--display);
+      font-size: clamp(7px, 1.7vw, 12px);
+      letter-spacing: .28em;
+      white-space: nowrap;
+    }
+
+    #detail-screen .detail-bolt {
+      position: absolute;
+      z-index: 0;
+      width: clamp(90px, 24vw, 180px);
+      height: clamp(150px, 35vw, 270px);
+      background: rgba(255,217,0,.48);
+      clip-path: polygon(49% 0, 100% 0, 64% 39%, 95% 39%, 12% 100%, 37% 54%, 0 54%);
+      pointer-events: none;
+    }
+    #detail-screen .detail-bolt-a { left: 7%; top: 135px; transform: rotate(14deg); }
+    #detail-screen .detail-bolt-b { right: 5%; top: 210px; transform: rotate(-18deg) scale(.75); opacity: .65; }
+
+    #detail-screen .detail-slogan {
+      position: absolute;
+      left: max(8px, calc(50% - 390px));
+      top: 178px;
+      z-index: 3;
+      width: 92px;
+      color: var(--detail-yellow);
+      font-family: var(--display);
+      font-size: clamp(14px, 3.2vw, 24px);
+      font-style: italic;
+      line-height: .92;
+      letter-spacing: .01em;
+      text-align: center;
+      transform: rotate(-8deg);
+      text-shadow: 2px 2px 0 var(--detail-ink);
+    }
+    #detail-screen .detail-note {
+      position: absolute;
+      right: max(7px, calc(50% - 390px));
+      top: 250px;
+      z-index: 3;
+      width: 88px;
+      padding: 10px 7px;
+      color: var(--detail-ink);
+      background: var(--detail-paper);
+      clip-path: polygon(5% 3%, 96% 0, 100% 91%, 12% 100%, 0 15%);
+      font-family: var(--display);
+      font-size: clamp(12px, 2.8vw, 20px);
+      line-height: .94;
+      text-align: center;
+      transform: rotate(-7deg);
+      box-shadow: 5px 5px 0 rgba(255,217,0,.7);
+    }
+
+    #detail-screen .detail-content {
+      width: min(100%, 760px);
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 8px 0 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #detail-screen .detail-cover-wrapper {
+      width: clamp(245px, 62vw, 430px);
+      height: clamp(245px, 62vw, 430px);
+      margin: 2px auto 18px;
+      filter: drop-shadow(0 8px 0 rgba(0,0,0,.68));
+    }
+    #detail-screen .detail-cover {
+      width: 100%;
+      height: 100%;
+      border: 4px solid var(--detail-paper);
+      background: var(--detail-paper);
+      box-shadow: inset 0 0 0 3px var(--detail-ink), 0 0 0 3px var(--detail-ink);
+      font-size: clamp(72px, 17vw, 120px);
+      animation: spin-cd 8s linear infinite;
+    }
+    #detail-screen .detail-cover-wrapper::before {
+      inset: -6px;
+      width: auto;
+      height: auto;
+      border: 3px solid var(--detail-paper);
+      box-shadow: 0 0 0 3px var(--detail-ink);
+    }
+    #detail-screen .detail-cover-wrapper::after {
+      width: calc(24% - 1px);
+      height: calc(24% - 1px);
+      border: 3px solid var(--detail-paper);
+      box-shadow: 0 0 0 2px var(--detail-ink);
+    }
+
+    #detail-screen .detail-title-card {
+      width: calc(100% - 24px);
+      margin: 0 auto 22px;
+      padding: 15px 24px 13px;
+      color: var(--detail-ink);
+      background: var(--detail-paper);
+      box-shadow: 9px 9px 0 var(--detail-yellow);
+      clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%);
+      text-align: center;
+      transform: rotate(-1deg);
+    }
+    #detail-screen .detail-name {
+      display: block;
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      color: var(--detail-ink);
+      background: transparent;
+      box-shadow: none;
+      font-family: var(--display);
+      font-size: clamp(28px, 7vw, 48px);
+      letter-spacing: .02em;
+      line-height: 1.05;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      transform: none;
+    }
+    #detail-screen .detail-meta-text {
+      margin: 7px 0 0;
+      color: var(--detail-ink);
+      font-size: clamp(14px, 3.4vw, 22px);
+      letter-spacing: .04em;
+    }
+
+    #detail-screen .detail-difficulty-heading {
+      width: 100%;
+      margin: 0 0 13px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    #detail-screen .detail-difficulty-heading::before,
+    #detail-screen .detail-difficulty-heading::after {
+      content: '';
+      flex: 1;
+      height: 3px;
+      background: var(--detail-paper);
+      transform: rotate(-2deg);
+    }
+    #detail-screen .detail-difficulty-heading::after { transform: rotate(2deg); }
+    #detail-screen .difficulty-label {
+      flex: 0 0 auto;
+      margin: 0;
+      padding: 8px 22px 7px;
+      color: var(--detail-ink);
+      background: var(--detail-yellow);
+      clip-path: polygon(3% 8%, 98% 0, 95% 28%, 100% 50%, 95% 74%, 98% 100%, 2% 93%, 6% 70%, 0 48%, 5% 26%);
+      font-family: var(--display);
+      font-size: clamp(17px, 4vw, 26px);
+      letter-spacing: .04em;
+      line-height: 1;
+    }
+
+    #detail-screen .difficulty-options {
+      width: 100%;
+      max-width: none;
+      margin: 0 0 24px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    #detail-screen .diff-btn,
+    #detail-screen .diff-btn:nth-child(odd),
+    #detail-screen .diff-btn:nth-child(even) {
+      min-height: 104px;
+      padding: 14px 10px 12px;
+      border: 3px solid var(--detail-paper);
+      border-radius: 0;
+      background:
+        radial-gradient(circle at 1px 1px, rgba(247,244,235,.10) 1px, transparent 1.3px),
+        rgba(9,10,14,.97);
+      background-size: 8px 8px;
+      color: var(--detail-paper);
+      box-shadow: 7px 7px 0 var(--detail-yellow);
+      transform: skew(-2deg);
+      transition: transform .12s, background .12s, color .12s;
+    }
+    #detail-screen .diff-btn:nth-child(even) { transform: skew(2deg); }
+    #detail-screen .diff-btn:active { transform: translate(3px,3px); }
+    #detail-screen .diff-btn.selected,
+    #detail-screen .diff-btn.selected[data-diff],
+    [data-theme="light"] #detail-screen .diff-btn.selected {
+      border-color: var(--detail-paper);
+      background:
+        radial-gradient(circle at 1px 1px, rgba(255,255,255,.22) 1px, transparent 1.5px),
+        var(--detail-yellow);
+      background-size: 9px 9px;
+      color: var(--detail-ink);
+      box-shadow: 7px 7px 0 var(--detail-paper);
+    }
+    #detail-screen .diff-btn .diff-name,
+    #detail-screen .diff-btn[data-diff] .diff-name,
+    #detail-screen .diff-btn.selected[data-diff] .diff-name,
+    [data-theme="light"] #detail-screen .diff-btn.selected[data-diff] .diff-name {
+      color: inherit;
+      font-family: var(--display);
+      font-size: clamp(25px, 6vw, 39px);
+      letter-spacing: .04em;
+      line-height: 1;
+    }
+    #detail-screen .diff-btn .diff-meta {
+      margin-top: 8px;
+      color: var(--detail-gray);
+      font-family: 'Quicksand', sans-serif;
+      font-size: clamp(11px, 2.7vw, 16px);
+      line-height: 1.25;
+      white-space: pre-line;
+    }
+    #detail-screen .diff-btn.selected .diff-meta { color: var(--detail-ink); }
+    #detail-screen .diff-btn:disabled { opacity: .38; }
+
+    #detail-screen .start-button {
+      width: calc(100% - 28px);
+      max-width: none;
+      min-height: 102px;
+      margin: 0 auto 22px;
+      padding: 15px 20px 11px;
+      border: 4px solid var(--detail-paper);
+      border-radius: 0;
+      color: var(--detail-ink);
+      background:
+        radial-gradient(circle at 1px 1px, rgba(255,255,255,.28) 1.2px, transparent 1.7px),
+        var(--detail-yellow);
+      background-size: 10px 10px;
+      box-shadow: 9px 9px 0 var(--detail-paper), 15px 15px 0 var(--detail-yellow);
+      clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%);
+      filter: none;
+      transform: rotate(-1deg);
+      font-family: var(--display);
+      font-size: clamp(48px, 12vw, 76px);
+      letter-spacing: .07em;
+      line-height: 1;
+    }
+    #detail-screen .start-button:active { transform: rotate(-1deg) translate(5px,5px); }
+    #detail-screen .start-button:disabled {
+      color: rgba(7,8,11,.55);
+      opacity: .72;
+      filter: none;
+    }
+    #detail-screen .detail-calib-hint {
+      width: calc(100% - 30px);
+      margin: -8px auto 15px;
+      border: 2px dashed var(--detail-yellow);
+      border-radius: 0;
+      background: rgba(7,8,11,.88);
+      color: var(--detail-paper);
+    }
+    #detail-screen .key-hints {
+      margin: 0 0 10px;
+      display: flex;
+      gap: 14px;
+    }
+    #detail-screen .key {
+      width: clamp(52px, 13vw, 76px);
+      height: clamp(58px, 14vw, 82px);
+      border: 3px solid var(--detail-paper);
+      border-radius: 0;
+      color: var(--detail-paper);
+      background: rgba(10,11,15,.98);
+      box-shadow: 6px 6px 0 var(--detail-yellow);
+      font-family: var(--display);
+      font-size: clamp(24px, 6vw, 38px);
+    }
+    #detail-screen .loading-text {
+      min-height: 20px;
+      color: var(--detail-paper);
+      font-size: 12px;
+    }
+    #detail-screen .detail-version {
+      position: fixed;
+      left: 14px;
+      bottom: max(14px, env(safe-area-inset-bottom));
+      z-index: 5;
+      padding: 6px 11px 5px;
+      border: 3px solid var(--detail-paper);
+      color: var(--detail-paper);
+      background: var(--detail-ink);
+      box-shadow: 4px 4px 0 rgba(0,0,0,.8);
+      font-family: var(--display);
+      font-size: 12px;
+      letter-spacing: .1em;
+      transform: rotate(-4deg);
+    }
+    #detail-screen .detail-footer-note {
+      position: fixed;
+      right: 13px;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      z-index: 5;
+      width: 74px;
+      color: rgba(247,244,235,.7);
+      font-family: var(--display);
+      font-size: 16px;
+      font-style: italic;
+      line-height: .9;
+      text-align: center;
+      transform: rotate(-9deg);
+    }
+    #detail-screen .detail-footer-note::after {
+      content: '';
+      display: block;
+      width: 54px;
+      height: 5px;
+      margin: 7px auto 0;
+      background: var(--detail-yellow);
+      transform: rotate(-11deg);
+    }
+
+    @media (max-width: 620px) {
+      #detail-screen { padding-inline: 10px; }
+      #detail-screen .detail-topbar { min-height: 70px; padding-top: max(17px, env(safe-area-inset-top)); }
+      #detail-screen .detail-brand { min-width: 47vw; padding: 8px 10px 7px 34px; transform: rotate(-3deg) translateX(15px); }
+      #detail-screen .detail-content { padding-top: 4px; }
+      #detail-screen .detail-cover-wrapper { width: clamp(238px, 62vw, 300px); height: clamp(238px, 62vw, 300px); }
+      #detail-screen .detail-slogan { left: 4px; top: 160px; width: 76px; }
+      #detail-screen .detail-note { right: 2px; top: 235px; width: 72px; padding: 8px 4px; }
+      #detail-screen .detail-title-card { width: calc(100% - 18px); padding-inline: 18px; }
+      #detail-screen .difficulty-options { gap: 10px; }
+      #detail-screen .diff-btn,
+      #detail-screen .diff-btn:nth-child(odd),
+      #detail-screen .diff-btn:nth-child(even) { min-height: 96px; padding-inline: 6px; box-shadow: 5px 5px 0 var(--detail-yellow); }
+      #detail-screen .diff-btn.selected { box-shadow: 5px 5px 0 var(--detail-paper); }
+      #detail-screen .start-button { min-height: 91px; box-shadow: 7px 7px 0 var(--detail-paper), 12px 12px 0 var(--detail-yellow); }
+    }
+    @media (max-width: 370px) {
+      #detail-screen .detail-brand span { letter-spacing: .18em; }
+      #detail-screen .detail-slogan,
+      #detail-screen .detail-note { display: none; }
+      #detail-screen .detail-cover-wrapper { width: 230px; height: 230px; }
+      #detail-screen .diff-btn .diff-meta { font-size: 10px; }
+      #detail-screen .key-hints { gap: 9px; }
+    }
   </style>
 </head>
 <body>
@@ -2162,14 +2600,31 @@
 
   <!-- 2. SONG DETAIL -->
   <div class="overlay hidden" id="detail-screen">
-    <button class="detail-back" id="back-btn">‹ Songs</button>
+    <div class="detail-topbar">
+      <button class="detail-back" id="back-btn" aria-label="返回歌曲列表">
+        <svg viewBox="0 0 16 28" aria-hidden="true"><path d="M15 2 5 14l10 12H8L0 14 8 2z"></path></svg>
+        <span>SONGS</span>
+      </button>
+      <div class="detail-brand">
+        <strong>DOWN BEAT</strong>
+        <span>TAKE YOUR BEAT</span>
+      </div>
+    </div>
+    <div class="detail-bolt detail-bolt-a"></div>
+    <div class="detail-bolt detail-bolt-b"></div>
+    <div class="detail-slogan">MUSIC<br>CONNECTS<br>US</div>
+    <div class="detail-note">GOOD<br>MUSIC<br>BETTER<br>YOU</div>
     <div class="detail-content">
       <div class="detail-cover-wrapper">
         <div class="detail-cover" id="detail-cover">♪</div>
       </div>
-      <div class="detail-name" id="detail-name">—</div>
-      <div class="detail-meta-text" id="detail-meta">—</div>
-      <div class="difficulty-label">Select Difficulty</div>
+      <div class="detail-title-card">
+        <div class="detail-name" id="detail-name">—</div>
+        <div class="detail-meta-text" id="detail-meta">—</div>
+      </div>
+      <div class="detail-difficulty-heading">
+        <div class="difficulty-label">SELECT DIFFICULTY</div>
+      </div>
       <div class="difficulty-options" id="difficulty-options">
         <button class="diff-btn" data-diff="easy">
           <span class="diff-name">EASY</span>
@@ -2190,12 +2645,14 @@
       </div>
       <button class="start-button" id="start-btn" disabled>START</button>
       <button class="detail-calib-hint hidden" id="detail-calib-hint">⏱ 音符對不到拍？先做 15 秒延遲校正</button>
-      <div class="key-hints">
+      <div class="key-hints" aria-label="操作按鍵">
         <div class="key">D</div><div class="key">F</div>
         <div class="key">J</div><div class="key">K</div>
       </div>
       <div class="loading-text" id="loading-text"></div>
     </div>
+    <div class="detail-version" id="detail-version">v0.0.0</div>
+    <div class="detail-footer-note">PLAY<br>MORE<br>BEATS</div>
   </div>
 
   <!-- 3. RESULTS -->
@@ -2346,7 +2803,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.21.1';   // 改版時更新
+  const VERSION = 'v0.22.0';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -4072,6 +4529,8 @@
       if (versionEl) versionEl.textContent = VERSION;
       const menuVersionEl = document.getElementById('menu-version');
       if (menuVersionEl) menuVersionEl.textContent = VERSION;
+      const detailVersionEl = document.getElementById('detail-version');
+      if (detailVersionEl) detailVersionEl.textContent = VERSION;
       // 臨時更新鈕: 清掉 Cache API / service worker (若有), 再帶時間戳重新載入, 繞過瀏覽器快取
       const updateBtn = document.getElementById('home-update-btn');
       if (updateBtn) updateBtn.addEventListener('click', async () => {
@@ -4674,7 +5133,7 @@
       this.currentSong = song;
       document.getElementById('menu-screen').classList.add('hidden');
       document.getElementById('detail-screen').classList.remove('hidden');
-      document.getElementById('detail-name').textContent = song.title;
+      document.getElementById('detail-name').textContent = this.formatSongTitle(song.title);
       const dur = `${Math.floor(song.duration / 60)}:${String(Math.floor(song.duration % 60)).padStart(2, '0')}`;
       document.getElementById('detail-meta').textContent = `${song.artist || 'Unknown'} · ${Math.round(song.bpm)} BPM · ${dur}`;
 
@@ -4736,7 +5195,7 @@
           const playSecs = Math.max(1, song.duration - CONFIG.introDelay);
           const nps = (playable / playSecs).toFixed(1);
           const hi = Highscore.get(song.id, diff);
-          const hiText = hi ? ` · best ${String(hi).padStart(6,'0')}` : '';
+          const hiText = hi ? `\nbest ${String(hi).padStart(6,'0')}` : '';
           document.getElementById(`meta-${diff}`).textContent = `${playable} notes · ${nps}/s${hiText}`;
         }
         if (!this.game.allCharts[this.selectedDifficulty]) {
