@@ -680,18 +680,24 @@
       pointer-events: none;
     }
 
-    /* 播放中：CD 旋轉 */
+    /* 播放中：旋轉完整 CD 本體（封面、唱片孔一起轉） */
+    .song-card.playing:not(.centered) .cover {
+      animation: spin-cd 4s linear infinite;
+    }
+    .song-card.playing.centered .cover {
+      animation: spin-cd-centered 4s linear infinite;
+    }
     .song-card.playing .cover-thumb,
     .song-card.playing .cover-icon {
-      animation: spin-cd 4s linear infinite;
+      animation: none;
     }
     @keyframes spin-cd {
       from { transform: rotate(0deg); }
       to   { transform: rotate(360deg); }
     }
-    /* 沒在播時取消舊的 pulse */
-    .song-card.playing .cover {
-      animation: none;
+    @keyframes spin-cd-centered {
+      from { transform: translateY(-50%) rotate(0deg); }
+      to   { transform: translateY(-50%) rotate(360deg); }
     }
     @keyframes pulse {
       0%, 100% { transform: scale(1); }
@@ -1814,7 +1820,13 @@
     #menu-screen .menu-icon-btn:active,
     #menu-screen .theme-toggle:active { transform: rotate(-4deg) translate(4px,4px); box-shadow: 3px 3px 0 var(--picker-yellow); }
     #menu-screen .menu-actions .theme-toggle:active { transform: rotate(4deg) translate(4px,4px); }
-    #menu-home-btn { font-size: clamp(28px, 5vw, 40px) !important; }
+    #menu-home-btn { font-size: 0 !important; }
+    #menu-home-btn svg {
+      display: block;
+      width: 64%;
+      height: 64%;
+      fill: currentColor;
+    }
 
     .menu-filter-bar {
       position: absolute !important;
@@ -2006,9 +2018,9 @@
         height: 130px;
         padding: 16px 13px;
       }
-      #menu-screen .menu-title-block { width: min(57vw, 300px); top: 4px; }
-      #menu-screen .menu-title { font-size: clamp(36px, 10vw, 52px); padding-inline: 8px; }
-      #menu-screen .menu-tagline { padding: 6px 18px 5px; letter-spacing: .32em; }
+      #menu-screen .menu-title-block { width: min(40vw, 250px); top: 6px; }
+      #menu-screen .menu-title { font-size: clamp(26px, 8vw, 44px); padding-inline: 6px; }
+      #menu-screen .menu-tagline { padding: 6px 10px 5px; font-size: clamp(7px, 1.7vw, 11px); letter-spacing: .22em; }
       #menu-screen .menu-actions { gap: 8px; }
       #menu-screen .menu-icon-btn,
       #menu-screen .theme-toggle { width: 48px; height: 48px; font-size: 24px; box-shadow: 5px 5px 0 var(--picker-yellow); }
@@ -2051,9 +2063,9 @@
     }
 
     @media (max-width: 390px) {
-      #menu-screen .menu-title-block { width: 55vw; }
-      #menu-screen .menu-title { font-size: 34px; }
-      #menu-screen .menu-tagline { font-size: 8px; }
+      #menu-screen .menu-title-block { width: 40vw; }
+      #menu-screen .menu-title { font-size: clamp(26px, 8vw, 31px); }
+      #menu-screen .menu-tagline { padding-inline: 8px; font-size: 7px; letter-spacing: .18em; }
       #menu-screen .menu-icon-btn,
       #menu-screen .theme-toggle { width: 43px; height: 43px; }
       #menu-screen .song-card .song-name { font-size: 16px; }
@@ -2116,7 +2128,11 @@
     <div class="menu-deco menu-deco-star"></div>
     <div class="menu-deco menu-deco-slash"></div>
     <div class="menu-header">
-      <button class="menu-icon-btn" id="menu-home-btn" title="回首頁" aria-label="回首頁">⌂</button>
+      <button class="menu-icon-btn" id="menu-home-btn" title="回首頁" aria-label="回首頁">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M3 10.4 12 3l9 7.4v10.1h-5.7v-6.2H8.7v6.2H3z"></path>
+        </svg>
+      </button>
       <div class="menu-title-block">
         <div class="menu-title">DOWN BEAT</div>
         <div class="menu-tagline">PICK A TRACK</div>
@@ -2330,7 +2346,7 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const VERSION = 'v0.21.0';   // 改版時更新
+  const VERSION = 'v0.21.1';   // 改版時更新
   const CONFIG = {
     lanes: 4,
     laneKeys: ['d', 'f', 'j', 'k'],
@@ -4281,10 +4297,10 @@
       const coverColors = ['color-pink', 'color-blue', 'color-green', 'color-coral'];
       const coverIcons = ['♪', '♫', '✿', '☾', '☆', '♡'];
 
-      // 渲染 3 份 (前/中/後) 達成無限循環滑動
-      // 真實的歌只在「中段」, 前後是 clones, 邊界時瞬間跳回中段
-      const NUM_COPIES = 3;
-      for (let copy = 0; copy < NUM_COPIES; copy++) {
+      // ALL 保留前/中/後三段無限循環；篩選結果每首只顯示一次。
+      // 非 ALL 使用 copy=1，讓既有 scrollToSong 邏輯仍能正確置中。
+      const copies = this.menuFilter === 'all' ? [0, 1, 2] : [1];
+      for (const copy of copies) {
         for (const song of this.visibleSongs) {
           const card = document.createElement('div');
           card.className = 'song-card';
@@ -4491,9 +4507,19 @@
     async toggleBgMusic(song) {
       this.lastPlayedSong = song;
       const url = `songs/${song.id}/${song.audio}`;
+      const wasPlaying = this.bgMusic.isPlaying(url);
+
+      // 音檔載入期間就先讓 CD 開始轉，避免網路較慢時看起來沒有反應。
+      if (!wasPlaying) this.refreshPlayingHighlight(url);
+
       try {
-        await this.bgMusic.play(url);
+        const didStart = await this.bgMusic.play(url);
+        if (!didStart) {
+          const currentUrl = this.bgMusic.getCurrentUrl();
+          this.refreshPlayingHighlight(currentUrl && this.bgMusic.isPlaying(currentUrl) ? currentUrl : null);
+        }
       } catch (e) {
+        this.refreshPlayingHighlight(null);
         console.warn('BG music error:', e);
       }
       // 預先抓相鄰幾首歌, 讓用戶快速滑動時不用等
